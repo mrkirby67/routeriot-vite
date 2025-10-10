@@ -1,0 +1,28 @@
+/* File: /public/components/Broadcast/Broadcast.module.css */
+
+.controlSection {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.broadcastBox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.logBox {
+    background-color: #000;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 15px;
+    height: 200px;
+    overflow-y: scroll;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+    color: #03dac6;
+}

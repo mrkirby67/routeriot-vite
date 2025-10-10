@@ -1,0 +1,28 @@
+/* File: /public/components/TeamLinks/TeamLinks.module.css */
+
+.controlSection {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.dataTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.dataTable th,
+.dataTable td {
+    border: 1px solid #333;
+    padding: 12px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.dataTable th {
+    background-color: #333;
+    color: #bb86fc;
+}
