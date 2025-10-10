@@ -1,9 +1,7 @@
-// File: /public/components/GameControls/GameControls.js
-import styles from './GameControls.module.css'; // <-- 1. Import the CSS module
+import styles from './GameControls.module.css';
 
 function GameControlsComponent() {
     const componentHtml = `
-        //  2. Use the imported styles on each class name
         <div class="${styles.controlSection}">
             <h2>Game Controls & Setup</h2>
             <div class="${styles.gameControls}">
@@ -22,7 +20,7 @@ function GameControlsComponent() {
                 <label for="game-duration">Game Duration (minutes):</label>
                 <input type="number" id="game-duration" value="120">
                 <div class="${styles.liveTimer}">
-                    <strong>Live Timer:</strong> <span id="timer-display">00:00:00</span>
+                    <strong>Live Timer:</strong> <span id="timer-display">--:--:--</span>
                 </div>
             </div>
         </div>
@@ -31,5 +29,3 @@ function GameControlsComponent() {
 }
 
 export default GameControlsComponent;
-
-/* ... (Your original reference code remains here) ... */

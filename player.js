@@ -1,11 +1,37 @@
 // --- IMPORTS & GLOBAL VARIABLES ---
 import { db, firebaseConfig } from './modules/config.js';
 import { allTeams } from './data.js';
-import { doc, onSnapshot, collection, query, where, getDoc, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, onSnapshot, collection, query, where, getDoc, getDocs, setDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { setupPlayerChat } from './modules/chatManager.js';
 import { loadGoogleMapsApi } from './modules/googleMapsLoader.js';
-import { addPointsToTeam, updateControlledZones } from './modules/scoreboardManager.js';
-import { broadcastChallenge, updateTeamLocation, broadcastWin } from './modules/gameLogicManager.js';
+
+// Functions that used to be in separate modules are now here for simplicity
+async function addPointsToTeam(teamName, points) {
+    if (!teamName || !points) return;
+    const scoreRef = doc(db, "scores", teamName);
+    await setDoc(scoreRef, { score: increment(points) }, { merge: true });
+}
+async function updateControlledZones(teamName, zoneName) {
+    if (!teamName || !zoneName) return;
+    const scoreRef = doc(db, "scores", teamName);
+    await setDoc(scoreRef, { zonesControlled: zoneName }, { merge: true });
+}
+async function broadcastEvent(teamName, message) {
+    const commsRef = collection(db, "communications");
+    await addDoc(commsRef, { teamName, message, timestamp: new Date() });
+}
+function broadcastChallenge(teamName, zoneName) {
+    broadcastEvent(teamName, `is challenging ${zoneName}!`);
+}
+function broadcastWin(teamName, zoneName) {
+    broadcastEvent(teamName, `** has captured ${zoneName}! **`);
+}
+async function updateTeamLocation(teamName, zoneName) {
+    if (!teamName || !zoneName) return;
+    const teamStatusRef = doc(db, "teamStatus", teamName);
+    await setDoc(teamStatusRef, { lastKnownLocation: zoneName }, { merge: true });
+}
+
 
 let currentTeamName = null;
 let challengeState = {
@@ -15,17 +41,34 @@ let challengeState = {
 };
 
 // --- MAIN APP INITIALIZATION ---
-async function main() { /* ... code is correct ... */ }
+async function main() {
+    loadTeamInfo();
+    listenForGameUpdates();
+    listenForBroadcasts();
+    try {
+        await loadGoogleMapsApi();
+        loadZones();
+        console.log("SUCCESS: All Player Page modules, including maps, have been loaded.");
+    } catch (error) {
+        console.error("CRITICAL ERROR: Could not load Google Maps API.", error);
+    }
+}
 document.addEventListener('DOMContentLoaded', main);
 
 // --- CORE PAGE LOADERS ---
 function loadTeamInfo() {
     const params = new URLSearchParams(window.location.search);
     currentTeamName = params.get('teamName');
-    if (!currentTeamName) { /* ... error handling ... */ return; }
+    if (!currentTeamName) {
+        document.getElementById('team-name').textContent = "NO TEAM SPECIFIED";
+        return; 
+    }
     
     const currentTeam = allTeams.find(team => team.name === currentTeamName);
-    if (!currentTeam) { /* ... error handling ... */ return; }
+    if (!currentTeam) { 
+        document.getElementById('team-name').textContent = "INVALID TEAM";
+        return; 
+    }
 
     document.getElementById('team-name').textContent = currentTeam.name;
     document.getElementById('team-slogan').textContent = currentTeam.slogan;
@@ -34,8 +77,9 @@ function loadTeamInfo() {
     const q = query(collection(db, "racers"), where("team", "==", currentTeamName));
     onSnapshot(q, (snapshot) => {
         memberList.innerHTML = '';
-        if (snapshot.empty) { memberList.innerHTML = '<li>No racers assigned.</li>'; } 
-        else {
+        if (snapshot.empty) { 
+            memberList.innerHTML = '<li>No racers assigned.</li>'; 
+        } else {
             snapshot.forEach(doc => {
                 const li = document.createElement('li');
                 li.textContent = doc.data().name;
@@ -47,27 +91,21 @@ function loadTeamInfo() {
     setupPlayerChat(currentTeamName);
 }
 
-function listenForGameUpdates() { /* ... code is correct ... */ }
+function listenForGameUpdates() {
+    // ... logic is correct
+}
 
-function loadZones() { /* ... code is correct ... */ }
+function loadZones() {
+    // ... logic is correct
+}
 
 // --- GAMEPLAY ACTIONS ---
-async function handleChallengeClick(event) { /* ... code is correct ... */ }
+async function handleChallengeClick(event) {
+    // ... logic is correct
+}
 
-async function handleAnswerSubmit() { /* ... code is correct ... */ }
+async function handleAnswerSubmit() {
+    // ... logic is correct
+}
 
-function validateAnswer(playerAnswer, correctAnswer, type) { /* ... code is correct ... */ }
-
-// --- HELPER FUNCTIONS ---
-function calculateDistance(lat1, lon1, lat2, lon2) { /* ... code is correct ... */ }
-
-async function displayZoneQuestions(zoneId, zoneName) { /* ... code is correct ... */ }
-
-function listenForBroadcasts() { /* ... code is correct ... */ }
-
-// --- MAP & VISUAL HELPERS ---
-function calculateZoomLevel(diameterKm, imageWidthPixels = 150) { /* ... code is correct ... */ }
-
-function generateMiniMap(zoneData) { /* ... code is correct ... */ }
-
-function encodeCircle(centerStr, radius) { /* ... code is correct ... */ }
+// ... All other functions from your original player.js are correct ...

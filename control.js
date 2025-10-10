@@ -42,16 +42,43 @@ function initializeScoreboardListener() {
 }
 
 function initializeGameControlsLogic() {
+    const timerDisplay = document.getElementById('timer-display');
     const startBtn = document.getElementById('start-btn');
     const pauseBtn = document.getElementById('pause-btn');
     const endBtn = document.getElementById('end-btn');
     const resetBtn = document.getElementById('reset-game-btn');
     const randomizeBtn = document.getElementById('randomize-btn');
     const sendBtn = document.getElementById('send-links-btn');
+    let gameTimerInterval;
 
+    // Live timer listener
+    onSnapshot(doc(db, "game", "gameState"), (docSnap) => {
+        if (gameTimerInterval) clearInterval(gameTimerInterval);
+        const gameState = docSnap.data();
+        if (gameState && gameState.status === 'active' && gameState.endTime) {
+            gameTimerInterval = setInterval(() => {
+                const now = Date.now();
+                const remaining = gameState.endTime - now;
+                if (remaining <= 0) {
+                    timerDisplay.textContent = "00:00:00";
+                    clearInterval(gameTimerInterval);
+                } else {
+                    const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
+                    const minutes = Math.floor((remaining / 1000 / 60) % 60);
+                    const seconds = Math.floor((remaining / 1000) % 60);
+                    timerDisplay.textContent = 
+                        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+            }, 1000);
+        } else {
+            timerDisplay.textContent = "--:--:--";
+        }
+    });
+
+    // Button event listeners
     startBtn.addEventListener('click', async () => {
         const durationMinutes = document.getElementById('game-duration').value || 120;
-        const endTime = Date.now() + durationMinutes * 60 * 1000;
+        const endTime = Date.now() + (durationMinutes * 60 * 1000);
         await setDoc(doc(db, "game", "gameState"), { status: 'active', endTime: endTime });
         alert('Game Started!');
     });
@@ -65,11 +92,24 @@ function initializeGameControlsLogic() {
         await setDoc(doc(db, "game", "gameState"), { status: 'finished' }, { merge: true });
         alert('Game Ended!');
     });
-
+    
     resetBtn.addEventListener('click', async () => {
-        if (confirm("Are you sure you want to reset ALL game data? This cannot be undone.")) {
-            await setDoc(doc(db, "game", "gameState"), { status: 'not started', endTime: 0 });
-            alert('Game state has been reset.');
+        if (confirm("Are you sure? This will reset game state, scores, and racer teams.")) {
+            const batch = writeBatch(db);
+            batch.set(doc(db, "game", "gameState"), { status: 'not started' });
+            
+            const racersSnapshot = await getDocs(collection(db, "racers"));
+            racersSnapshot.forEach(racerDoc => {
+                batch.update(racerDoc.ref, { team: '-' });
+            });
+
+            const scoresSnapshot = await getDocs(collection(db, "scores"));
+            scoresSnapshot.forEach(scoreDoc => {
+                batch.delete(scoreDoc.ref);
+            });
+
+            await batch.commit();
+            alert('Game has been reset.');
         }
     });
 
@@ -97,7 +137,7 @@ function initializeGameControlsLogic() {
         await batch.commit();
         alert("Teams have been randomized!");
     });
-    
+
     sendBtn.addEventListener('click', () => {
         alert("Racers informed! Check the console for team rosters.");
     });
@@ -192,9 +232,7 @@ function initializeZoneManagementLogic() {
 function initializeQuestionManagementLogic() {
     const questionsAccordion = document.getElementById('zone-questions-accordion');
     if (!questionsAccordion) return;
-
-    // This logic would dynamically build the accordion based on zone data.
-    // For now, it just sets up a listener for any editable content inside it.
+    
     async function saveZoneQuestionData(event) {
         const cell = event.target;
         if (!cell.isContentEditable) return;
@@ -217,8 +255,7 @@ function initializeQuestionManagementLogic() {
 }
 
 function initializeGameChallengesLogic() {
-    // --- LOGIC RESTORED ---
-    const table = document.querySelector('.game-wide-challenges-table'); // Note: This class is in GameChallengesComponent.js
+    const table = document.querySelector('.game-wide-challenges-table');
     if (!table) return;
 
     table.addEventListener('blur', async (event) => {
@@ -229,7 +266,6 @@ function initializeGameChallengesLogic() {
         const challengeId = row.dataset.questionId;
         if (!challengeId) return;
 
-        // Note: cellIndex is offset by 1 because the first cell isn't editable
         const fields = ['challengeType', 'question', 'answer', 'type']; 
         const field = fields[cell.cellIndex];
         if (!field || field === 'challengeType') return;
@@ -243,7 +279,6 @@ function initializeGameChallengesLogic() {
 }
 
 function initializeBroadcastLogic() {
-    // --- LOGIC RESTORED ---
     const broadcastBtn = document.getElementById('broadcast-btn');
     const broadcastInput = document.getElementById('broadcast-message');
     if (!broadcastBtn || !broadcastInput) return;
@@ -292,3 +327,4 @@ async function main() {
 }
 
 document.addEventListener('DOMContentLoaded', main);
+
