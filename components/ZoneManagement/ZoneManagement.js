@@ -1,9 +1,7 @@
-// File: /public/components/ZoneManagement/ZoneManagement.js
-import styles from './ZoneManagement.module.css'; // <-- 1. Imports the stylesheet
+import styles from './ZoneManagement.module.css';
 
 function ZoneManagementComponent() {
     const componentHtml = `
-        // 2. Uses the imported styles
         <div class="${styles.controlSection}">
             <h2>Zone Management</h2>
             <div class="${styles.cooldownSetup}">
@@ -28,7 +26,7 @@ function ZoneManagementComponent() {
                     </tr>
                 </thead>
                 <tbody id="zones-table-body">
-                    </tbody>
+                </tbody>
             </table>
         </div>
     `;
@@ -36,5 +34,3 @@ function ZoneManagementComponent() {
 }
 
 export default ZoneManagementComponent;
-
-/* ... (Your original reference code remains here) ... */

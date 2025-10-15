@@ -1,6 +1,5 @@
-// File: /public/components/TeamLinks/TeamLinks.js
 import { allTeams } from '../../data.js';
-import styles from './TeamLinks.module.css'; // <-- 1. Imports the stylesheet
+import styles from './TeamLinks.module.css';
 
 function TeamLinksComponent() {
     const tableRowsHtml = allTeams.map(team => {
@@ -14,7 +13,6 @@ function TeamLinksComponent() {
     }).join('');
 
     const componentHtml = `
-        // 2. Uses the imported styles on the class names
         <div class="${styles.controlSection}">
             <h2>Team Links</h2>
             <p>Share these unique URLs with each team captain.</p>
@@ -35,5 +33,3 @@ function TeamLinksComponent() {
 }
 
 export default TeamLinksComponent;
-
-/* ... (Your original reference code remains here) ... */

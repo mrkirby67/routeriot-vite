@@ -20,7 +20,7 @@ function GameControlsComponent() {
                 <label for="game-duration">Game Duration (minutes):</label>
                 <input type="number" id="game-duration" value="120">
                 <div class="${styles.liveTimer}">
-                    <strong>Live Timer:</strong> <span id="timer-display">--:--:--</span>
+                    <strong>Live Timer:</strong> <span id="timer-display">00:00:00</span>
                 </div>
             </div>
         </div>
