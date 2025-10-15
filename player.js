@@ -4,7 +4,7 @@ import { allTeams } from './data.js';
 import { doc, onSnapshot, collection, query, where, getDoc, getDocs, setDoc, addDoc, orderBy, collectionGroup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { loadGoogleMapsApi } from './modules/googleMapsLoader.js';
 import { addPointsToTeam, updateControlledZones } from './modules/scoreboardManager.js';
-import { broadcastChallenge, updateTeamLocation, broadcastWin } from './modules/gameLogicManager.js';
+// The import for gameLogicManager has been removed as the functions are now in this file.
 
 let currentTeamName = null;
 let challengeState = {
@@ -118,7 +118,6 @@ function listenForMyMessages(myTeamName, logBox) {
             if (change.type === 'added' && !messageIds.has(change.doc.id)) {
                 const data = change.doc.data();
                 messageIds.add(change.doc.id);
-                // We format broadcasts to look like private messages for simplicity
                 allMessages.push({
                     sender: "Commissioner",
                     recipient: "ALL",
@@ -136,7 +135,6 @@ function listenForMyMessages(myTeamName, logBox) {
 async function main() {
     loadTeamInfo();
     listenForGameUpdates();
-    // Broadcasts and chat are now handled together
     try {
         await loadGoogleMapsApi();
         loadZones();
@@ -173,7 +171,6 @@ function loadTeamInfo() {
         }
     });
     
-    // This single function now sets up all chat and broadcast listeners
     setupPlayerChatAndBroadcasts(currentTeamName);
 }
 
@@ -217,5 +214,30 @@ function loadZones() {
 }
 
 // --- GAMEPLAY ACTIONS ---
-// ... (All other functions are correct and complete) ...
+
+// --- NEW HELPER FUNCTIONS FOR GAME LOGIC ---
+async function broadcastEvent(teamName, message) {
+    const commsRef = collection(db, "communications");
+    await addDoc(commsRef, {
+        teamName: teamName,
+        message: message,
+        timestamp: new Date()
+    });
+}
+
+function broadcastChallenge(teamName, zoneName) {
+    broadcastEvent(teamName, `is challenging ${zoneName}!`);
+}
+
+function broadcastWin(teamName, zoneName) {
+    broadcastEvent(teamName, `** has captured ${zoneName}! **`);
+}
+
+async function updateTeamLocation(teamName, zoneName) {
+    if (!teamName || !zoneName) return;
+    const teamStatusRef = doc(db, "teamStatus", teamName);
+    await setDoc(teamStatusRef, { lastKnownLocation: zoneName }, { merge: true });
+}
+
+// ... (All other gameplay functions are correct and complete) ...
 
