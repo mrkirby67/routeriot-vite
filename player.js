@@ -84,17 +84,19 @@ function listenForMyMessages(myTeamName, logBox) {
         logBox.innerHTML = '';
         allMessages.forEach(msg => {
             const logEntry = document.createElement('p');
+            const timestamp = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
             if (msg.sender === "Commissioner") {
-                // --- THIS IS THE ENHANCED STYLING FOR BROADCASTS ---
+                // --- ENHANCED STYLING WITH TIMESTAMP ---
                 logEntry.style.backgroundColor = '#3a3a24';
                 logEntry.style.padding = '8px';
                 logEntry.style.borderRadius = '5px';
                 logEntry.style.margin = '5px 0';
-                logEntry.innerHTML = `<strong style="color: #fdd835; font-size: 1.1em; text-transform: uppercase;">Broadcast:</strong> <span style="font-size: 1.1em; font-weight: bold;">${msg.text}</span>`;
+                logEntry.innerHTML = `<span style="color: #aaa; margin-right: 8px;">[${timestamp}]</span> <strong style="color: #fdd835; font-size: 1.1em; text-transform: uppercase;">Broadcast:</strong> <span style="font-size: 1.1em; font-weight: bold;">${msg.text}</span>`;
             } else if (msg.sender === myTeamName) {
-                logEntry.innerHTML = `<strong>You to ${msg.recipient}:</strong> ${msg.text}`;
+                logEntry.innerHTML = `<span style="color: #aaa; margin-right: 8px;">[${timestamp}]</span> <strong>You to ${msg.recipient}:</strong> ${msg.text}`;
             } else {
-                logEntry.innerHTML = `<strong>From ${msg.sender}:</strong> ${msg.text}`;
+                logEntry.innerHTML = `<span style="color: #aaa; margin-right: 8px;">[${timestamp}]</span> <strong>From ${msg.sender}:</strong> ${msg.text}`;
             }
             logBox.appendChild(logEntry);
         });
