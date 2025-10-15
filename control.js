@@ -74,6 +74,7 @@ function initializeGameControlsLogic() {
         }
     });
 
+    // Button event listeners
     startBtn.addEventListener('click', async () => {
         const durationMinutes = document.getElementById('game-duration').value || 120;
         const endTime = Date.now() + (durationMinutes * 60 * 1000);
@@ -316,23 +317,36 @@ function initializeGameChallengesLogic() {
     }, true);
 }
 
+// --- THIS FUNCTION HAS BEEN UPGRADED ---
 function initializeBroadcastLogic() {
     const broadcastBtn = document.getElementById('broadcast-btn');
     const broadcastInput = document.getElementById('broadcast-message');
     if (!broadcastBtn || !broadcastInput) return;
 
+    // Listen to game state to enable/disable the button
+    onSnapshot(doc(db, "game", "gameState"), (docSnap) => {
+        const gameState = docSnap.data();
+        if (gameState && gameState.status === 'active') {
+            broadcastBtn.disabled = false;
+            broadcastInput.placeholder = "E.g., Meet at City Hall for lunch...";
+        } else {
+            broadcastBtn.disabled = true;
+            broadcastInput.placeholder = "Game must be running to send broadcasts.";
+        }
+    });
+
     broadcastBtn.addEventListener('click', async () => {
         const message = broadcastInput.value.trim();
         if (!message) return alert("Please enter a message to broadcast.");
         try {
+            // Correctly add the broadcast to the main communications log
             const commsRef = collection(db, "communications");
             await addDoc(commsRef, {
-                teamName: "Commissioner",
+                teamName: "Commissioner", // Use a specific name for broadcasts
                 message: message,
                 timestamp: new Date()
             });
-
-            alert("Broadcast sent to all players!");
+            alert("Broadcast sent!");
             broadcastInput.value = '';
         } catch (error) { console.error("Error sending broadcast:", error); }
     });
