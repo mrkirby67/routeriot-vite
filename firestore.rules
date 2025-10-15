@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Development Rules ---
+    // These rules are open for development and testing.
+    // They allow any client to read and write to the specified collections.
+    // In a production app, you would add authentication to secure these.
+
+    match /game/{docId} {
+      allow read, write: if true;
+    }
+    match /zones/{zoneId=**} { // Allow access to subcollections like questions
+      allow read, write: if true;
+    }
+    match /scores/{teamId} {
+      allow read, write: if true;
+    }
+    match /specialChallenges/{challengeId} {
+      allow read, write: if true;
+    }
+    match /racers/{racerId} {
+      allow read, write: if true;
+    }
+    match /communications/{messageId} {
+      allow read, write: if true;
+    }
+    match /conversations/{conversationId=**} { // Allow access to subcollections
+      allow read, write: if true;
+    }
+  }
+}
