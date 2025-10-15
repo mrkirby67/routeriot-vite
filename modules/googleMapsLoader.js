@@ -1,5 +1,3 @@
-// This module ensures the Google Maps script is loaded only once and is ready before we use it.
-
 import { firebaseConfig } from './config.js';
 
 let mapsPromise = null;
@@ -10,16 +8,15 @@ export function loadGoogleMapsApi() {
     }
 
     mapsPromise = new Promise((resolve, reject) => {
-        // Check if the script is already on the page
         if (window.google && window.google.maps) {
             resolve(window.google.maps);
             return;
         }
 
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${firebaseConfig.apiKey}&libraries=geometry`;
+        // The 'async' attribute and 'loading=async' parameter are the key fixes here
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${firebaseConfig.apiKey}&libraries=geometry&loading=async`;
         script.async = true;
-        script.defer = true;
         
         script.onload = () => {
             console.log("Google Maps API loaded successfully.");
@@ -36,3 +33,4 @@ export function loadGoogleMapsApi() {
 
     return mapsPromise;
 }
+
