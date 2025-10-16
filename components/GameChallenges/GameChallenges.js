@@ -1,12 +1,13 @@
-// File: /public/components/GameChallenges/GameChallenges.js
+import { db } from '../modules/config.js';
+import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './GameChallenges.module.css';
 
-function GameChallengesComponent() {
+export function GameChallengesComponent() {
     const componentHtml = `
         <div class="${styles.controlSection}">
             <h2>Game-Wide Challenges</h2>
             <p>These are not tied to a specific zone.</p>
-            <table class="${styles.questionsTable}">
+            <table class="${styles.questionsTable} game-wide-challenges-table">
                  <thead>
                     <tr>
                         <th>Challenge Type</th>
@@ -35,6 +36,26 @@ function GameChallengesComponent() {
     return componentHtml;
 }
 
-export default GameChallengesComponent;
+export function initializeGameChallengesLogic() {
+    const table = document.querySelector('.game-wide-challenges-table');
+    if (!table) return;
 
-/* ... (Your original reference code remains here) ... */
+    table.addEventListener('blur', async (event) => {
+        const cell = event.target;
+        if (cell.tagName !== 'TD' || !cell.isContentEditable) return;
+
+        const row = cell.closest('tr');
+        const challengeId = row.dataset.questionId;
+        if (!challengeId) return;
+
+        const fields = ['challengeType', 'question', 'answer', 'type']; 
+        const field = fields[cell.cellIndex];
+        if (!field || field === 'challengeType') return;
+
+        const value = cell.textContent.trim();
+        const challengeRef = doc(db, "specialChallenges", challengeId);
+        try {
+            await setDoc(challengeRef, { [field]: value }, { merge: true });
+        } catch (error) { console.error("Error saving special challenge:", error); }
+    }, true);
+}

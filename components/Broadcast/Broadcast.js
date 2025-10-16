@@ -1,7 +1,8 @@
-// File: /public/components/Broadcast/Broadcast.js
+import { db } from '../modules/config.js';
+import { onSnapshot, doc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './Broadcast.module.css';
 
-function BroadcastComponent() {
+export function BroadcastComponent() {
     const componentHtml = `
         <div class="${styles.controlSection}">
             <h2>Broadcast & Communication</h2>
@@ -18,6 +19,34 @@ function BroadcastComponent() {
     return componentHtml;
 }
 
-export default BroadcastComponent;
+export function initializeBroadcastLogic() {
+    const broadcastBtn = document.getElementById('broadcast-btn');
+    const broadcastInput = document.getElementById('broadcast-message');
+    if (!broadcastBtn || !broadcastInput) return;
 
-/* ... (Your original reference code remains here) ... */
+    onSnapshot(doc(db, "game", "gameState"), (docSnap) => {
+        const gameState = docSnap.data();
+        if (gameState && gameState.status === 'active') {
+            broadcastBtn.disabled = false;
+            broadcastInput.placeholder = "E.g., Meet at City Hall for lunch...";
+        } else {
+            broadcastBtn.disabled = true;
+            broadcastInput.placeholder = "Game must be running to send broadcasts.";
+        }
+    });
+
+    broadcastBtn.addEventListener('click', async () => {
+        const message = broadcastInput.value.trim();
+        if (!message) return alert("Please enter a message to broadcast.");
+        try {
+            const commsRef = collection(db, "communications");
+            await addDoc(commsRef, {
+                teamName: "Commissioner",
+                message: message,
+                timestamp: new Date()
+            });
+            alert("Broadcast sent!");
+            broadcastInput.value = '';
+        } catch (error) { console.error("Error sending broadcast:", error); }
+    });
+}

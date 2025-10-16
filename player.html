@@ -2,25 +2,25 @@
 <html lang="en">
 <head>
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
-<link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="shortcut icon" href="/favicon.ico">
     <title>Route Riot - Player</title>
     <link rel="stylesheet" href="style.css">
-    <!-- The Google Maps script tag is correctly REMOVED from here -->
 </head>
 <body>
     <!-- 
         TABLE OF CONTENTS (TOC) for player.html
         1. HEADER (TEAM NAME & SLOGAN)
         2. GAME INFO (STATUS, TIMER, TEAMMATES)
-        3. ZONE LIST
-        4. CHALLENGE BOX (HIDDEN BY DEFAULT)
-        5. OPPONENT STATUS & MESSAGING
-        6. TEAM CHAT
-        7. COMMISSIONER BROADCAST
-        8. SCRIPT LOADER
+        3. SCOREBOARD (NEW)
+        4. ZONE LIST
+        5. CHALLENGE BOX (HIDDEN BY DEFAULT)
+        6. OPPONENT STATUS & MESSAGING
+        7. TEAM CHAT
+        8. COMMISSIONER BROADCAST
+        9. SCRIPT LOADER
     -->
 
     <div class="container">
@@ -39,7 +39,23 @@
             </div>
         </div>
 
-        <!-- ITEM 3: ZONE LIST -->
+        <!-- ITEM 3: SCOREBOARD (NEW) -->
+        <div class="control-section">
+            <h2>Scoreboard</h2>
+            <table class="data-table" id="player-scoreboard-table">
+                <thead>
+                    <tr>
+                        <th>Team Name</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="player-scoreboard-tbody">
+                    <!-- Live scores will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ITEM 4: ZONE LIST -->
         <div class="control-section">
             <h2>Zones</h2>
             <table class="data-table" id="player-zones-table">
@@ -55,7 +71,7 @@
             </table>
         </div>
 
-        <!-- ITEM 4: CHALLENGE BOX (HIDDEN BY DEFAULT) -->
+        <!-- ITEM 5: CHALLENGE BOX (HIDDEN BY DEFAULT) -->
         <div id="challenge-box" class="control-section" style="display: none;">
             <h2 id="challenge-zone-name">Challenge: Zone X</h2>
             <p id="challenge-question">Question will appear here...</p>
@@ -63,7 +79,7 @@
             <button id="submit-answer-btn">Submit Answer</button>
         </div>
         
-        <!-- ITEM 5: OPPONENT STATUS & MESSAGING -->
+        <!-- ITEM 6: OPPONENT STATUS & MESSAGING -->
         <div class="control-section">
             <h2>Opponent Status & Messaging</h2>
             <table class="data-table" id="opponents-table">
@@ -78,7 +94,7 @@
             </table>
         </div>
 
-        <!-- ITEM 6: TEAM CHAT -->
+        <!-- ITEM 7: TEAM CHAT -->
         <div class="control-section">
             <h2>Team Chat</h2>
             <div id="team-chat-log" class="log-box">
@@ -86,23 +102,11 @@
             </div>
         </div>
 
-        <!-- ITEM 7: COMMISSIONER BROADCAST -->
+        <!-- ITEM 8: COMMISSIONER BROADCAST -->
         <div id="commissioner-message" class="broadcast-message-display" style="display: none;"></div>
     </div>
 
-    <!-- ITEM 8: SCRIPT LOADER -->
+    <!-- ITEM 9: SCRIPT LOADER -->
     <script type="module" src="player.js"></script>
-
-    <!-- 
-        TABLE OF CONTENTS (BOTTOM)
-        1. HEADER (TEAM NAME & SLOGAN)
-        2. GAME INFO (STATUS, TIMER, TEAMMATES)
-        3. ZONE LIST
-        4. CHALLENGE BOX (HIDDEN BY DEFAULT)
-        5. OPPONENT STATUS & MESSAGING
-        6. TEAM CHAT
-        7. COMMISSIONER BROADCAST
-        8. SCRIPT LOADER
-    -->
 </body>
 </html>
