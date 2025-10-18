@@ -31,6 +31,7 @@ export async function listenToAllMessages() {
   // Listen to both private team messages and global communications
   const privateMessagesQuery = query(collectionGroup(db, 'messages'), orderBy('timestamp', 'asc'));
   const publicCommsQuery = query(collection(db, 'communications'), orderBy('timestamp', 'asc'));
+  const controlAllQuery = query(collection(db, 'conversations', 'CONTROL_ALL', 'messages'), orderBy('timestamp', 'asc'));
 
   const allMessages = [];
   const messageIds = new Set();
@@ -72,11 +73,15 @@ export async function listenToAllMessages() {
     renderLog();
   };
 
+  // Watch all message sources
   onSnapshot(privateMessagesQuery, processSnapshot, (err) =>
     console.error("❌ Private chat snapshot error:", err)
   );
   onSnapshot(publicCommsQuery, processSnapshot, (err) =>
     console.error("❌ Public comms snapshot error:", err)
+  );
+  onSnapshot(controlAllQuery, processSnapshot, (err) =>
+    console.error("❌ CONTROL_ALL snapshot error:", err)
   );
 }
 
@@ -90,7 +95,7 @@ export async function setupPlayerChat(currentTeamName) {
 
   opponentsTbody.innerHTML = '';
 
-  // Get active teams, or fall back to allTeams if not yet set
+  // Get active teams or fall back to allTeams
   const activeSnap = await getDoc(doc(db, "game", "activeTeams"));
   const activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
   const playableTeams =
@@ -157,6 +162,7 @@ function listenForMyMessages(myTeamName, logBox) {
   const sentQuery = query(messagesRef, where('sender', '==', myTeamName));
   const receivedQuery = query(messagesRef, where('recipient', '==', myTeamName));
   const broadcastQuery = query(collection(db, 'communications'), orderBy('timestamp', 'asc'));
+  const controlAllQuery = query(collection(db, 'conversations', 'CONTROL_ALL', 'messages'), orderBy('timestamp', 'asc'));
 
   const allMessages = [];
   const messageIds = new Set();
@@ -206,10 +212,11 @@ function listenForMyMessages(myTeamName, logBox) {
     renderLog();
   };
 
+  // Individual team message streams
   onSnapshot(sentQuery, processSnapshot, (err) => console.error("❌ Sent query error:", err));
   onSnapshot(receivedQuery, processSnapshot, (err) => console.error("❌ Received query error:", err));
 
-  // 🛰️ Attach broadcast listener with normalization
+  // 🛰️ Broadcast listener (communications collection)
   onSnapshot(broadcastQuery, (snapshot) => {
     snapshot.docChanges().forEach(change => {
       if (change.type === 'added' && !messageIds.has(change.doc.id)) {
@@ -225,4 +232,23 @@ function listenForMyMessages(myTeamName, logBox) {
     });
     renderLog();
   }, (err) => console.error("❌ Broadcast snapshot error:", err));
+
+  // 🛰️ 👇 NEW: Global CONTROL_ALL broadcast channel
+  onSnapshot(controlAllQuery, (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type !== 'added') return;
+      const id = change.doc.id;
+      if (messageIds.has(id)) return;
+      messageIds.add(id);
+
+      const data = change.doc.data();
+      allMessages.push({
+        sender: 'Game Master',
+        recipient: 'ALL',
+        text: data.text || data.message || '',
+        timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp || Date.now(),
+      });
+    });
+    renderLog();
+  }, (err) => console.error("❌ CONTROL_ALL snapshot error:", err));
 }

@@ -1,6 +1,6 @@
 // ============================================================================
-// GAME STATE MANAGER (FINAL MERGED BUILD)
-// Controls and syncs the global game lifecycle (start, end, release zones)
+// GAME STATE MANAGER (FINAL SAFE + UI MERGE)
+// Controls and syncs the global game lifecycle (start, release, end, listen)
 // ============================================================================
 
 import { db } from './config.js';
@@ -34,15 +34,16 @@ export async function setGameStatus(status, zonesReleased = false) {
     await setDoc(
       gameStateRef,
       {
-        status, // "waiting" | "active" | "finished"
+        status, // "waiting" | "active" | "ended" | "finished" | "paused"
         zonesReleased,
         updatedAt: serverTimestamp(),
-        ...(status === 'active' && { startTime: serverTimestamp(), endTime: null }),
+        ...(status === 'active'   && { startTime: serverTimestamp(), endTime: null }),
+        ...(status === 'ended'    && { endTime: serverTimestamp() }),
         ...(status === 'finished' && { endTime: serverTimestamp() }),
       },
       { merge: true }
     );
-    console.log(`✅ Game status updated to "${status}"`);
+    console.log(`✅ Game status updated to "${status}" (zonesReleased=${zonesReleased})`);
   } catch (err) {
     console.error("❌ Error updating game status:", err);
   }
@@ -64,34 +65,44 @@ export async function releaseZones() {
 }
 
 // ---------------------------------------------------------------------------
-// 🔹 Listen for Game State Changes (real-time, drives UI updates)
+// 🔹 Handle UI + State Change
 // ---------------------------------------------------------------------------
-function handleGameStateUpdate({ status = 'waiting', zonesReleased = false, startTime = null }) {
+function handleGameStateUpdate({
+  status = 'waiting',
+  zonesReleased = false,
+  startTime = null,
+  endTime = null
+}) {
   const statusEl = document.getElementById('game-status');
   if (statusEl) statusEl.textContent = status.toUpperCase();
 
-  // Make zones globally toggleable for other modules
+  // Share across modules
   window.zonesEnabled = (status === 'active' && !!zonesReleased);
 
   switch (status) {
     case 'waiting':
-      clearElapsedTimer();
-      showFlashMessage('Waiting for host to start...', '#616161');
+      clearElapsedTimer?.();
+      showFlashMessage?.('Waiting for host to start...', '#616161');
       countdownShown = false;
       break;
 
     case 'active':
       if (window.zonesEnabled && !countdownShown) {
         countdownShown = true;
-        showCountdownBanner({ parent: document.body });
-        showFlashMessage('The Race is ON!', '#2e7d32');
+        showCountdownBanner?.({ parent: document.body });
+        showFlashMessage?.('The Race is ON!', '#2e7d32');
       }
-      if (startTime) startElapsedTimer(startTime);
+      if (startTime) startElapsedTimer?.(startTime);
       break;
 
-    case 'finished': // match Control naming
-      clearElapsedTimer();
-      showFlashMessage('🏁 Game Over! Return to base.', '#c62828', 4000);
+    case 'ended':
+    case 'finished':
+      clearElapsedTimer?.();
+      showFlashMessage?.('🏁 Game Over! Return to base.', '#c62828', 4000);
+      break;
+
+    case 'paused':
+      showFlashMessage?.('Game paused by host.', '#ff9800');
       break;
 
     default:
@@ -100,11 +111,36 @@ function handleGameStateUpdate({ status = 'waiting', zonesReleased = false, star
   }
 }
 
+// ---------------------------------------------------------------------------
+// 🔹 Listen for Game State Changes (real-time)
+// ---------------------------------------------------------------------------
 export function listenForGameStatus(callback) {
   return onSnapshot(gameStateRef, (docSnap) => {
-    const gameState = docSnap.exists() ? docSnap.data() : {};
+    if (!docSnap.exists()) {
+      console.warn("⚠️ No game state yet — defaulting to waiting.");
+      const defaultState = {
+        status: 'waiting',
+        zonesReleased: false,
+        startTime: null,
+        endTime: null,
+        updatedAt: null,
+      };
+      handleGameStateUpdate(defaultState);
+      callback?.(defaultState);
+      return;
+    }
+
+    const data = docSnap.data() || {};
+    const gameState = {
+      status: data.status || 'waiting',
+      zonesReleased: !!data.zonesReleased,
+      startTime: data.startTime || null,
+      endTime: data.endTime || null,
+      updatedAt: data.updatedAt || null,
+    };
+
     handleGameStateUpdate(gameState);
-    if (callback) callback(gameState); // optional hook for Control page
+    callback?.(gameState);
   });
 }
 
