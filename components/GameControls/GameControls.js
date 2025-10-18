@@ -15,7 +15,8 @@ import {
   orderBy,
   limit,
   addDoc,
-  getDoc
+  getDoc,
+  deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './GameControls.module.css';
 
@@ -32,6 +33,8 @@ export function GameControlsComponent() {
         <button id="pause-btn" class="${styles.controlButton} ${styles.pause}">Pause Game</button>
         <button id="end-btn" class="${styles.controlButton} ${styles.end}">End Game</button>
         <button id="reset-game-btn" class="${styles.controlButton} ${styles.pause}">Reset Game Data</button>
+        <!-- 🧹 New Manual Clear Scores Button -->
+        <button id="clear-scores-btn" class="${styles.controlButton} ${styles.warning}">🧹 Clear Scores</button>
       </div>
 
       <div class="${styles.teamSetup}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -72,6 +75,7 @@ export function initializeGameControlsLogic() {
   const pauseBtn = document.getElementById('pause-btn');
   const endBtn = document.getElementById('end-btn');
   const resetBtn = document.getElementById('reset-game-btn');
+  const clearScoresBtn = document.getElementById('clear-scores-btn'); // 🧹 NEW
   const randomizeBtn = document.getElementById('randomize-btn');
   const sendBtn = document.getElementById('send-links-btn');
   const timerDisplay = document.getElementById('timer-display');
@@ -128,10 +132,39 @@ export function initializeGameControlsLogic() {
     }
   });
 
-  // === Start Game ===
+  // === 🧹 Clear Scores ===
+  clearScoresBtn.addEventListener('click', async () => {
+    if (!confirm("This will clear ALL team scores. Proceed?")) return;
+
+    try {
+      const scoresSnap = await getDocs(collection(db, "scores"));
+      const batch = writeBatch(db);
+      scoresSnap.forEach(s => batch.delete(s.ref));
+      await batch.commit();
+
+      await addDoc(collection(db, "communications"), {
+        teamName: "Game Master",
+        message: "🧹 All scores have been cleared manually by control.",
+        timestamp: new Date()
+      });
+
+      alert("✅ All scores cleared.");
+    } catch (err) {
+      console.error("Clear Scores error:", err);
+      alert("❌ Failed to clear scores — check console.");
+    }
+  });
+
+  // === Start Game (auto clears scores) ===
   startBtn.addEventListener('click', async () => {
     const mins = Number(document.getElementById('game-duration').value) || 120;
     const endTime = Date.now() + mins * 60 * 1000;
+
+    // 🧹 Auto clear scores when new game starts
+    const scoreDocs = await getDocs(collection(db, "scores"));
+    const clearBatch = writeBatch(db);
+    scoreDocs.forEach(s => clearBatch.delete(s.ref));
+    await clearBatch.commit();
 
     const racersSnap = await getDocs(collection(db, "racers"));
     const teamsInPlay = new Set();
@@ -157,7 +190,7 @@ export function initializeGameControlsLogic() {
       timestamp: Date.now()
     });
 
-    alert(`🏁 Game Started — Zones Released!\n${teamsInPlay.size} teams active.`);
+    alert(`🏁 Game Started — Zones Released!\nScores cleared.\n${teamsInPlay.size} teams active.`);
   });
 
   // === Pause Game ===
@@ -196,7 +229,7 @@ export function initializeGameControlsLogic() {
 
       const medals = ["🥇 1st Place", "🥈 2nd Place", "🥉 3rd Place"];
       const lines = places.map(p => `${medals[p.rank - 1]} — ${p.team} (${p.score} pts)`);
-      const blankLines = Array(20).fill(" ").join("\n");
+      const blankLines = Array(10).fill(" ").join("\n");
 
       const message = `
 🏁 ROUTE RIOT FINAL STANDINGS 🏁
@@ -224,21 +257,6 @@ ${blankLines}
     alert("Resetting game data...");
 
     try {
-      const scoresQuery = query(collection(db, "scores"), orderBy("score", "desc"), limit(1));
-      const scoresSnap = await getDocs(scoresQuery);
-      let msg = "Team Everyone wins — donuts for all!";
-      if (!scoresSnap.empty) {
-        const top = scoresSnap.docs[0];
-        if (top.data().score > 0)
-          msg = `Congratulations ${top.id} for scoring ${top.data().score} points!`;
-      }
-
-      await addDoc(collection(db, "communications"), {
-        teamName: "Game Master",
-        message: msg,
-        timestamp: new Date()
-      });
-
       const batch = writeBatch(db);
       batch.set(doc(db, "game", "gameState"), {
         status: 'not started',
@@ -335,4 +353,3 @@ ${blankLines}
     });
   }
 }
-
