@@ -33,7 +33,7 @@ export function GameControlsComponent() {
         <button id="pause-btn" class="${styles.controlButton} ${styles.pause}">Pause Game</button>
         <button id="end-btn" class="${styles.controlButton} ${styles.end}">End Game</button>
         <button id="reset-game-btn" class="${styles.controlButton} ${styles.pause}">Reset Game Data</button>
-        {/* 🧹 New Manual Clear Scores Button */}
+        <!-- 🧹 New Manual Clear Scores Button -->
         <button id="clear-scores-btn" class="${styles.controlButton} ${styles.warning}">🧹 Clear Scores</button>
       </div>
 
