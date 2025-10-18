@@ -1,112 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
-    <link rel="shortcut icon" href="/favicon.ico">
-    <title>Route Riot - Player</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Route Riot – Player</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="manifest" href="/site.webmanifest" />
 </head>
 <body>
-    <!-- 
-        TABLE OF CONTENTS (TOC) for player.html
-        1. HEADER (TEAM NAME & SLOGAN)
-        2. GAME INFO (STATUS, TIMER, TEAMMATES)
-        3. SCOREBOARD (NEW)
-        4. ZONE LIST
-        5. CHALLENGE BOX (HIDDEN BY DEFAULT)
-        6. OPPONENT STATUS & MESSAGING
-        7. TEAM CHAT
-        8. COMMISSIONER BROADCAST
-        9. SCRIPT LOADER
-    -->
+  <div class="container">
+    <!-- 1️⃣ Header -->
+    <h1 id="team-name">Team Name Loading…</h1>
+    <p id="team-slogan" class="slogan">Slogan Loading…</p>
 
-    <div class="container">
-        <!-- ITEM 1: HEADER (TEAM NAME & SLOGAN) -->
-        <h1 id="team-name">Team Name Loading...</h1>
-        <p id="team-slogan" class="slogan">Slogan Loading...</p>
-
-        <!-- ITEM 2: GAME INFO (STATUS, TIMER, TEAMMATES) -->
-        <div class="control-section">
-            <h2>Game Info</h2>
-            <p><strong>Status:</strong> <span id="game-status">Not Started</span></p>
-            <p><strong>Time Remaining:</strong> <span id="player-timer">--:--:--</span></p>
-            <div class="team-members">
-                <h3>Your Team</h3>
-                <ul id="team-member-list"></ul>
-            </div>
-        </div>
-
-        <!-- ITEM 3: SCOREBOARD (NEW) -->
-        <div class="control-section">
-            <h2>Scoreboard</h2>
-            <table class="data-table" id="player-scoreboard-table">
-                <thead>
-                    <tr>
-                        <th>Team Name</th>
-                        <th>Score</th>
-                    </tr>
-                </thead>
-                <tbody id="player-scoreboard-tbody">
-                    <!-- Live scores will be populated here -->
-                </tbody>
-            </table>
-        </div>
-
-        <!-- ITEM 4: ZONE LIST -->
-        <div class="control-section">
-            <h2>Zones</h2>
-            <table class="data-table" id="player-zones-table">
-                <thead>
-                    <tr>
-                        <th>Zone</th>
-                        <th>Map Preview</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="player-zones-tbody"></tbody>
-            </table>
-        </div>
-
-        <!-- ITEM 5: CHALLENGE BOX (HIDDEN BY DEFAULT) -->
-        <div id="challenge-box" class="control-section" style="display: none;">
-            <h2 id="challenge-zone-name">Challenge: Zone X</h2>
-            <p id="challenge-question">Question will appear here...</p>
-            <div id="challenge-answer-area"></div>
-            <button id="submit-answer-btn">Submit Answer</button>
-        </div>
-        
-        <!-- ITEM 6: OPPONENT STATUS & MESSAGING -->
-        <div class="control-section">
-            <h2>Opponent Status & Messaging</h2>
-            <table class="data-table" id="opponents-table">
-                <thead>
-                    <tr>
-                        <th>Team Name</th>
-                        <th>Last Known Location</th>
-                        <th>Send Message</th>
-                    </tr>
-                </thead>
-                <tbody id="opponents-tbody"></tbody>
-            </table>
-        </div>
-
-        <!-- ITEM 7: TEAM CHAT -->
-        <div class="control-section">
-            <h2>Team Chat</h2>
-            <div id="team-chat-log" class="log-box">
-                <p>Your team's messages will appear here...</p>
-            </div>
-        </div>
-
-        <!-- ITEM 8: COMMISSIONER BROADCAST -->
-        <div id="commissioner-message" class="broadcast-message-display" style="display: none;"></div>
+    <!-- 2️⃣ Game Info -->
+    <div class="control-section">
+      <h2>Game Info</h2>
+      <p><strong>Status:</strong> <span id="game-status">Not Started</span></p>
+      <p><strong>Time Remaining:</strong> <span id="player-timer">--:--:--</span></p>
+      <div class="team-members">
+        <h3>Your Team</h3>
+        <ul id="team-member-list"></ul>
+      </div>
     </div>
 
-    <!-- ITEM 9: SCRIPT LOADER -->
-    <script type="module" src="player.js"></script>
+    <!-- 3️⃣ Unified Scoreboard -->
+    <div class="control-section" id="scoreboard-container"></div>
+
+    <!-- 4️⃣ Zones -->
+    <div class="control-section">
+      <h2>Zones</h2>
+      <table class="data-table" id="player-zones-table">
+        <thead>
+          <tr>
+            <th>Zone</th>
+            <th>Map Preview</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="player-zones-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- 5️⃣ Challenge Box -->
+    <div id="challenge-box" class="control-section" style="display:none;">
+      <h2 id="challenge-zone-name">Challenge: Zone X</h2>
+      <p id="challenge-question">Question will appear here…</p>
+      <div id="challenge-answer-area"></div>
+      <button id="submit-answer-btn">Submit Answer</button>
+    </div>
+
+    <!-- 6️⃣ Opponent Status & Messaging -->
+    <div class="control-section">
+      <h2>Opponent Status & Messaging</h2>
+      <table class="data-table" id="opponents-table">
+        <thead>
+          <tr>
+            <th>Team Name</th>
+            <th>Last Known Location</th>
+            <th>Send Message</th>
+          </tr>
+        </thead>
+        <tbody id="opponents-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- 7️⃣ Team Chat -->
+    <div class="control-section">
+      <h2>Team Chat</h2>
+      <div id="team-chat-log" class="log-box">
+        <p>Your team’s messages will appear here…</p>
+      </div>
+    </div>
+
+    <!-- 8️⃣ Commissioner Broadcast -->
+    <div id="commissioner-message" class="broadcast-message-display" style="display:none;"></div>
+  </div>
+
+  <!-- 9️⃣ Script Loader -->
+  <script type="module">
+    import { initializePlayerPage } from './player.js';
+    window.addEventListener('DOMContentLoaded', () => initializePlayerPage());
+  </script>
 </body>
 </html>

@@ -1,41 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Route Riot - Control</title>
-    <link rel="stylesheet" href="/style.css">
-    
-    <!-- Favicon Links -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Route Riot – Control</title>
+  <link rel="stylesheet" href="/style.css">
+
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
 </head>
 <body>
-    <div class="container">
-        <!-- The JavaScript will render all the content inside these containers -->
-        <div id="game-controls-container"></div>
-        <div id="scoreboard-container"></div>
-        <div id="team-links-container"></div>
-        <div id="racer-management-container"></div>
-        <div id="zone-management-container"></div>
-        <div id="game-challenges-container"></div>
-        <div id="broadcast-container"></div>
-    </div>
+  <div class="container">
+    <div id="game-controls-container"></div>
+    <div id="scoreboard-container"></div>
+    <div id="team-links-container"></div>
+    <div id="racer-management-container"></div>
+    <div id="zone-management-container"></div>
+    <div id="game-challenges-container"></div>
+    <div id="broadcast-container"></div>
+  </div>
 
-    <!-- NEW: Modal for Team URL Distribution -->
-    <div id="roster-modal" class="modal-backdrop" style="display: none;">
-        <div class="modal-content">
-            <span class="modal-close-btn">&times;</span>
-            <h2>Team Rosters & Links</h2>
-            <p>Email the unique player URL to each team captain.</p>
-            <div id="roster-modal-body">
-                <!-- Team rosters will be dynamically inserted here -->
-            </div>
-        </div>
+  <!-- Modal for Team URL Distribution -->
+  <div id="roster-modal" class="modal-backdrop" style="display:none;">
+    <div class="modal-content">
+      <span class="modal-close-btn">&times;</span>
+      <h2>Team Rosters & Links</h2>
+      <p>Email the unique player URL to each team captain.</p>
+      <div id="roster-modal-body"></div>
     </div>
+  </div>
 
-    <script type="module" src="/control.js"></script>
+  <!-- Main Control Script -->
+  <script type="module">
+    import { GameControlsComponent, initializeGameControlsLogic } from './components/GameControls/GameControls.js';
+    import { RacerManagementComponent, initializeRacerManagementLogic } from './components/RacerManagement/RacerManagement.js';
+    import { ZoneManagementComponent, initializeZoneManagementLogic } from './components/ZoneManagement/ZoneManagement.js';
+    import { ScoreboardComponent, initializeScoreboardListener } from './components/Scoreboard/Scoreboard.js';
+    import { GameChallengesComponent, initializeGameChallengesLogic } from './components/GameChallenges/GameChallenges.js';
+    import { BroadcastComponent, initializeBroadcastLogic } from './components/Broadcast/Broadcast.js';
+    import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
+    import { listenToAllMessages } from './modules/chatManager.js';
+    import { loadGoogleMapsApi } from './modules/googleMapsLoader.js';
+
+    async function main() {
+      // 1️⃣ Render components
+      document.getElementById('game-controls-container').innerHTML = GameControlsComponent();
+      document.getElementById('scoreboard-container').innerHTML  = ScoreboardComponent({ editable:true });
+      document.getElementById('team-links-container').innerHTML  = TeamLinksComponent();
+      document.getElementById('racer-management-container').innerHTML = RacerManagementComponent();
+      document.getElementById('zone-management-container').innerHTML   = ZoneManagementComponent();
+      document.getElementById('game-challenges-container').innerHTML   = GameChallengesComponent();
+      document.getElementById('broadcast-container').innerHTML         = BroadcastComponent();
+
+      // 2️⃣ Initialize logic
+      initializeScoreboardListener({ editable:true });
+      initializeGameControlsLogic();
+      initializeRacerManagementLogic();
+      initializeGameChallengesLogic();
+      initializeBroadcastLogic();
+      listenToAllMessages();
+
+      // 3️⃣ Load Google Maps then Zones
+      try {
+        await loadGoogleMapsApi();
+        initializeZoneManagementLogic(true);
+      } catch (err) {
+        console.error('Failed to load Google Maps API', err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', main);
+  </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import { db } from '../modules/config.js';
+import { db } from '../../modules/config.js';
 import { onSnapshot, doc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './Broadcast.module.css';
 
@@ -41,7 +41,7 @@ export function initializeBroadcastLogic() {
         try {
             const commsRef = collection(db, "communications");
             await addDoc(commsRef, {
-                teamName: "Commissioner",
+                teamName: "Game Master",
                 message: message,
                 timestamp: new Date()
             });
@@ -50,3 +50,4 @@ export function initializeBroadcastLogic() {
         } catch (error) { console.error("Error sending broadcast:", error); }
     });
 }
+

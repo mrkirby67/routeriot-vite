@@ -1,10 +1,7 @@
-import { db } from '../modules/config.js';
+import { db } from '../../modules/config.js';
 import { onSnapshot, collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './RacerManagement.module.css';
 
-/**
- * This function returns the static HTML structure for the component.
- */
 export function RacerManagementComponent() {
     const componentHtml = `
         <div class="${styles.controlSection}">
@@ -26,9 +23,6 @@ export function RacerManagementComponent() {
     return componentHtml;
 }
 
-/**
- * This function finds the elements rendered by the component and attaches all the live logic.
- */
 export function initializeRacerManagementLogic() {
     const tableBody = document.getElementById('racers-table-body');
     if (!tableBody) return;
@@ -43,7 +37,6 @@ export function initializeRacerManagementLogic() {
         const racerRef = doc(db, "racers", racerId);
         try {
             await setDoc(racerRef, { [field]: value }, { merge: true });
-            console.log(`Saved ${field} for ${racerId}`);
         } catch (error) { console.error("Error saving racer data: ", error); }
     }
 

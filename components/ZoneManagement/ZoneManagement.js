@@ -1,165 +1,264 @@
-import { db, firebaseConfig } from '../../modules/config.js';
-import { onSnapshot, collection, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// File: components/ZoneManagement/ZoneManagement.js
+import { db, googleMapsApiKey } from '../../modules/config.js';
+import {
+  onSnapshot, collection, doc, setDoc, getDocs, getDoc, updateDoc, deleteDoc, addDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './ZoneManagement.module.css';
 
-/**
- * This function returns the static HTML structure for the component.
- */
+/* ---------------------------------------------------------------------------
+ *  MARKUP COMPONENT
+ * ------------------------------------------------------------------------ */
 export function ZoneManagementComponent() {
-    const componentHtml = `
-        <div class="${styles.controlSection}">
-            <h2>Zone Management</h2>
-            <div class="${styles.cooldownSetup}">
-                <label for="cooldown-time">Capture Cooldown Time:</label>
-                <select id="cooldown-time">
-                    <option value="15">15 minutes</option>
-                    <option value="20">20 minutes</option>
-                    <option value="25">25 minutes</option>
-                    <option value="30" selected>30 minutes</option>
-                    <option value="45">45 minutes</option>
-                </select>
-            </div>
-            <table class="${styles.dataTable}" id="zones-table">
-                <thead>
-                    <tr>
-                        <th>Zone Name (ID)</th>
-                        <th>Custom Name (Editable)</th>
-                        <th>GPS Coordinates (Lat, Lng)</th>
-                        <th>Capture Diameter (km)</th>
-                        <th>Action</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="zones-table-body">
-                </tbody>
-            </table>
-        </div>
-    `;
-    return componentHtml;
+  const controlSection = styles?.controlSection || '';
+  const dataTable = styles?.dataTable || '';
+  const cooldownSetup = styles?.cooldownSetup || '';
+
+  return `
+    <div class="${controlSection}">
+      <h2>Zone Management</h2>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <button id="add-zone-btn"
+          style="background:#00897B;color:white;padding:8px 16px;
+                 border:none;border-radius:6px;font-weight:bold;cursor:pointer;">
+          ➕ Add Zone
+        </button>
+
+        <button id="refresh-zones-btn"
+          style="background:#3949AB;color:white;padding:8px 16px;
+                 border:none;border-radius:6px;font-weight:bold;cursor:pointer;">
+          🔄 Refresh
+        </button>
+      </div>
+
+      <div id="zone-status-banner"
+        style="padding:10px;margin-bottom:10px;border-radius:6px;text-align:center;
+               background:#333;color:#bbb;font-weight:bold;display:none;">
+      </div>
+
+      <div class="${cooldownSetup}">
+        <label for="cooldown-time">Capture Cooldown:</label>
+        <select id="cooldown-time">
+          <option value="15">15 minutes</option>
+          <option value="20">20 minutes</option>
+          <option value="25">25 minutes</option>
+          <option value="30" selected>30 minutes</option>
+          <option value="45">45 minutes</option>
+        </select>
+      </div>
+
+      <table class="${dataTable}" id="zones-table">
+        <thead>
+          <tr>
+            <th>Zone (ID)</th>
+            <th>Name (Editable)</th>
+            <th>GPS (Lat,Lng)</th>
+            <th>Diameter (km)</th>
+            <th>Action</th>
+            <th>Status / Team</th>
+          </tr>
+        </thead>
+        <tbody id="zones-table-body"></tbody>
+      </table>
+    </div>
+  `;
 }
 
-/**
- * This function finds the elements rendered by the component and attaches all the live logic.
- * @param {boolean} googleMapsApiLoaded - A flag passed from control.js to confirm the maps API is ready.
- */
+/* ---------------------------------------------------------------------------
+ *  INITIALIZATION
+ * ------------------------------------------------------------------------ */
 export function initializeZoneManagementLogic(googleMapsApiLoaded) {
-    const tableBody = document.getElementById('zones-table-body');
-    if (!tableBody) return;
+  const tableBody = document.getElementById('zones-table-body');
+  const banner = document.getElementById('zone-status-banner');
+  if (!tableBody) return;
 
-    const zonesCollection = collection(db, "zones");
-    
-    function generateMiniMap(zoneData) {
-        if (!googleMapsApiLoaded || !zoneData || !zoneData.gps) {
-            return `<div style="width:600px; height:200px; background:#222; display:flex; align-items:center; justify-content:center; border-radius: 8px;">Enter valid GPS & save to see preview.</div>`;
-        }
-        const gpsRegex = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
-        if (!gpsRegex.test(zoneData.gps)) return `<div style="width:600px; height:200px; background:#222; display:flex; align-items:center; justify-content:center; border-radius: 8px;">Invalid GPS format.</div>`;
+  const zonesCollection = collection(db, "zones");
 
-        const diameterKm = parseFloat(zoneData.diameter) || 0.05;
-        const zoom = Math.round(16 - Math.log2(diameterKm));
-        const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${zoneData.gps}&zoom=${zoom}&size=600x200&maptype=satellite&markers=color:red%7C${zoneData.gps}&key=${firebaseConfig.apiKey}`;
-        return `<img src="${mapUrl}" alt="Map preview of ${zoneData.name}" style="border-radius: 8px;">`;
+  /* ---------------- Mini Static Map ---------------- */
+  function generateMiniMap(zoneData) {
+    if (!googleMapsApiKey) {
+      return `<div style="width:600px;height:200px;background:#5d1c1c;color:white;
+                display:flex;align-items:center;justify-content:center;border-radius:8px;font-weight:bold;">
+                ❌ Missing Google Maps API Key
+              </div>`;
     }
 
-    onSnapshot(zonesCollection, async (snapshot) => {
-        const allZoneData = {};
-        snapshot.forEach(doc => { allZoneData[doc.id] = doc.data(); });
-        
-        const allQuestionsData = {};
-        for (let i = 0; i < 20; i++) {
-            const zoneId = `zone${i + 1}`;
-            const questionsSnapshot = await getDocs(collection(db, "zones", zoneId, "questions"));
-            allQuestionsData[zoneId] = {};
-            questionsSnapshot.forEach(qDoc => {
-                allQuestionsData[zoneId][qDoc.id] = qDoc.data();
-            });
-        }
+    if (!googleMapsApiLoaded) {
+      return `<div style="width:600px;height:200px;background:#222;display:flex;
+                align-items:center;justify-content:center;border-radius:8px;">
+                Waiting for Google Maps...
+              </div>`;
+    }
 
-        tableBody.innerHTML = '';
-        for (let i = 0; i < 20; i++) {
-            const zoneId = `zone${i + 1}`;
-            const zoneData = allZoneData[zoneId] || {};
-            const zoneQuestions = allQuestionsData[zoneId] || {};
-            
-            const dataRow = document.createElement('tr');
-            dataRow.dataset.zoneId = zoneId;
-            dataRow.innerHTML = `
-                <td>${zoneData.name || `Zone ${i + 1}`} <span style="font-size: 0.8em; color: #888;">(Zone ${i + 1})</span></td>
-                <td contenteditable="true" data-field="name" placeholder="Enter Custom Name">${zoneData.name || ''}</td>
-                <td contenteditable="true" data-field="gps">${zoneData.gps || ''}</td>
-                <td contenteditable="true" data-field="diameter">${zoneData.diameter || '0.05'}</td>
-                <td><button class="manage-zone-btn" data-zone-id="${zoneId}">Manage Details</button></td>
-                <td>${zoneData.status || 'Available'}</td>
-            `;
-            
-            const detailsRow = document.createElement('tr');
-            detailsRow.id = `details-${zoneId}`;
-            detailsRow.style.display = 'none';
-            detailsRow.innerHTML = `
-                <td colspan="6" style="padding: 20px; background-color: #2c2c2c;">
-                    <div class="map-container">${generateMiniMap(zoneData)}</div>
-                    <div class="zone-questions-container" style="margin-top: 20px;">
-                        <h4>Unique Questions for ${zoneData.name || `Zone ${i + 1}`}</h4>
-                        <table class="data-table questions-table" data-zone-id="${zoneId}">
-                            <thead><tr><th>Question</th><th>Answer</th><th>Type (Eg. Y/N, T/F, CSV, OPEN)</th></tr></thead>
-                            <tbody>
-                                ${[1,2,3,4,5,6,7].map(qNum => `
-                                <tr data-question-id="unique${qNum}">
-                                    <td contenteditable="true">${(zoneQuestions[`unique${qNum}`] || {}).question || ''}</td>
-                                    <td contenteditable="true">${(zoneQuestions[`unique${qNum}`] || {}).answer || ''}</td>
-                                    <td contenteditable="true">${(zoneQuestions[`unique${qNum}`] || {}).type || ''}</td>
-                                </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </td>
-            `;
+    const gpsRegex = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
+    if (!zoneData?.gps || !gpsRegex.test(zoneData.gps)) {
+      return `<div style="background:#222;width:600px;height:200px;display:flex;align-items:center;justify-content:center;border-radius:8px;">Invalid GPS</div>`;
+    }
 
-            tableBody.appendChild(dataRow);
-            tableBody.appendChild(detailsRow);
-        }
-    });
+    const [lat, lng] = zoneData.gps.split(',').map(Number);
+    const diameterKm = parseFloat(zoneData.diameter) || 0.05;
+    const safeDiameter = Math.max(diameterKm, 0.001);
+    const zoom = Math.max(3, Math.min(21, Math.round(16 - Math.log2(safeDiameter))));
+    const mapUrl =
+      `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}` +
+      `&zoom=${zoom}&size=600x200&maptype=satellite` +
+      `&markers=color:red%7C${lat},${lng}&key=${googleMapsApiKey}`;
+    return `<img src="${mapUrl}" alt="Map preview of ${zoneData.name}" style="border-radius:8px;">`;
+  }
 
-    tableBody.addEventListener('click', async (event) => {
-        if (event.target.classList.contains('manage-zone-btn')) {
-            const zoneId = event.target.dataset.zoneId;
-            const row = event.target.closest('tr');
-            const detailsRow = document.getElementById(`details-${zoneId}`);
-            
-            const zoneData = {
-                name: row.querySelector('[data-field="name"]').textContent.trim(),
-                gps: row.querySelector('[data-field="gps"]').textContent.trim(),
-                diameter: row.querySelector('[data-field="diameter"]').textContent.trim(),
-            };
-            await setDoc(doc(db, "zones", zoneId), zoneData, { merge: true });
-            
-            const mapContainer = detailsRow.querySelector('.map-container');
-            mapContainer.innerHTML = generateMiniMap(zoneData);
-            
-            const isVisible = detailsRow.style.display !== 'none';
-            detailsRow.style.display = isVisible ? 'none' : 'table-row';
-            event.target.textContent = isVisible ? 'Manage Details' : 'Close Details';
-        }
-    });
+  /* ---------------- Game State Banner ---------------- */
+  onSnapshot(doc(db, "game", "gameState"), (gameSnap) => {
+    const data = gameSnap.data() || {};
+    const locked = !(data.status === 'active' && data.zonesReleased);
+    if (locked) {
+      banner.style.display = 'block';
+      banner.textContent = '🔒 Zones Locked — Waiting for Game Start';
+      tableBody.parentElement.style.opacity = 0.5;
+    } else {
+      banner.style.display = 'none';
+      tableBody.parentElement.style.opacity = 1;
+    }
+  });
 
-    tableBody.addEventListener('blur', async (event) => {
-        const cell = event.target;
-        if (cell.isContentEditable && cell.closest('.questions-table')) {
-            const row = cell.closest('tr');
-            const table = cell.closest('table');
-            const questionId = row.dataset.questionId;
-            const zoneId = table.dataset.zoneId;
-            if (!questionId || !zoneId) return;
+  /* ---------------- Live Zone Table ---------------- */
+  async function renderZones() {
+    const zoneDocs = await getDocs(zonesCollection);
+    tableBody.innerHTML = '';
 
-            const fields = ['question', 'answer', 'type'];
-            const field = fields[cell.cellIndex];
-            const value = cell.textContent.trim();
-            const questionRef = doc(db, "zones", zoneId, "questions", questionId);
-            try {
-                await setDoc(questionRef, { [field]: value }, { merge: true });
-            } catch (error) { console.error(`Error saving question:`, error); }
-        }
-    }, true);
+    for (const zoneDoc of zoneDocs.docs) {
+      const zoneId = zoneDoc.id;
+      const zoneData = zoneDoc.data();
+
+      const [questionsSnapshot, statusDoc] = await Promise.all([
+        getDocs(collection(db, "zones", zoneId, "questions")),
+        getDoc(doc(db, "teamStatus", zoneData.controllingTeam || "none"))
+      ]);
+
+      const questions = {};
+      questionsSnapshot.forEach(q => (questions[q.id] = q.data()));
+
+      const dataRow = document.createElement('tr');
+      dataRow.dataset.zoneId = zoneId;
+      const controlling = zoneData.controllingTeam || "None";
+      const teamLoc = statusDoc.exists() ? statusDoc.data().lastKnownLocation || "" : "";
+
+      dataRow.innerHTML = `
+        <td>${zoneData.name || zoneId}<br><span style="font-size:0.8em;color:#888;">(${zoneId})</span></td>
+        <td contenteditable="true" data-field="name">${zoneData.name || ''}</td>
+        <td contenteditable="true" data-field="gps">${zoneData.gps || ''}</td>
+        <td contenteditable="true" data-field="diameter">${zoneData.diameter || '0.05'}</td>
+        <td>
+          <button class="manage-zone-btn" data-zone-id="${zoneId}">Manage</button>
+          <button class="reset-zone-btn" data-zone-id="${zoneId}" style="background:#B71C1C;color:white;margin-left:6px;">Reset</button>
+          <button class="force-capture-btn" data-zone-id="${zoneId}" style="background:#2E7D32;color:white;margin-left:6px;">Force Capture</button>
+        </td>
+        <td>${zoneData.status || 'Available'}<br><small style="color:#8bc34a;">${controlling}</small></td>
+      `;
+
+      const detailsRow = document.createElement('tr');
+      detailsRow.id = `details-${zoneId}`;
+      detailsRow.style.display = 'none';
+      detailsRow.innerHTML = `
+        <td colspan="6" style="background:#2c2c2c;padding:20px;">
+          <div class="map-container">${generateMiniMap(zoneData)}</div>
+          <div class="zone-questions-container" style="margin-top:20px;">
+            <h4>Zone Questions (${Object.keys(questions).length})</h4>
+            <table class="data-table questions-table" data-zone-id="${zoneId}">
+              <thead><tr><th>Question</th><th>Answer</th><th>Type</th></tr></thead>
+              <tbody>
+                ${[1,2,3,4,5,6,7].map(qNum => `
+                  <tr data-question-id="unique${qNum}">
+                    <td contenteditable="true">${(questions[`unique${qNum}`] || {}).question || ''}</td>
+                    <td contenteditable="true">${(questions[`unique${qNum}`] || {}).answer || ''}</td>
+                    <td contenteditable="true">${(questions[`unique${qNum}`] || {}).type || ''}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </td>
+      `;
+
+      tableBody.appendChild(dataRow);
+      tableBody.appendChild(detailsRow);
+    }
+  }
+
+  renderZones();
+  document.getElementById('refresh-zones-btn').onclick = renderZones;
+
+  /* ---------------- Row Click Handlers ---------------- */
+  tableBody.addEventListener('click', async (e) => {
+    const zoneId = e.target.dataset.zoneId;
+    if (!zoneId) return;
+
+    if (e.target.classList.contains('manage-zone-btn')) {
+      const detailsRow = document.getElementById(`details-${zoneId}`);
+      const visible = detailsRow.style.display !== 'none';
+      detailsRow.style.display = visible ? 'none' : 'table-row';
+      e.target.textContent = visible ? 'Manage' : 'Close';
+      return;
+    }
+
+    if (e.target.classList.contains('reset-zone-btn')) {
+      if (!confirm(`Reset ${zoneId} to Available?`)) return;
+      await setDoc(doc(db, "zones", zoneId), { status: 'Available', controllingTeam: '' }, { merge: true });
+      alert(`✅ ${zoneId} reset.`);
+      renderZones();
+      return;
+    }
+
+    if (e.target.classList.contains('force-capture-btn')) {
+      const team = prompt('Enter team name to force capture:');
+      if (!team) return;
+      await setDoc(doc(db, "zones", zoneId), { status: 'Taken', controllingTeam: team }, { merge: true });
+      await addDoc(collection(db, "communications"), {
+        teamName: team,
+        message: `⚡️ Admin forced ${team} to capture ${zoneId}`,
+        timestamp: new Date()
+      });
+      alert(`⚡️ ${team} captured ${zoneId}.`);
+      renderZones();
+      return;
+    }
+  });
+
+  /* ---------------- Editable Cell Save ---------------- */
+  tableBody.addEventListener('blur', async (e) => {
+    const cell = e.target;
+    if (!cell.isContentEditable) return;
+
+    const zoneRow = cell.closest('tr');
+    const zoneId = zoneRow.dataset.zoneId;
+    if (!zoneId) return;
+
+    const field = cell.dataset.field;
+    const value = cell.textContent.trim();
+
+    if (field) {
+      await setDoc(doc(db, "zones", zoneId), { [field]: value }, { merge: true });
+    } else if (cell.closest('.questions-table')) {
+      const row = cell.closest('tr');
+      const questionId = row.dataset.questionId;
+      const table = cell.closest('table');
+      const zone = table.dataset.zoneId;
+      const columns = ['question', 'answer', 'type'];
+      const colName = columns[cell.cellIndex];
+      await setDoc(doc(db, "zones", zone, "questions", questionId), { [colName]: value }, { merge: true });
+    }
+
+    cell.style.background = '#1b5e20';
+    setTimeout(() => (cell.style.background = ''), 400);
+  }, true);
+
+  /* ---------------- Add Zone ---------------- */
+  document.getElementById('add-zone-btn').onclick = async () => {
+    const snapshot = await getDocs(zonesCollection);
+    const ids = snapshot.docs.map(d => d.id);
+    const nextNum = Math.max(...ids.map(id => parseInt(id.replace('zone', ''), 10) || 0)) + 1;
+    const newZoneId = `zone${nextNum}`;
+    const newZone = { name: `Zone ${nextNum}`, gps: '', diameter: '0.05', status: 'Available' };
+    await setDoc(doc(db, "zones", newZoneId), newZone);
+    alert(`✅ Added ${newZoneId}`);
+    renderZones();
+  };
 }
-

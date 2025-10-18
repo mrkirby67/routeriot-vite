@@ -1,120 +1,201 @@
-// --- IMPORTS & GLOBAL VARIABLES ---
 import { db } from './config.js';
 import { allTeams } from '../data.js';
-import { doc, onSnapshot, collection, query, where, addDoc, orderBy, collectionGroup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  collectionGroup,
+  getDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// --- CHAT & BROADCAST SYSTEM ---
-export function setupPlayerChatAndBroadcasts(teamName) {
-    const chatLog = document.getElementById('team-chat-log');
-    const opponentsTbody = document.getElementById('opponents-tbody');
-    if (!chatLog || !opponentsTbody) return;
+/* ---------------------------------------------------------------------------
+ * CONTROL PAGE: Listen to ALL MESSAGES (visible to Game Master)
+ * ------------------------------------------------------------------------ */
+export async function listenToAllMessages() {
+  const logBox = document.getElementById('communication-log');
+  if (!logBox) return;
 
-    // --- Part 1: Set up the UI for sending messages to other teams ---
-    opponentsTbody.innerHTML = '';
-    const otherTeams = allTeams.filter(t => t.name !== teamName);
-    otherTeams.forEach(team => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${team.name}</td>
-            <td id="location-${team.name.replace(/\s/g, '')}">--</td>
-            <td class="message-cell">
-                <input type="text" class="chat-input" data-recipient-input="${team.name}" placeholder="Message...">
-                <button class="send-btn" data-recipient="${team.name}">Send</button>
-            </td>
+  const activeSnap = await getDoc(doc(db, "game", "activeTeams"));
+  const activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
+
+  const privateMessagesQuery = query(collectionGroup(db, 'messages'), orderBy('timestamp', 'asc'));
+  const publicCommsQuery = query(collection(db, 'communications'), orderBy('timestamp', 'asc'));
+
+  let allMessages = [];
+  const messageIds = new Set();
+
+  const renderLog = () => {
+    allMessages.sort((a, b) => a.timestamp - b.timestamp);
+    logBox.innerHTML = '';
+    allMessages.forEach(msg => {
+      const time = new Date(msg.timestamp).toLocaleTimeString();
+      const entry = document.createElement('p');
+      if (msg.sender === 'Game Master' || msg.teamName === 'Game Master') {
+        entry.innerHTML = `<span style="color:#888;">[${time}]</span> <strong style="color:#fdd835;">GAME MASTER:</strong> ${msg.text || msg.message}`;
+      } else {
+        entry.innerHTML = `
+          <span style="color:#888;">[${time}]</span>
+          <strong style="color:#FFD700;">${msg.sender}</strong> ➡️
+          <strong style="color:#00CED1;">${msg.recipient}</strong>: ${msg.text}
         `;
-        opponentsTbody.appendChild(row);
+      }
+      logBox.appendChild(entry);
     });
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  
+  const processSnapshot = (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added' && !messageIds.has(change.doc.id)) {
+        messageIds.add(change.doc.id);
+        allMessages.push(change.doc.data());
+      }
+    });
+    renderLog();
+  };
 
-    opponentsTbody.addEventListener('click', (event) => {
-        if (event.target.classList.contains('send-btn')) {
-            const recipientName = event.target.dataset.recipient;
-            const input = document.querySelector(`input[data-recipient-input="${recipientName}"]`);
-            const messageText = input.value.trim();
-            if (messageText) {
-                sendMessage(teamName, recipientName, messageText);
-                input.value = '';
-            }
-        }
-    });
-    
-    // --- Part 2: Listen for all relevant messages ---
-    listenForMyMessages(teamName, chatLog);
+  onSnapshot(privateMessagesQuery, processSnapshot);
+  onSnapshot(publicCommsQuery, processSnapshot);
 }
 
+
+/* ---------------------------------------------------------------------------
+ * PLAYER PAGE: Chat UI and Message Handling
+ * ------------------------------------------------------------------------ */
+export async function setupPlayerChat(currentTeamName) {
+  const opponentsTbody = document.getElementById('opponents-tbody');
+  const chatLog = document.getElementById('team-chat-log');
+  if (!opponentsTbody || !chatLog) return;
+
+  opponentsTbody.innerHTML = '';
+
+  const activeSnap = await getDoc(doc(db, "game", "activeTeams"));
+  const activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
+  const playableTeams =
+    activeTeams.length > 0
+      ? activeTeams.filter(t => t !== currentTeamName)
+      : allTeams.filter(t => t.name !== currentTeamName).map(t => t.name);
+
+  playableTeams.forEach(teamName => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${teamName}</td>
+      <td>--</td>
+      <td class="message-cell">
+        <input type="text" class="chat-input" data-recipient-input="${teamName}"
+               placeholder="Message ${teamName}...">
+        <button class="send-btn" data-recipient="${teamName}">Send</button>
+      </td>
+    `;
+    opponentsTbody.appendChild(row);
+  });
+
+  opponentsTbody.querySelectorAll('.send-btn').forEach(button => {
+    button.addEventListener('click', (e) => {
+      const recipientName = e.target.dataset.recipient;
+      const input = document.querySelector(`input[data-recipient-input="${recipientName}"]`);
+      const messageText = input.value.trim();
+      if (messageText) {
+        sendMessage(currentTeamName, recipientName, messageText);
+        input.value = '';
+      }
+    });
+  });
+
+  listenForMyMessages(currentTeamName, chatLog);
+}
+
+/* ---------------------------------------------------------------------------
+ * Send Message between Teams
+ * ------------------------------------------------------------------------ */
 async function sendMessage(sender, recipient, text) {
-    const sortedNames = [sender, recipient].sort();
-    const convoId = `${sortedNames[0].replace(/\s/g, '')}_${sortedNames[1].replace(/\s/g, '')}`;
-    const messagesRef = collection(db, 'conversations', convoId, 'messages');
-    
-    try {
-        await addDoc(messagesRef, {
-            sender: sender,
-            recipient: recipient,
-            text: text,
-            timestamp: Date.now()
-        });
-    } catch (error) {
-        console.error("Error sending message:", error);
-    }
-}
+  const sortedNames = [sender, recipient].sort();
+  const convoId = `${sortedNames[0].replace(/\s/g, '')}_${sortedNames[1].replace(/\s/g, '')}`;
+  const messagesRef = collection(db, 'conversations', convoId, 'messages');
 
-function listenForMyMessages(myTeamName, logBox) {
-    const messagesRef = collectionGroup(db, 'messages');
-    const sentQuery = query(messagesRef, where('sender', '==', myTeamName));
-    const receivedQuery = query(messagesRef, where('recipient', '==', myTeamName));
-    const broadcastQuery = query(collection(db, 'communications'), where('teamName', '==', 'Commissioner'));
-
-    let allMessages = [];
-    const messageIds = new Set();
-
-    const updateLog = () => {
-        allMessages.sort((a, b) => a.timestamp - b.timestamp);
-        logBox.innerHTML = '';
-        allMessages.forEach(msg => {
-            const logEntry = document.createElement('p');
-            const timestamp = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            if (msg.sender === "Commissioner") {
-                logEntry.style.backgroundColor = '#3a3a24';
-                logEntry.style.padding = '8px';
-                logEntry.style.borderRadius = '5px';
-                logEntry.style.margin = '5px 0';
-                logEntry.innerHTML = `<span style="color: #aaa; margin-right: 8px;">[${timestamp}]</span> <strong style="color: #fdd835; font-size: 1.1em; text-transform: uppercase;">Broadcast:</strong> <span style="font-size: 1.1em; font-weight: bold;">${msg.text}</span>`;
-            } else if (msg.sender === myTeamName) {
-                logEntry.innerHTML = `<span style="color: #aaa; margin-right: 8px;">[${timestamp}]</span> <strong>You to ${msg.recipient}:</strong> ${msg.text}`;
-            } else {
-                logEntry.innerHTML = `<span style="color: #aaa; margin-right: 8px;">[${timestamp}]</span> <strong>From ${msg.sender}:</strong> ${msg.text}`;
-            }
-            logBox.appendChild(logEntry);
-        });
-        logBox.scrollTop = logBox.scrollHeight;
-    };
-
-    const processSnapshot = (snapshot) => {
-        snapshot.docChanges().forEach(change => {
-            if (change.type === 'added' && !messageIds.has(change.doc.id)) {
-                messageIds.add(change.doc.id);
-                allMessages.push(change.doc.data());
-            }
-        });
-        updateLog();
-    };
-
-    onSnapshot(sentQuery, processSnapshot);
-    onSnapshot(receivedQuery, processSnapshot);
-    onSnapshot(broadcastQuery, (snapshot) => {
-        snapshot.docChanges().forEach(change => {
-            if (change.type === 'added' && !messageIds.has(change.doc.id)) {
-                const data = change.doc.data();
-                messageIds.add(change.doc.id);
-                allMessages.push({
-                    sender: "Commissioner",
-                    recipient: "ALL",
-                    text: data.message,
-                    timestamp: data.timestamp.toMillis()
-                });
-            }
-        });
-        updateLog();
+  try {
+    await addDoc(messagesRef, {
+      sender,
+      recipient,
+      text,
+      timestamp: Date.now()
     });
+  } catch (error) {
+    console.error("Error sending message:", error);
+  }
 }
+
+/* ---------------------------------------------------------------------------
+ * Listen for Messages (Player Side)
+ * ------------------------------------------------------------------------ */
+function listenForMyMessages(myTeamName, logBox) {
+  logBox.style.whiteSpace = 'pre-wrap';
+
+  const messagesRef = collectionGroup(db, 'messages');
+  const sentQuery = query(messagesRef, where('sender', '==', myTeamName));
+  const receivedQuery = query(messagesRef, where('recipient', '==', myTeamName));
+  // --- THIS IS THE FIX: Changed "Commissioner" to "Game Master" ---
+  const broadcastQuery = query(collection(db, 'communications'), where('teamName', '==', 'Game Master'));
+
+  let allMessages = [];
+  const messageIds = new Set();
+
+  const renderLog = () => {
+    allMessages.sort((a, b) => a.timestamp - b.timestamp);
+    logBox.innerHTML = '';
+    allMessages.forEach(msg => {
+      const time = new Date(msg.timestamp).toLocaleTimeString();
+      const entry = document.createElement('p');
+
+      if (msg.sender === 'Game Master' || msg.teamName === 'Game Master') {
+        entry.style.backgroundColor = '#3a3a24';
+        entry.style.padding = '8px';
+        entry.style.borderRadius = '5px';
+        entry.style.margin = '5px 0';
+        entry.innerHTML = `<span style="color: #aaa;">[${time}]</span> <strong style="color: #fdd835; text-transform: uppercase;">Game Master:</strong> <span style="font-weight:bold;">${msg.text || msg.message}</span>`;
+      } else {
+        const isMine = msg.sender === myTeamName;
+        const color = isMine ? '#FFD700' : '#00CED1';
+        const prefix = isMine
+          ? `<strong style="color:${color};">You ➡️ ${msg.recipient}:</strong>`
+          : `<strong style="color:${color};">${msg.sender} ➡️ You:</strong>`;
+        entry.innerHTML = `<p>${prefix} ${msg.text} <span style="color:#888;">(${time})</span></p>`;
+      }
+      logBox.appendChild(entry);
+    });
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+
+  const processSnapshot = (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added' && !messageIds.has(change.doc.id)) {
+        messageIds.add(change.doc.id);
+        allMessages.push(change.doc.data());
+      }
+    });
+    renderLog();
+  };
+
+  onSnapshot(sentQuery, processSnapshot, (err) => console.error("Sent query error:", err));
+  onSnapshot(receivedQuery, processSnapshot, (err) => console.error("Received query error:", err));
+  onSnapshot(broadcastQuery, (snapshot) => {
+      snapshot.docChanges().forEach(change => {
+          if (change.type === 'added' && !messageIds.has(change.doc.id)) {
+              const data = change.doc.data();
+              messageIds.add(change.doc.id);
+              allMessages.push({
+                  sender: "Game Master",
+                  recipient: "ALL",
+                  text: data.message,
+                  timestamp: data.timestamp.toMillis ? data.timestamp.toMillis() : data.timestamp
+              });
+          }
+      });
+      renderLog();
+  });
+}
+

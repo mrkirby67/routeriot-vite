@@ -25,4 +25,12 @@
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.9em;
     color: #03dac6;
+    /* The white-space property has been moved from here... */
 }
+
+.logBox p {
+    margin: 0 0 5px 0;
+    padding: 0;
+    white-space: pre-wrap; /* ...to here, to target the message paragraphs directly. */
+}
+

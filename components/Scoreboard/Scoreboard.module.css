@@ -26,3 +26,31 @@
     background-color: #333;
     color: #bb86fc;
 }
+
+/* --- NEW STYLES FOR EDITABLE SCOREBOARD --- */
+.scoreInput {
+    background-color: #2c2c2c;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 8px;
+    width: 80px;
+    text-align: center;
+    font-size: 1em;
+}
+
+.adjustBtn {
+    background-color: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 5px 10px;
+    margin: 0 2px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.adjustBtn:hover {
+    background-color: #444;
+}
+

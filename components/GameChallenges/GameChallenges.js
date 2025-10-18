@@ -1,4 +1,4 @@
-import { db } from '../modules/config.js';
+import { db } from '../../modules/config.js';
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './GameChallenges.module.css';
 
@@ -48,6 +48,7 @@ export function initializeGameChallengesLogic() {
         const challengeId = row.dataset.questionId;
         if (!challengeId) return;
 
+        // Note: cellIndex is offset by 1 because the first cell isn't editable
         const fields = ['challengeType', 'question', 'answer', 'type']; 
         const field = fields[cell.cellIndex];
         if (!field || field === 'challengeType') return;
@@ -56,6 +57,8 @@ export function initializeGameChallengesLogic() {
         const challengeRef = doc(db, "specialChallenges", challengeId);
         try {
             await setDoc(challengeRef, { [field]: value }, { merge: true });
+            console.log(`Saved ${field} for special challenge: ${challengeId}`);
         } catch (error) { console.error("Error saving special challenge:", error); }
     }, true);
 }
+

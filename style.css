@@ -1,125 +1,353 @@
-/* General Body Styles */
+/* ============================================================================
+   File: /public/style.css
+   Purpose: Global Styles for Route Riot (Player + Control pages)
+   Theme: Dark mode unified with GameControls.module.css
+   Responsive: Optimized for phones, tablets, laptops
+   ============================================================================ */
+
+/* === Base Body & Typography === */
 body {
-    background-color: #121212;
-    color: #e0e0e0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
+  background-color: #121212;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
 }
 
 .container {
-    max-width: 900px;
-    margin: 0 auto;
-    text-align: left;
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: left;
 }
 
 h1, h2, h3 {
-    color: white;
-    border-bottom: 2px solid #bb86fc;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+  color: #fff;
+  border-bottom: 2px solid #bb86fc;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
 }
+
 h3 {
-    border-bottom-style: dashed;
-    border-bottom-width: 1px;
-    font-size: 1.1em;
+  border-bottom-style: dashed;
+  border-bottom-width: 1px;
+  font-size: 1.1em;
 }
 
-/* Global Link Styles */
-a { color: #bb86fc; text-decoration: none; }
-a:hover { text-decoration: underline; }
-.back-link { display: inline-block; margin-bottom: 20px; }
-
-/* Global styles for form inputs */
-input[type="number"], select, input[type="text"] {
-    background-color: #333;
-    color: #e0e0e0;
-    border: 1px solid #555;
-    border-radius: 4px;
-    padding: 8px;
-    width: 100%;
-    box-sizing: border-box; /* Ensures padding doesn't affect width */
+/* === Links === */
+a {
+  color: #bb86fc;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.back-link {
+  display: inline-block;
+  margin-bottom: 20px;
 }
 
-/* --- Homepage Styles --- */
+/* === Form Inputs === */
+input[type="number"],
+select,
+input[type="text"] {
+  background-color: #333;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+input:focus {
+  outline: none;
+  border-color: #03dac6;
+}
+
+/* === Homepage Buttons === */
 body:has(nav) { text-align: center; }
 nav { margin: 30px 0; }
-.nav-link, .button {
-    display: inline-block;
-    background-color: #bb86fc;
-    color: #121212;
-    padding: 15px 30px;
-    border-radius: 8px;
-    margin: 10px;
-    font-size: 1.2em;
-    font-weight: bold;
-    text-decoration: none;
-    transition: transform 0.2s ease;
+.button,
+.nav-link {
+  display: inline-block;
+  background-color: #bb86fc;
+  color: #121212;
+  padding: 15px 30px;
+  border-radius: 8px;
+  margin: 10px;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-decoration: none;
+  transition: transform 0.2s ease;
 }
-.nav-link:hover, .button:hover { transform: scale(1.05); text-decoration: none; }
+.button:hover,
+.nav-link:hover {
+  transform: scale(1.05);
+  text-decoration: none;
+}
 
-/* --- Player & Control Page Shared Styles --- */
-.slogan { font-style: italic; color: #aaa; text-align: center; margin-top: -20px; }
-.log-box { background-color: #000; border: 1px solid #444; border-radius: 4px; padding: 15px; height: 200px; overflow-y: scroll; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; color: #03dac6; }
-.broadcast-message-display { background-color: #fdd835; color: #121212; padding: 20px; border-radius: 8px; margin-bottom: 20px; font-size: 1.2em; font-weight: bold; text-align: center; }
-.message-cell { display: flex; gap: 10px; margin-top: 10px; }
-.chat-input { flex-grow: 1; }
-button, .send-btn, .challenge-btn, .copy-link-btn, .email-link-btn { background-color: #333; color: #e0e0e0; padding: 10px 20px; border-radius: 5px; border: 1px solid #bb86fc; cursor: pointer; font-size: 1em; }
-button:hover, .send-btn:hover, .challenge-btn:hover, .copy-link-btn:hover, .email-link-btn:hover { background-color: #444; }
-.send-btn, .email-link-btn { background-color: #bb86fc; color: #121212; }
-.challenge-btn { background-color: #03dac6; color: #121212; border: none; }
-#challenge-question { font-size: 1.6em; font-weight: bold; color: #fdd835; line-height: 1.4; margin: 20px 0; text-align: center; }
-.mini-map { width: 150px; height: 150px; border-radius: 6px; border: 4px solid #555; object-fit: cover; }
+/* === Shared Player + Control Containers === */
+.control-section {
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.slogan {
+  font-style: italic;
+  color: #aaa;
+  text-align: center;
+  margin-top: -20px;
+}
+
+/* === Data Tables === */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid #333;
+  padding: 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.data-table th {
+  background-color: #333;
+  color: #bb86fc;
+}
+
+.data-table tr:hover {
+  background-color: #292929;
+}
+
+/* === Chat & Logs === */
+.log-box {
+  background-color: #000;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 15px;
+  height: 200px;
+  overflow-y: scroll;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+  color: #03dac6;
+}
+.log-box p {
+  margin: 0 0 5px 0;
+  padding: 0;
+  white-space: pre-wrap;
+}
+
+/* === Broadcast === */
+.broadcast-message-display {
+  background-color: #fdd835;
+  color: #121212;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* === Messaging / Buttons === */
+.message-cell {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.chat-input {
+  flex-grow: 1;
+}
+
+button,
+.send-btn,
+.challenge-btn {
+  background-color: #333;
+  color: #e0e0e0;
+  padding: 10px 20px;
+  border-radius: 5px;
+  border: 1px solid #bb86fc;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.2s, transform 0.1s ease-in-out;
+}
+
+button:hover,
+.send-btn:hover,
+.challenge-btn:hover {
+  background-color: #444;
+  transform: scale(1.05);
+}
+
+.send-btn,
+.email-link-btn {
+  background-color: #bb86fc;
+  color: #121212;
+}
+
+.challenge-btn {
+  background-color: #03dac6;
+  color: #121212;
+  border: none;
+}
+
+/* === Timer & Game Info === */
+#player-timer,
+.liveTimer {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1.4em;
+  color: #03dac6;
+  background: #1e1e1e;
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: inline-block;
+  margin-top: 10px;
+}
+
+/* === Challenge Section === */
+#challenge-question {
+  font-size: 1.6em;
+  font-weight: bold;
+  color: #fdd835;
+  line-height: 1.4;
+  margin: 20px 0;
+  text-align: center;
+}
+
+/* === Zone Maps === */
+.mini-map {
+  width: 150px;
+  height: 150px;
+  border-radius: 6px;
+  border: 4px solid #555;
+  object-fit: cover;
+}
 .mini-map.status-available { border-color: #03dac6; }
 .mini-map.status-taken { border-color: #cf6679; }
-.team-members ul { list-style: none; padding: 0; }
 
+/* === Team Lists === */
+.team-members ul {
+  list-style: none;
+  padding: 0;
+}
 
-/* Modal Styles */
+/* === Scrollbars === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover { background: #888; }
+
+/* === Modal Styles === */
 .modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
 .modal-content {
-    background-color: #1e1e1e;
-    padding: 30px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    width: 90%;
-    max-width: 700px;
-    max-height: 80vh;
-    overflow-y: auto;
-    position: relative;
+  background-color: #1e1e1e;
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 0 20px rgba(187, 134, 252, 0.2);
 }
 
 .modal-close-btn {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 2em;
-    font-weight: bold;
-    color: #aaa;
-    cursor: pointer;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 2em;
+  font-weight: bold;
+  color: #aaa;
+  cursor: pointer;
 }
-.modal-close-btn:hover {
-    color: white;
-}
+.modal-close-btn:hover { color: white; }
 
 .team-roster-block {
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #333;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #333;
 }
-.team-roster-block:last-child {
-    border-bottom: none;
+.team-roster-block:last-child { border-bottom: none; }
+
+.email-link-btn {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: bold;
+  margin-left: 10px;
 }
 
+/* ============================================================================
+   📱 RESPONSIVE ADAPTATION (Mobile + Tablet)
+   ============================================================================ */
+
+/* === Tablets (≤900px) === */
+@media (max-width: 900px) {
+  body { padding: 15px; }
+  .container { max-width: 100%; }
+  .data-table th, .data-table td { padding: 10px 8px; font-size: 0.95em; }
+  .message-cell { flex-direction: column; gap: 6px; }
+  .chat-input { width: 100%; }
+  .send-btn { width: 100%; }
+  button, .challenge-btn { font-size: 1em; padding: 10px; }
+}
+
+/* === Phones (≤600px) === */
+@media (max-width: 600px) {
+  body { padding: 10px; font-size: 0.95em; }
+  h1, h2, h3 { text-align: center; }
+  .button, .nav-link {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    font-size: 1em;
+  }
+  .control-section {
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+  .data-table th, .data-table td {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px;
+  }
+  .data-table tr { display: block; margin-bottom: 12px; border-bottom: 1px solid #333; }
+  .mini-map { width: 100%; height: auto; }
+  .log-box { height: 150px; }
+  .broadcast-message-display { font-size: 1em; padding: 15px; }
+  .send-btn, .challenge-btn, .email-link-btn {
+    width: 100%;
+    text-align: center;
+    font-size: 1em;
+  }
+}
