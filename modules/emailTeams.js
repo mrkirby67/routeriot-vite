@@ -1,3 +1,8 @@
+// ============================================================================
+// File: modules/emailTeams.js
+// ============================================================================
+import { allTeams } from '../data.js';
+
 /**
  * Generates and opens Gmail compose links for teams with active racers.
  *
@@ -7,11 +12,11 @@
  * @returns {string[]|void}
  */
 export function emailAllTeams(rulesText = '', activeTeams = {}, batchMode = false) {
-  const teamsToSend = Object.keys(activeTeams).length > 0
-    ? activeTeams
-    : {};
-
+  const teamsToSend = Object.keys(activeTeams).length ? activeTeams : {};
   const composeLinks = [];
+
+  // Keep a running index so each setTimeout delay is predictable
+  let openIndex = 0;
 
   Object.entries(teamsToSend).forEach(([teamName, members]) => {
     if (!Array.isArray(members) || members.length === 0) {
@@ -29,6 +34,7 @@ export function emailAllTeams(rulesText = '', activeTeams = {}, batchMode = fals
       return;
     }
 
+    // ✅ Use consistent query param ("teamName") for your player page
     const playerUrl = `${window.location.origin}/player.html?teamName=${encodeURIComponent(teamName)}`;
 
     const teamObj = allTeams.find(t => t.name === teamName);
@@ -56,23 +62,27 @@ Good luck racers! 🏁
 
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${emails}&su=${subject}&body=${body}`;
 
+    // ================================================================
+    // 📬 Staggered opening to avoid popup blocking
+    // ================================================================
     if (batchMode) {
       composeLinks.push(gmailUrl);
     } else {
-      // Stagger the window.open calls to avoid being blocked by the browser's pop-up blocker
+      const delay = 400 * openIndex; // 400ms gap between each email tab
       setTimeout(() => {
         try {
           window.open(gmailUrl, '_blank');
+          console.log(`📧 Opened Gmail for ${teamName} (delay ${delay}ms)`);
         } catch (err) {
           console.error(`❌ Could not open Gmail compose for ${teamName}:`, err);
         }
-      }, 200 * composeLinks.length);
+      }, delay);
+      openIndex++;
     }
   });
 
   if (batchMode) {
-    console.log(`📬 Generated ${composeLinks.length} Gmail compose links for preview.`);
+    console.log(`📬 Generated ${composeLinks.length} Gmail compose links.`);
     return composeLinks;
   }
 }
-

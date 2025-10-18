@@ -8,10 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "npm run build && firebase deploy",
-    "publish": "git push && npm run deploy"
+    "go": "[ -d .git ] || { echo '❌ Not in a Git repo!'; exit 1; }; npm run deploy && git add -A && git commit -m \"🔄 Auto-sync on $(date '+%Y-%m-%d %H:%M:%S')\" || echo '⚠️ No changes to commit' && git push origin main && echo '✅ Firebase + GitHub Sync Complete 🚀'"
   },
   "devDependencies": {
     "vite": "^5.3.1"
   }
 }
-
