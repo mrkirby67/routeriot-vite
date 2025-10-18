@@ -1,6 +1,6 @@
 // ============================================================================
 // CONTROL PAGE SCRIPT (FINALIZED MODULAR BUILD - SAFE START/END)
-// Emails sent on “Racers Take Your Marks” instead of Start
+// Adds: auto & manual score reset, end-game broadcast, and safe zone cleanup
 // ============================================================================
 
 // ---------------------------------------------------------------------------
@@ -21,10 +21,9 @@ import { showCountdownBanner, showFlashMessage } from './modules/gameUI.js';
 import { emailAllTeams } from './modules/emailTeams.js';
 import { allTeams } from './data.js';
 
-// 👉 We also need some direct Firestore ops for safe start/end & zone reset
 import {
   doc, getDoc, updateDoc, serverTimestamp,
-  collection, getDocs, setDoc
+  collection, getDocs, setDoc, addDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './modules/config.js';
 
@@ -32,7 +31,7 @@ import { db } from './modules/config.js';
 // ⚙️ CONSTANTS
 // ---------------------------------------------------------------------------
 const GAME_STATE_REF = doc(db, "game", "gameState");
-const DEFAULT_DURATION_MIN = 30; // used if no explicit duration is stored
+const DEFAULT_DURATION_MIN = 30;
 
 // ---------------------------------------------------------------------------
 // 🧠 MAIN INITIALIZATION
@@ -79,7 +78,8 @@ function wireGameControls() {
   const releaseBtn = document.getElementById('release-zones-btn');
   const endBtn     = document.getElementById('end-game-btn');
   const resetBtn   = document.getElementById('reset-game-btn');
-  const marksBtn   = document.getElementById('take-marks-btn'); // 🏁 NEW BUTTON
+  const marksBtn   = document.getElementById('take-marks-btn');
+  const clearBtn   = document.getElementById('clear-scores-btn'); // 🧹 NEW BUTTON
 
   // 🏁 RACERS TAKE YOUR MARKS — opens Gmail compose popups
   if (marksBtn) {
@@ -87,15 +87,12 @@ function wireGameControls() {
       try {
         const rulesBox  = document.getElementById('rules-textarea');
         const rulesText = rulesBox ? rulesBox.value.trim() : '';
-
-        // If you have active team selection elsewhere, plug that in here.
         const activeTeams = allTeams.reduce((acc, t) => {
           acc[t.name] = [
             { email: `${t.name.toLowerCase().replace(/\s+/g, '')}@example.com` }
           ];
           return acc;
         }, {});
-
         emailAllTeams(rulesText, activeTeams);
         showFlashMessage('📧 Team emails opened in Gmail!', '#1565c0', 3000);
       } catch (err) {
@@ -105,35 +102,36 @@ function wireGameControls() {
     });
   }
 
-  // ▶️ START GAME (SAFE: do not overwrite startTime if it already exists)
+  // ▶️ START GAME — now auto-clears all scores first
   if (startBtn) {
     startBtn.addEventListener('click', async () => {
       try {
+        await clearAllScores(true); // auto reset before start
+
         const snap = await getDoc(GAME_STATE_REF);
         const existing = snap.exists() ? snap.data() : {};
         const update = {
           status: 'active',
-          zonesReleased: true, // you can toggle this if you want “Release” separate
+          zonesReleased: true,
           updatedAt: serverTimestamp(),
         };
 
-        // Only set startTime once
-        if (!existing.startTime) {
-          update.startTime = serverTimestamp();
-        }
-
-        // Store duration once so all players compute the same end time
-        if (!existing.durationMinutes) {
-          update.durationMinutes = DEFAULT_DURATION_MIN;
-        }
+        if (!existing.startTime) update.startTime = serverTimestamp();
+        if (!existing.durationMinutes) update.durationMinutes = DEFAULT_DURATION_MIN;
 
         await updateDoc(GAME_STATE_REF, update);
 
+        await addDoc(collection(db, "communications"), {
+          teamName: "Game Master",
+          message: "🏁 A new game has begun! Scores have been reset.",
+          isBroadcast: true,
+          timestamp: serverTimestamp(),
+        });
+
         showCountdownBanner({ parent: document.body });
-        showFlashMessage('✅ Game Started!', '#2e7d32', 3000);
+        showFlashMessage('✅ Game Started! Scores cleared.', '#2e7d32', 3000);
       } catch (e) {
         console.error('Error starting game:', e);
-        // Fallback to setGameStatus if doc was missing
         try {
           await setDoc(GAME_STATE_REF, {
             status: 'active',
@@ -143,7 +141,7 @@ function wireGameControls() {
             updatedAt: serverTimestamp(),
           }, { merge: true });
           showCountdownBanner({ parent: document.body });
-          showFlashMessage('✅ Game Started!', '#2e7d32', 3000);
+          showFlashMessage('✅ Game Started! Scores cleared.', '#2e7d32', 3000);
         } catch (err2) {
           console.error('Start fallback failed:', err2);
           showFlashMessage('Start failed.', '#c62828', 2500);
@@ -165,7 +163,7 @@ function wireGameControls() {
     });
   }
 
-  // 🏁 END GAME — also resets zones & clears teamStatus locations
+  // 🏁 END GAME — resets zones, teamStatus, scoreboard + broadcast
   if (endBtn) {
     endBtn.addEventListener('click', async () => {
       try {
@@ -178,7 +176,7 @@ function wireGameControls() {
     });
   }
 
-  // 🔄 RESET → back to waiting (does not wipe zones)
+  // 🔄 RESET GAME STATE
   if (resetBtn) {
     resetBtn.addEventListener('click', async () => {
       if (confirm('Reset game state to WAITING?\n(Does NOT wipe zones)')) {
@@ -186,7 +184,6 @@ function wireGameControls() {
           await setDoc(GAME_STATE_REF, {
             status: 'waiting',
             zonesReleased: false,
-            // keep historical start/end if you want—players only read current status
             updatedAt: serverTimestamp(),
           }, { merge: true });
           showFlashMessage('🔄 Game Reset to WAITING.', '#757575', 2500);
@@ -194,6 +191,16 @@ function wireGameControls() {
           console.error('Error resetting game:', e);
           showFlashMessage('Reset failed.', '#c62828', 2500);
         }
+      }
+    });
+  }
+
+  // 🧹 CLEAR SCORES BUTTON
+  if (clearBtn) {
+    clearBtn.addEventListener('click', async () => {
+      if (confirm('Clear all team scores and controlled zones?')) {
+        await clearAllScores(false);
+        showFlashMessage('🧹 All scores cleared.', '#1565c0', 3000);
       }
     });
   }
@@ -230,34 +237,88 @@ function watchLiveGameStatus() {
 }
 
 // ---------------------------------------------------------------------------
-// 🧹 SAFE END + RESET ZONES
+// 🧹 SAFE END + RESET ZONES + CLEAR SCORES + BROADCAST
 // ---------------------------------------------------------------------------
 async function safelyEndGameAndResetZones() {
-  // 1) Mark the game finished (don’t touch startTime)
-  await updateDoc(GAME_STATE_REF, {
-    status: 'finished',
-    updatedAt: serverTimestamp(),
-    // optionally set endTime if you want a hard stop timestamp:
-    // endTime: serverTimestamp(),
-  });
-
-  // 2) Reset every zone to available
-  const zonesSnap = await getDocs(collection(db, "zones"));
-  for (const z of zonesSnap.docs) {
-    await updateDoc(doc(db, "zones", z.id), {
-      status: 'Available',
-      controllingTeam: '',
-      lastUpdated: serverTimestamp()
+  try {
+    await updateDoc(GAME_STATE_REF, {
+      status: 'finished',
+      updatedAt: serverTimestamp(),
     });
+
+    // Reset zones
+    const zonesSnap = await getDocs(collection(db, "zones"));
+    for (const z of zonesSnap.docs) {
+      await updateDoc(doc(db, "zones", z.id), {
+        status: 'Available',
+        controllingTeam: '',
+        lastUpdated: serverTimestamp(),
+      });
+    }
+
+    // Clear teamStatus
+    const teamStatusSnap = await getDocs(collection(db, "teamStatus"));
+    for (const t of teamStatusSnap.docs) {
+      await updateDoc(doc(db, "teamStatus", t.id), {
+        lastKnownLocation: '',
+        timestamp: serverTimestamp(),
+      });
+    }
+
+    // Reset all scores
+    await clearAllScores(true);
+
+    // Broadcast end-of-game message
+    await addDoc(collection(db, "communications"), {
+      teamName: "Game Master",
+      message: "🏁 The game has ended! All zones and scores have been reset.",
+      isBroadcast: true,
+      timestamp: serverTimestamp(),
+    });
+
+    console.log("✅ Game ended, zones and scores reset, broadcast sent.");
+  } catch (e) {
+    console.error("❌ Error safely ending game:", e);
+    showFlashMessage('End/Reset failed.', '#c62828', 3000);
   }
+}
 
-  // 3) (Optional) Clear teamStatus last known location
-  const teamStatusSnap = await getDocs(collection(db, "teamStatus"));
-  for (const t of teamStatusSnap.docs) {
-    await updateDoc(doc(db, "teamStatus", t.id), {
-      lastKnownLocation: '',
-      timestamp: serverTimestamp()
-    });
+// ---------------------------------------------------------------------------
+// 🧮 CLEAR ALL SCORES (manual or auto)
+// ---------------------------------------------------------------------------
+async function clearAllScores(autoTriggered = false) {
+  try {
+    const teamsSnap = await getDocs(collection(db, "teams"));
+    for (const t of teamsSnap.docs) {
+      await updateDoc(doc(db, "teams", t.id), {
+        score: 0,
+        controlledZones: [],
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    const scoreboardSnap = await getDocs(collection(db, "scoreboard"));
+    for (const s of scoreboardSnap.docs) {
+      await updateDoc(doc(db, "scoreboard", s.id), {
+        totalPoints: 0,
+        zonesCaptured: [],
+        lastReset: serverTimestamp(),
+      });
+    }
+
+    if (!autoTriggered) {
+      await addDoc(collection(db, "communications"), {
+        teamName: "Game Master",
+        message: "🧹 Scores have been manually cleared by the Game Master.",
+        isBroadcast: true,
+        timestamp: serverTimestamp(),
+      });
+    }
+
+    console.log(`✅ Scores cleared (${autoTriggered ? 'auto' : 'manual'}).`);
+  } catch (e) {
+    console.error("❌ Error clearing scores:", e);
+    showFlashMessage('Score clearing failed.', '#c62828', 3000);
   }
 }
 

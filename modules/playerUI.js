@@ -1,7 +1,7 @@
 // ============================================================================
 // File: modules/playerUI.js
 // Purpose: Displays team info, roster, live countdown timer, and last location
-// Author: Route Riot Control - 2025 (fixed timer flicker + pause support)
+// Author: Route Riot Control - 2025 (synced with Control.js durationMinutes)
 // ============================================================================
 
 import { db } from './config.js';
@@ -9,6 +9,11 @@ import { allTeams } from '../data.js';
 import { onSnapshot, collection, query, where, doc }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { listenForGameStatus } from './gameStateManager.js';
+
+// ---------------------------------------------------------------------------
+// Globals (must be declared before any function references it)
+// ---------------------------------------------------------------------------
+let countdownInterval = null;
 
 // ---------------------------------------------------------------------------
 // Simple DOM helpers
@@ -45,26 +50,22 @@ export function initializePlayerUI(teamInput) {
   const memberList = $('team-member-list');
   if (memberList) {
     const q = query(collection(db, "racers"), where("team", "==", teamName));
-    onSnapshot(
-      q,
-      (snapshot) => {
-        memberList.innerHTML = '';
-        if (snapshot.empty) {
-          memberList.innerHTML = '<li>No racers assigned to this team yet.</li>';
-          return;
-        }
-        snapshot.forEach(docSnap => {
-          const member = docSnap.data();
-          const li = document.createElement('li');
-          let info = `<strong>${member.name || 'Unnamed Racer'}</strong>`;
-          if (member.cell) info += ` - 📱 ${member.cell}`;
-          if (member.email) info += ` - ✉️ ${member.email}`;
-          li.innerHTML = info;
-          memberList.appendChild(li);
-        });
-      },
-      (err) => console.error("❌ Error loading racers:", err)
-    );
+    onSnapshot(q, (snapshot) => {
+      memberList.innerHTML = '';
+      if (snapshot.empty) {
+        memberList.innerHTML = '<li>No racers assigned to this team yet.</li>';
+        return;
+      }
+      snapshot.forEach(docSnap => {
+        const member = docSnap.data();
+        const li = document.createElement('li');
+        let info = `<strong>${member.name || 'Unnamed Racer'}</strong>`;
+        if (member.cell) info += ` - 📱 ${member.cell}`;
+        if (member.email) info += ` - ✉️ ${member.email}`;
+        li.innerHTML = info;
+        memberList.appendChild(li);
+      });
+    }, (err) => console.error("❌ Error loading racers:", err));
   }
 
   // 📍 Real-time location listener (teamStatus collection)
@@ -91,48 +92,49 @@ export function initializePlayerUI(teamInput) {
     }, (err) => console.error("❌ Error reading teamStatus:", err));
   }
 
-  // ⏱️ Time Remaining
+  // ⏱️ Time Remaining (fully synced with Control.js)
   const timerEl = $('time-remaining') || $('player-timer');
   if (timerEl) {
     timerEl.textContent = '⏳ Waiting...';
 
     listenForGameStatus((state) => {
       if (!state) return;
-      const { status, startTime, endTime } = state;
 
-      // 🕓 Waiting
-      if (status === 'waiting') {
-        if (countdownInterval) clearInterval(countdownInterval);
-        timerEl.textContent = 'Waiting for game start...';
-        return;
+      const { status, startTime, durationMinutes } = state;
+      const duration = Number(durationMinutes ?? 30) * 60 * 1000;
+
+      // Always clear previous intervals
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
       }
 
-      // ⏸️ Paused
-      if (status === 'paused') {
-        if (countdownInterval) clearInterval(countdownInterval);
-        timerEl.textContent = '⏸️ Game paused';
-        return;
-      }
+      switch (status) {
+        case 'waiting':
+          timerEl.textContent = 'Waiting for game start...';
+          return;
 
-      // 🚀 Active
-      if (status === 'active') {
-        const start = startTime?.toMillis
-          ? startTime.toMillis()
-          : startTime || Date.now();
+        case 'paused':
+          timerEl.textContent = '⏸️ Game paused';
+          return;
 
-        const end = endTime?.toMillis
-          ? endTime.toMillis()
-          : start + 30 * 60 * 1000;
+        case 'active': {
+          const start = startTime?.toMillis
+            ? startTime.toMillis()
+            : (typeof startTime === 'number' ? startTime : Date.now());
+          const end = start + duration;
+          console.log(`⏱️ Countdown: ${new Date(start).toLocaleTimeString()} → ${new Date(end).toLocaleTimeString()}`);
+          startCountdown(timerEl, end);
+          return;
+        }
 
-        console.log(`⏱️ Countdown: ${new Date(start).toLocaleTimeString()} → ${new Date(end).toLocaleTimeString()}`);
-        startCountdown(timerEl, start, end);
-        return;
-      }
+        case 'finished':
+        case 'ended':
+          timerEl.textContent = '🏁 Game Over!';
+          return;
 
-      // 🏁 Finished
-      if (['finished', 'ended'].includes(status)) {
-        if (countdownInterval) clearInterval(countdownInterval);
-        timerEl.textContent = '🏁 Game Over!';
+        default:
+          timerEl.textContent = '⚠️ Unknown status';
       }
     });
   }
@@ -141,11 +143,8 @@ export function initializePlayerUI(teamInput) {
 // ---------------------------------------------------------------------------
 // Countdown Timer Helper (single-instance, anti-flicker)
 // ---------------------------------------------------------------------------
-let countdownInterval = null;
-let currentEndTime = null;
-
-function startCountdown(el, start, end) {
-  if (!start || !end) {
+function startCountdown(el, endTimeMs) {
+  if (!endTimeMs) {
     el.textContent = '⚠️ Timer unavailable';
     return;
   }
@@ -153,12 +152,8 @@ function startCountdown(el, start, end) {
   // Prevent duplicate intervals
   if (countdownInterval) clearInterval(countdownInterval);
 
-  currentEndTime = end;
-
   const update = () => {
-    const now = Date.now();
-    const remaining = currentEndTime - now;
-
+    const remaining = endTimeMs - Date.now();
     if (remaining <= 0) {
       el.textContent = '🏁 Time’s up!';
       clearInterval(countdownInterval);

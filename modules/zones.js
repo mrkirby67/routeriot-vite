@@ -1,9 +1,16 @@
 // ============================================================================
-// MODULE: zones.js  (Patched & Hardened)
+// MODULE: zones.js  (Patched & Hardened • updates teamStatus for last location)
 // ============================================================================
 import { db, firebaseConfig } from './config.js';
 import {
-  doc, onSnapshot, collection, getDoc, getDocs, setDoc, addDoc
+  doc,
+  onSnapshot,
+  collection,
+  getDoc,
+  getDocs,
+  setDoc,
+  addDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { addPointsToTeam, updateControlledZones } from './scoreboardManager.js';
 
@@ -34,15 +41,24 @@ function waitForElement(id, timeout = 4000) {
   });
 }
 
+function flashPlayerLocation(text) {
+  const el = document.getElementById('player-location');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 800);
+}
+
 /* ---------------------------------------------------------------------------
  *  FIRESTORE EVENT HELPERS
  * ------------------------------------------------------------------------ */
 async function broadcastEvent(teamName, message) {
   try {
     await addDoc(collection(db, "communications"), {
-      teamName,
+      teamName,            // 👈 keep the sender for chat rendering
       message,
-      timestamp: new Date()
+      isBroadcast: true,   // 👈 helpful flag for renderers
+      timestamp: serverTimestamp()
     });
   } catch (e) {
     console.error("Broadcast error:", e);
@@ -59,9 +75,13 @@ async function updateTeamLocation(teamName, zoneName) {
   try {
     await setDoc(
       doc(db, "teamStatus", teamName),
-      { lastKnownLocation: zoneName, timestamp: new Date() },
+      { lastKnownLocation: zoneName, timestamp: serverTimestamp() },
       { merge: true }
     );
+    // Optimistic UI update so players see it immediately
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString();
+    flashPlayerLocation(`📍 ${zoneName} (updated ${timeStr})`);
   } catch (e) {
     console.error("updateTeamLocation error:", e);
   }
@@ -144,7 +164,7 @@ function validateAnswer(playerAnswer, correctAnswer, type) {
 
 /* ---------------------------------------------------------------------------
  *  MAP HELPERS (Safe Geometry Handling)
-// --------------------------------------------------------------------------- */
+ * --------------------------------------------------------------------------- */
 function calculateZoomLevel(diameterKm, imageWidthPixels = 150) {
   const GLOBE_WIDTH = 256;
   const angle = diameterKm / 6371 * (180 / Math.PI) * 2;
@@ -221,7 +241,7 @@ function generateMiniMap(zoneData) {
 
 /* ---------------------------------------------------------------------------
  *  MAIN EXPORT — Initialize Zones (Player Page)
-// --------------------------------------------------------------------------- */
+ * --------------------------------------------------------------------------- */
 export async function initializeZones(teamName) {
   currentTeamName = teamName;
   const tableBody = await waitForElement('player-zones-tbody');
@@ -339,8 +359,10 @@ async function handleChallengeClick(event) {
 
       if (dist <= targetRadiusKm + accuracyKm) {
         alert("You're in the zone! Time to answer.");
-        broadcastChallenge(currentTeamName, zoneData.name);
+        // ✅ Update last known location immediately
         updateTeamLocation(currentTeamName, zoneData.name);
+        // ✅ Broadcast challenge with the team included
+        broadcastChallenge(currentTeamName, zoneData.name);
         displayZoneQuestions(zoneId, zoneData.name);
       } else {
         alert(`Getting warmer... ${Math.max(0, dist - targetRadiusKm).toFixed(3)} km to enter the zone.`);
@@ -362,18 +384,25 @@ async function handleAnswerSubmit() {
 
   const questionData = questionDoc.data();
   const zoneDoc = await getDoc(doc(db, "zones", zoneId));
-  const zoneName = zoneDoc.data().name;
+  const zoneName = zoneDoc.data().name || zoneId;
   const isCorrect = validateAnswer(playerAnswer, questionData.answer, questionData.type);
 
   if (isCorrect) {
     const points = attemptsLeft === 3 ? 10 : attemptsLeft === 2 ? 8 : 6;
     alert(`CORRECT! You captured ${zoneName} and earned ${points} points!`);
+
+    // ✅ Ensure teamStatus is updated on capture as well
+    await updateTeamLocation(currentTeamName, zoneName);
+
     await broadcastWin(currentTeamName, zoneName);
-    await setDoc(doc(db, "zones", zoneId),
+    await setDoc(
+      doc(db, "zones", zoneId),
       { status: "Taken", controllingTeam: currentTeamName },
-      { merge: true });
+      { merge: true }
+    );
     await addPointsToTeam(currentTeamName, points);
     await updateControlledZones(currentTeamName, zoneName);
+
     document.getElementById('challenge-box')?.style.setProperty('display', 'none');
   } else {
     challengeState.attemptsLeft--;

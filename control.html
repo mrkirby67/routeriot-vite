@@ -14,7 +14,25 @@
 </head>
 <body>
   <div class="container">
-    <div id="game-controls-container"></div>
+    <!-- GAME CONTROLS SECTION -->
+    <div id="game-controls-container">
+      <h2>Game Controls</h2>
+      <div class="button-row">
+        <button id="take-marks-btn" class="control-btn">📢 Racers Take Your Marks</button>
+        <button id="start-game-btn" class="control-btn success">▶️ Start Game</button>
+        <button id="release-zones-btn" class="control-btn info">🌍 Release Zones</button>
+        <button id="end-game-btn" class="control-btn danger">🏁 End Game</button>
+        <button id="reset-game-btn" class="control-btn">🔄 Reset Game</button>
+        <!-- 🧹 NEW MANUAL CLEAR SCORES BUTTON -->
+        <button id="clear-scores-btn" class="control-btn warning">🧹 Clear Scores</button>
+      </div>
+      <div id="live-status-display">
+        <p><strong>Game Status:</strong> <span id="live-game-status">Waiting</span></p>
+        <p><strong>Zones:</strong> <span id="live-zones-status">Locked</span></p>
+      </div>
+    </div>
+
+    <!-- OTHER SECTIONS -->
     <div id="scoreboard-container"></div>
     <div id="team-links-container"></div>
     <div id="racer-management-container"></div>
@@ -47,7 +65,6 @@
 
     async function main() {
       // 1️⃣ Render components
-      document.getElementById('game-controls-container').innerHTML = GameControlsComponent();
       document.getElementById('scoreboard-container').innerHTML  = ScoreboardComponent({ editable:true });
       document.getElementById('team-links-container').innerHTML  = TeamLinksComponent();
       document.getElementById('racer-management-container').innerHTML = RacerManagementComponent();
