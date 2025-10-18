@@ -1,12 +1,12 @@
 // ============================================================================
 // File: modules/playerUI.js
 // Purpose: Displays team info, roster, and live countdown timer for players
-// Author: Route Riot Control - 2025 (merged build)
+// Author: Route Riot Control - 2025 (final merged build)
 // ============================================================================
 
 import { db } from './config.js';
 import { allTeams } from '../data.js';
-import { onSnapshot, collection, query, where, doc } 
+import { onSnapshot, collection, query, where } 
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { listenForGameStatus } from './gameStateManager.js';
 
@@ -31,7 +31,8 @@ export function initializePlayerUI(teamName) {
   // 👥 Real-time roster listener
   const memberList = $('team-member-list');
   if (memberList) {
-    const q = query(collection(db, "racers"), where("team", "==", teamName));
+    // ⚠️ Firestore field fix: adjust to your actual field name
+    const q = query(collection(db, "racers"), where("teamName", "==", teamName));
     onSnapshot(q, (snapshot) => {
       memberList.innerHTML = '';
       if (snapshot.empty) {
@@ -54,15 +55,26 @@ export function initializePlayerUI(teamName) {
   const timerEl = $('time-remaining');
   if (timerEl) {
     timerEl.textContent = '⏳ Waiting...';
+
     listenForGameStatus((state) => {
       if (!state) return;
-      if (state.status === 'active' && state.startTime && state.endTime) {
-        const start = state.startTime.toMillis ? state.startTime.toMillis() : state.startTime;
-        const end = state.endTime.toMillis ? state.endTime.toMillis() : state.endTime;
-        startCountdown(timerEl, start, end);
-      } else if (state.status === 'waiting') {
+      const { status, startTime, endTime } = state;
+
+      if (status === 'waiting') {
         timerEl.textContent = 'Waiting for game start...';
-      } else if (state.status === 'finished' || state.status === 'ended') {
+        return;
+      }
+
+      if (status === 'active') {
+        const start = startTime?.toMillis ? startTime.toMillis() : startTime || Date.now();
+        // 🕒 If no endTime in Firestore, fallback to 30-minute round
+        const end = endTime?.toMillis ? endTime.toMillis() : (start + 30 * 60 * 1000);
+        console.log(`⏱️ Starting countdown: ${new Date(start).toLocaleTimeString()} → ${new Date(end).toLocaleTimeString()}`);
+        startCountdown(timerEl, start, end);
+        return;
+      }
+
+      if (status === 'finished' || status === 'ended') {
         timerEl.textContent = '🏁 Game Over!';
       }
     });
@@ -73,19 +85,28 @@ export function initializePlayerUI(teamName) {
 // Countdown Timer Helper
 // ---------------------------------------------------------------------------
 function startCountdown(el, start, end) {
-  if (!end || !start) return;
+  if (!end || !start) {
+    el.textContent = '⚠️ Timer unavailable';
+    return;
+  }
+
+  let interval = null;
+
   const update = () => {
     const now = Date.now();
     const remaining = end - now;
+
     if (remaining <= 0) {
       el.textContent = '🏁 Time’s up!';
       clearInterval(interval);
       return;
     }
+
     const mins = Math.floor(remaining / 60000);
     const secs = Math.floor((remaining % 60000) / 1000);
     el.textContent = `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
   };
+
   update();
-  const interval = setInterval(update, 1000);
+  interval = setInterval(update, 1000);
 }
