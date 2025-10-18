@@ -1,9 +1,5 @@
-// ============================================================================
-// PLAYER UI INITIALIZER
-// Sets the initial team name, slogan, and member list on the player page.
-// ============================================================================
-
 import { db } from './config.js';
+import { allTeams } from '../data.js';
 import { onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Simple helpers for DOM manipulation
@@ -11,11 +7,13 @@ function $(id) { return document.getElementById(id); }
 function setText(id, value) { const el = $(id); if (el) el.textContent = value; }
 
 /**
- * Initializes the static UI elements for the player page.
- * @param {object} team - The team object from the allTeams array.
+ * Initializes all static UI elements for the player page.
+ * It finds the current team and sets the name, slogan, and member list.
  * @param {string} teamName - The name of the current team.
  */
-export function initializePlayerUI(team, teamName) {
+export function initializePlayerUI(teamName) {
+    const team = allTeams.find(t => t.name === teamName) || {};
+
     // Set the team name and slogan from the data.js file
     setText('team-name', team.name || teamName);
     setText('team-slogan', team.slogan || 'Ready to race!');

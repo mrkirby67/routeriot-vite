@@ -1,5 +1,5 @@
 // ============================================================================
-// GAME STATE MANAGER
+// GAME STATE MANAGER (FINAL MERGED BUILD)
 // Controls and syncs the global game lifecycle (start, end, release zones)
 // ============================================================================
 
@@ -13,8 +13,18 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Reference to the single game state document
+import {
+  showCountdownBanner,
+  showFlashMessage,
+  startElapsedTimer,
+  clearElapsedTimer
+} from './gameUI.js';
+
+// ---------------------------------------------------------------------------
+// 🔗 Firestore Reference
+// ---------------------------------------------------------------------------
 const gameStateRef = doc(db, "game", "gameState");
+let countdownShown = false;
 
 // ---------------------------------------------------------------------------
 // 🔹 Set Game Status
@@ -24,11 +34,11 @@ export async function setGameStatus(status, zonesReleased = false) {
     await setDoc(
       gameStateRef,
       {
-        status,            // "waiting" | "active" | "ended"
-        zonesReleased,     // true if zones can be captured
+        status, // "waiting" | "active" | "finished"
+        zonesReleased,
         updatedAt: serverTimestamp(),
         ...(status === 'active' && { startTime: serverTimestamp(), endTime: null }),
-        ...(status === 'ended' && { endTime: serverTimestamp() }),
+        ...(status === 'finished' && { endTime: serverTimestamp() }),
       },
       { merge: true }
     );
@@ -54,25 +64,47 @@ export async function releaseZones() {
 }
 
 // ---------------------------------------------------------------------------
-// 🔹 Listen for Game State Changes (real-time)
+// 🔹 Listen for Game State Changes (real-time, drives UI updates)
 // ---------------------------------------------------------------------------
-// callback receives: { status, zonesReleased, startTime, endTime, updatedAt }
+function handleGameStateUpdate({ status = 'waiting', zonesReleased = false, startTime = null }) {
+  const statusEl = document.getElementById('game-status');
+  if (statusEl) statusEl.textContent = status.toUpperCase();
+
+  // Make zones globally toggleable for other modules
+  window.zonesEnabled = (status === 'active' && !!zonesReleased);
+
+  switch (status) {
+    case 'waiting':
+      clearElapsedTimer();
+      showFlashMessage('Waiting for host to start...', '#616161');
+      countdownShown = false;
+      break;
+
+    case 'active':
+      if (window.zonesEnabled && !countdownShown) {
+        countdownShown = true;
+        showCountdownBanner({ parent: document.body });
+        showFlashMessage('The Race is ON!', '#2e7d32');
+      }
+      if (startTime) startElapsedTimer(startTime);
+      break;
+
+    case 'finished': // match Control naming
+      clearElapsedTimer();
+      showFlashMessage('🏁 Game Over! Return to base.', '#c62828', 4000);
+      break;
+
+    default:
+      console.warn(`⚠️ Unknown game status: ${status}`);
+      break;
+  }
+}
+
 export function listenForGameStatus(callback) {
   return onSnapshot(gameStateRef, (docSnap) => {
-    if (!docSnap.exists()) {
-      console.warn("⚠️ No game state found yet.");
-      // Provide a default state to the callback if nothing exists
-      callback({ status: 'waiting', zonesReleased: false, startTime: null, endTime: null });
-      return;
-    }
-    const data = docSnap.data();
-    callback({
-      status: data.status || 'waiting',
-      zonesReleased: data.zonesReleased || false,
-      startTime: data.startTime || null,
-      endTime: data.endTime || null,
-      updatedAt: data.updatedAt || null,
-    });
+    const gameState = docSnap.exists() ? docSnap.data() : {};
+    handleGameStateUpdate(gameState);
+    if (callback) callback(gameState); // optional hook for Control page
   });
 }
 
@@ -103,11 +135,10 @@ export async function resetGameState() {
         endTime: null,
         updatedAt: serverTimestamp(),
       },
-      { merge: true } // Use merge to avoid overwriting other potential fields
+      { merge: true }
     );
     console.log("🧹 Game state reset to waiting.");
   } catch (err) {
     console.error("❌ Error resetting game state:", err);
   }
 }
-

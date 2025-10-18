@@ -1,3 +1,9 @@
+// ============================================================================
+// File: modules/chatManager.js
+// Purpose: Handles all chat and communication between teams & control
+// Author: Route Riot Control - 2025
+// ============================================================================
+
 import { db } from './config.js';
 import { allTeams } from '../data.js';
 import {
@@ -12,31 +18,36 @@ import {
   doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ---------------------------------------------------------------------------
- * CONTROL PAGE: Listen to ALL MESSAGES (visible to Game Master)
- * ------------------------------------------------------------------------ */
+// ============================================================================
+// 🧭 CONTROL PAGE: Listen to ALL MESSAGES (visible to Game Master)
+// ============================================================================
 export async function listenToAllMessages() {
   const logBox = document.getElementById('communication-log');
-  if (!logBox) return;
+  if (!logBox) return console.warn("⚠️ No #communication-log element found.");
 
   const activeSnap = await getDoc(doc(db, "game", "activeTeams"));
   const activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
 
-  // This query now listens to both private messages and public communications
+  // Listen to both private team messages and global communications
   const privateMessagesQuery = query(collectionGroup(db, 'messages'), orderBy('timestamp', 'asc'));
   const publicCommsQuery = query(collection(db, 'communications'), orderBy('timestamp', 'asc'));
 
-  let allMessages = [];
+  const allMessages = [];
   const messageIds = new Set();
 
   const renderLog = () => {
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
     logBox.innerHTML = '';
     allMessages.forEach(msg => {
-      const time = new Date(msg.timestamp).toLocaleTimeString();
+      const ts = msg.timestamp?.toMillis ? msg.timestamp.toMillis() : msg.timestamp;
+      const time = new Date(ts).toLocaleTimeString();
       const entry = document.createElement('p');
+
       if (msg.sender === 'Game Master' || msg.teamName === 'Game Master') {
-        entry.innerHTML = `<span style="color:#888;">[${time}]</span> <strong style="color:#fdd835;">GAME MASTER:</strong> ${msg.text || msg.message}`;
+        entry.innerHTML = `
+          <span style="color:#888;">[${time}]</span>
+          <strong style="color:#fdd835;">GAME MASTER:</strong> ${msg.text || msg.message}
+        `;
       } else {
         entry.innerHTML = `
           <span style="color:#888;">[${time}]</span>
@@ -48,32 +59,38 @@ export async function listenToAllMessages() {
     });
     logBox.scrollTop = logBox.scrollHeight;
   };
-  
+
   const processSnapshot = (snapshot) => {
     snapshot.docChanges().forEach(change => {
       if (change.type === 'added' && !messageIds.has(change.doc.id)) {
         messageIds.add(change.doc.id);
-        allMessages.push(change.doc.data());
+        const data = change.doc.data();
+        data.timestamp = data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp;
+        allMessages.push(data);
       }
     });
     renderLog();
   };
 
-  onSnapshot(privateMessagesQuery, processSnapshot);
-  onSnapshot(publicCommsQuery, processSnapshot);
+  onSnapshot(privateMessagesQuery, processSnapshot, (err) =>
+    console.error("❌ Private chat snapshot error:", err)
+  );
+  onSnapshot(publicCommsQuery, processSnapshot, (err) =>
+    console.error("❌ Public comms snapshot error:", err)
+  );
 }
 
-
-/* ---------------------------------------------------------------------------
- * PLAYER PAGE: Chat UI and Message Handling
- * ------------------------------------------------------------------------ */
+// ============================================================================
+// 🗣️ PLAYER PAGE: Chat UI + Message Handling
+// ============================================================================
 export async function setupPlayerChat(currentTeamName) {
   const opponentsTbody = document.getElementById('opponents-tbody');
   const chatLog = document.getElementById('team-chat-log');
-  if (!opponentsTbody || !chatLog) return;
+  if (!opponentsTbody || !chatLog) return console.warn("⚠️ Chat elements missing on player page.");
 
   opponentsTbody.innerHTML = '';
 
+  // Get active teams, or fall back to allTeams if not yet set
   const activeSnap = await getDoc(doc(db, "game", "activeTeams"));
   const activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
   const playableTeams =
@@ -81,6 +98,7 @@ export async function setupPlayerChat(currentTeamName) {
       ? activeTeams.filter(t => t !== currentTeamName)
       : allTeams.filter(t => t.name !== currentTeamName).map(t => t.name);
 
+  // Render opponent chat rows
   playableTeams.forEach(teamName => {
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -95,13 +113,14 @@ export async function setupPlayerChat(currentTeamName) {
     opponentsTbody.appendChild(row);
   });
 
+  // Hook up send buttons
   opponentsTbody.querySelectorAll('.send-btn').forEach(button => {
     button.addEventListener('click', (e) => {
-      const recipientName = e.target.dataset.recipient;
-      const input = document.querySelector(`input[data-recipient-input="${recipientName}"]`);
+      const recipient = e.target.dataset.recipient;
+      const input = document.querySelector(`input[data-recipient-input="${recipient}"]`);
       const messageText = input.value.trim();
       if (messageText) {
-        sendMessage(currentTeamName, recipientName, messageText);
+        sendMessage(currentTeamName, recipient, messageText);
         input.value = '';
       }
     });
@@ -110,9 +129,9 @@ export async function setupPlayerChat(currentTeamName) {
   listenForMyMessages(currentTeamName, chatLog);
 }
 
-/* ---------------------------------------------------------------------------
- * Send Message between Teams
- * ------------------------------------------------------------------------ */
+// ============================================================================
+// 🚀 Send Message Between Teams
+// ============================================================================
 async function sendMessage(sender, recipient, text) {
   const sortedNames = [sender, recipient].sort();
   const convoId = `${sortedNames[0].replace(/\s/g, '')}_${sortedNames[1].replace(/\s/g, '')}`;
@@ -125,47 +144,50 @@ async function sendMessage(sender, recipient, text) {
       text,
       timestamp: Date.now()
     });
-  } catch (error) {
-    console.error("Error sending message:", error);
+  } catch (err) {
+    console.error("❌ Error sending message:", err);
   }
 }
 
-/* ---------------------------------------------------------------------------
- * Listen for Messages (Player Side) - NOW INCLUDES BROADCASTS
- * ------------------------------------------------------------------------ */
+// ============================================================================
+// 📡 Listen for My Messages (Player Side) + Broadcasts
+// ============================================================================
 function listenForMyMessages(myTeamName, logBox) {
   const messagesRef = collectionGroup(db, 'messages');
   const sentQuery = query(messagesRef, where('sender', '==', myTeamName));
   const receivedQuery = query(messagesRef, where('recipient', '==', myTeamName));
-  // --- THIS IS THE NEW LISTENER FOR BROADCASTS ---
   const broadcastQuery = query(collection(db, 'communications'), orderBy('timestamp', 'asc'));
 
-  const allMyMessages = [];
+  const allMessages = [];
   const messageIds = new Set();
 
   const renderLog = () => {
-    allMyMessages.sort((a, b) => a.timestamp - b.timestamp);
+    allMessages.sort((a, b) => a.timestamp - b.timestamp);
     logBox.innerHTML = '';
-    allMyMessages.forEach(msg => {
-      const time = new Date(msg.timestamp).toLocaleTimeString();
+    allMessages.forEach(msg => {
+      const ts = msg.timestamp?.toMillis ? msg.timestamp.toMillis() : msg.timestamp;
+      const time = new Date(ts).toLocaleTimeString();
       const entry = document.createElement('p');
 
-      // --- NEW: Logic to display broadcasts with special styling ---
       if (msg.sender === 'Game Master' || msg.teamName === 'Game Master') {
+        // 💬 Broadcast styling
         entry.style.backgroundColor = '#3a3a24';
         entry.style.padding = '8px';
         entry.style.borderRadius = '5px';
         entry.style.margin = '5px 0';
-        entry.innerHTML = `<span style="color: #aaa;">[${time}]</span> <strong style="color: #fdd835; text-transform: uppercase;">Game Master:</strong> <span style="font-weight:bold;">${msg.text || msg.message}</span>`;
-      } 
-      // --- END of new logic ---
-      else {
+        entry.innerHTML = `
+          <span style="color: #aaa;">[${time}]</span>
+          <strong style="color: #fdd835; text-transform: uppercase;">Game Master:</strong>
+          <span style="font-weight:bold;">${msg.text || msg.message}</span>
+        `;
+      } else {
+        // 🧑‍🤝‍🧑 Team-to-team chat
         const isMine = msg.sender === myTeamName;
         const color = isMine ? '#FFD700' : '#00CED1';
         const prefix = isMine
           ? `<strong style="color:${color};">You ➡️ ${msg.recipient}:</strong>`
           : `<strong style="color:${color};">${msg.sender} ➡️ You:</strong>`;
-        entry.innerHTML = `<p>${prefix} ${msg.text} <span style="color:#888;">(${time})</span></p>`;
+        entry.innerHTML = `${prefix} ${msg.text} <span style="color:#888;">(${time})</span>`;
       }
       logBox.appendChild(entry);
     });
@@ -175,16 +197,32 @@ function listenForMyMessages(myTeamName, logBox) {
   const processSnapshot = (snapshot) => {
     snapshot.docChanges().forEach(change => {
       if (change.type === 'added' && !messageIds.has(change.doc.id)) {
+        const data = change.doc.data();
+        data.timestamp = data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp;
         messageIds.add(change.doc.id);
-        allMyMessages.push(change.doc.data());
+        allMessages.push(data);
       }
     });
     renderLog();
   };
 
-  onSnapshot(sentQuery, processSnapshot);
-  onSnapshot(receivedQuery, processSnapshot);
-  // --- Attach the new broadcast listener ---
-  onSnapshot(broadcastQuery, processSnapshot);
-}
+  onSnapshot(sentQuery, processSnapshot, (err) => console.error("❌ Sent query error:", err));
+  onSnapshot(receivedQuery, processSnapshot, (err) => console.error("❌ Received query error:", err));
 
+  // 🛰️ Attach broadcast listener with normalization
+  onSnapshot(broadcastQuery, (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added' && !messageIds.has(change.doc.id)) {
+        const data = change.doc.data();
+        messageIds.add(change.doc.id);
+        allMessages.push({
+          sender: "Game Master",
+          recipient: "ALL",
+          text: data.message,
+          timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp
+        });
+      }
+    });
+    renderLog();
+  }, (err) => console.error("❌ Broadcast snapshot error:", err));
+}
