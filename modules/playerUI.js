@@ -1,12 +1,12 @@
 // ============================================================================
 // File: modules/playerUI.js
-// Purpose: Displays team info, roster, and live countdown timer for players
-// Author: Route Riot Control - 2025 (final version - uses data.js for team info)
+// Purpose: Displays team info, roster, live countdown timer, and last location
+// Author: Route Riot Control - 2025 (final merged build)
 // ============================================================================
 
 import { db } from './config.js';
 import { allTeams } from '../data.js';
-import { onSnapshot, collection, query, where }
+import { onSnapshot, collection, query, where, doc }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { listenForGameStatus } from './gameStateManager.js';
 
@@ -44,7 +44,6 @@ export function initializePlayerUI(teamInput) {
   // 👥 Real-time roster listener (from Firestore)
   const memberList = $('team-member-list');
   if (memberList) {
-    // Primary: team field; fallback: teamName field
     const q = query(collection(db, "racers"), where("team", "==", teamName));
     onSnapshot(
       q,
@@ -66,6 +65,30 @@ export function initializePlayerUI(teamInput) {
       },
       (err) => console.error("❌ Error loading racers:", err)
     );
+  }
+
+  // 📍 NEW: Real-time location listener (teamStatus collection)
+  const locationEl = $('player-location');
+  if (locationEl) {
+    const teamRef = doc(db, "teamStatus", teamName);
+    onSnapshot(teamRef, (docSnap) => {
+      if (!docSnap.exists()) {
+        locationEl.textContent = '📍 No location yet.';
+        return;
+      }
+
+      const data = docSnap.data();
+      const zone = data.lastKnownLocation || 'Unknown zone';
+      const ts = data.timestamp;
+      const timeStr = ts
+        ? new Date(ts.seconds ? ts.seconds * 1000 : ts).toLocaleTimeString()
+        : '';
+
+      // ✨ Flash highlight when location updates
+      locationEl.textContent = `📍 ${zone}${timeStr ? ` (updated ${timeStr})` : ''}`;
+      locationEl.classList.add('flash');
+      setTimeout(() => locationEl.classList.remove('flash'), 800);
+    }, (err) => console.error("❌ Error reading teamStatus:", err));
   }
 
   // ⏱️ Time Remaining (match correct HTML ID)
