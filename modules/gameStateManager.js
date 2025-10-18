@@ -61,6 +61,8 @@ export function listenForGameStatus(callback) {
   return onSnapshot(gameStateRef, (docSnap) => {
     if (!docSnap.exists()) {
       console.warn("⚠️ No game state found yet.");
+      // Provide a default state to the callback if nothing exists
+      callback({ status: 'waiting', zonesReleased: false, startTime: null, endTime: null });
       return;
     }
     const data = docSnap.data();
@@ -101,10 +103,11 @@ export async function resetGameState() {
         endTime: null,
         updatedAt: serverTimestamp(),
       },
-      { merge: true }
+      { merge: true } // Use merge to avoid overwriting other potential fields
     );
     console.log("🧹 Game state reset to waiting.");
   } catch (err) {
     console.error("❌ Error resetting game state:", err);
   }
 }
+
