@@ -1,7 +1,7 @@
 // ============================================================================
 // File: modules/chatManager.js
 // Purpose: Handles all chat and communication between teams & control
-// Author: Route Riot Control - 2025 (final patched broadcast-safe version)
+// Author: Route Riot Control - 2025 (teamName broadcast fix)
 // ============================================================================
 
 import { db } from './config.js';
@@ -44,15 +44,15 @@ export async function listenToAllMessages() {
       const time = new Date(ts).toLocaleTimeString();
       const entry = document.createElement('p');
 
-      if (
-        msg.sender === 'Game Master' ||
-        msg.teamName === 'Game Master' ||
-        msg.recipient === 'ALL' ||
-        msg.isBroadcast
-      ) {
+      if (msg.isBroadcast || msg.recipient === 'ALL') {
+        const senderDisplay =
+          msg.sender && msg.sender !== 'Game Master'
+            ? `<strong style="color:#FFD700;">${msg.sender}</strong>`
+            : `<strong style="color:#fdd835;">GAME MASTER</strong>`;
+
         entry.innerHTML = `
           <span style="color:#888;">[${time}]</span>
-          <strong style="color:#fdd835;">GAME MASTER:</strong> ${msg.text || msg.message || '(no message)'}
+          ${senderDisplay}: ${msg.text || msg.message || '(no message)'}
         `;
       } else {
         entry.innerHTML = `
@@ -82,12 +82,42 @@ export async function listenToAllMessages() {
   onSnapshot(privateMessagesQuery, processSnapshot, (err) =>
     console.error("❌ Private chat snapshot error:", err)
   );
-  onSnapshot(publicCommsQuery, processSnapshot, (err) =>
-    console.error("❌ Public comms snapshot error:", err)
-  );
-  onSnapshot(controlAllQuery, processSnapshot, (err) =>
-    console.error("❌ CONTROL_ALL snapshot error:", err)
-  );
+
+  // 🛰️ Broadcast sources
+  onSnapshot(publicCommsQuery, (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added' && !messageIds.has(change.doc.id)) {
+        const data = change.doc.data();
+        messageIds.add(change.doc.id);
+        allMessages.push({
+          sender: data.teamName || "Game Master",
+          recipient: "ALL",
+          text: data.message || data.text || '',
+          timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
+          isBroadcast: true
+        });
+      }
+    });
+    renderLog();
+  }, (err) => console.error("❌ Public comms snapshot error:", err));
+
+  onSnapshot(controlAllQuery, (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type !== 'added') return;
+      const id = change.doc.id;
+      if (messageIds.has(id)) return;
+      messageIds.add(id);
+      const data = change.doc.data();
+      allMessages.push({
+        sender: data.teamName || 'Game Master',
+        recipient: 'ALL',
+        text: data.text || data.message || '',
+        timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp || Date.now(),
+        isBroadcast: true
+      });
+    });
+    renderLog();
+  }, (err) => console.error("❌ CONTROL_ALL snapshot error:", err));
 }
 
 // ============================================================================
@@ -181,24 +211,21 @@ function listenForMyMessages(myTeamName, logBox) {
       const time = new Date(ts).toLocaleTimeString();
       const entry = document.createElement('p');
 
-      if (
-        msg.sender === 'Game Master' ||
-        msg.teamName === 'Game Master' ||
-        msg.recipient === 'ALL' ||
-        msg.isBroadcast
-      ) {
-        // 💬 Broadcast styling (safe render)
+      if (msg.isBroadcast || msg.recipient === 'ALL') {
+        const senderDisplay =
+          msg.sender && msg.sender !== 'Game Master'
+            ? `<strong style="color:#FFD700;">${msg.sender}</strong>`
+            : `<strong style="color:#fdd835;">GAME MASTER</strong>`;
+
         entry.style.backgroundColor = '#3a3a24';
         entry.style.padding = '8px';
         entry.style.borderRadius = '5px';
         entry.style.margin = '5px 0';
         entry.innerHTML = `
           <span style="color: #aaa;">[${time}]</span>
-          <strong style="color: #fdd835; text-transform: uppercase;">Game Master:</strong>
-          <span style="font-weight:bold;">${msg.text || msg.message || '(no message)'}</span>
+          ${senderDisplay}: <span style="font-weight:bold;">${msg.text || msg.message || '(no message)'}</span>
         `;
       } else {
-        // 🧑‍🤝‍🧑 Team-to-team chat
         const isMine = msg.sender === myTeamName;
         const color = isMine ? '#FFD700' : '#00CED1';
         const prefix = isMine
@@ -235,7 +262,7 @@ function listenForMyMessages(myTeamName, logBox) {
         const data = change.doc.data();
         messageIds.add(change.doc.id);
         allMessages.push({
-          sender: "Game Master",
+          sender: data.teamName || "Game Master",
           recipient: "ALL",
           text: data.message || data.text || '',
           timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
@@ -256,7 +283,7 @@ function listenForMyMessages(myTeamName, logBox) {
 
       const data = change.doc.data();
       allMessages.push({
-        sender: 'Game Master',
+        sender: data.teamName || 'Game Master',
         recipient: 'ALL',
         text: data.text || data.message || '',
         timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp || Date.now(),
