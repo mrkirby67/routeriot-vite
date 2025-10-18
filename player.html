@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Route Riot – Player</title>
+  <meta name="description" content="Route Riot Player Dashboard – view team info, chat, zones, and live scores.">
   <link rel="stylesheet" href="style.css" />
 
   <!-- Favicons -->
@@ -11,7 +12,109 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="manifest" href="/site.webmanifest" />
+
+  <style>
+    /* ------------------------------------------------------------------
+       ROUTE RIOT DARK THEME
+    ------------------------------------------------------------------ */
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    h1, h2, h3 {
+      color: #58a6ff;
+      margin-bottom: 0.4em;
+    }
+    .slogan {
+      font-style: italic;
+      color: #9baec8;
+      margin-top: -0.2em;
+      margin-bottom: 1em;
+    }
+    .control-section {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+    }
+    table.data-table th, table.data-table td {
+      border: 1px solid #30363d;
+      padding: 0.5rem;
+      text-align: left;
+    }
+    table.data-table th {
+      background: #21262d;
+      color: #58a6ff;
+    }
+    table.data-table tr:nth-child(even) {
+      background: #1c1f26;
+    }
+    button {
+      background: #238636;
+      border: none;
+      color: #fff;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+    }
+    button:hover {
+      background: #2ea043;
+    }
+    .log-box {
+      background: #0e1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.6rem;
+      max-height: 250px;
+      overflow-y: auto;
+      font-size: 0.95em;
+    }
+    .broadcast-message-display {
+      background: #222;
+      color: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      display: none;
+      text-align: center;
+      font-weight: bold;
+    }
+    ul#team-member-list {
+      list-style: none;
+      padding-left: 0;
+    }
+    ul#team-member-list li {
+      margin: 4px 0;
+      padding: 4px 8px;
+      background: #1c2128;
+      border-radius: 4px;
+    }
+    .status-taken {
+      opacity: 0.6;
+      border: 2px solid #c62828;
+    }
+    .status-available {
+      border: 2px solid #2e7d32;
+    }
+  </style>
 </head>
+
 <body>
   <div class="container">
     <!-- 1️⃣ Header -->
@@ -22,10 +125,11 @@
     <div class="control-section">
       <h2>Game Info</h2>
       <p><strong>Status:</strong> <span id="game-status">Not Started</span></p>
-      <p><strong>Time Remaining:</strong> <span id="player-timer">--:--:--</span></p>
+      <p><strong>Time Remaining:</strong> <span id="time-remaining">--:--:--</span></p>
+
       <div class="team-members">
         <h3>Your Team</h3>
-        <ul id="team-member-list"></ul>
+        <ul id="team-member-list"><li>Loading team roster...</li></ul>
       </div>
     </div>
 
@@ -80,7 +184,7 @@
     </div>
 
     <!-- 8️⃣ Commissioner Broadcast -->
-    <div id="commissioner-message" class="broadcast-message-display" style="display:none;"></div>
+    <div id="commissioner-message" class="broadcast-message-display"></div>
   </div>
 
   <!-- 9️⃣ Script Loader -->
