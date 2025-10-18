@@ -33,7 +33,7 @@ export function GameControlsComponent() {
         <button id="pause-btn" class="${styles.controlButton} ${styles.pause}">Pause Game</button>
         <button id="end-btn" class="${styles.controlButton} ${styles.end}">End Game</button>
         <button id="reset-game-btn" class="${styles.controlButton} ${styles.pause}">Reset Game Data</button>
-        <!-- 🧹 New Manual Clear Scores Button -->
+        {/* 🧹 New Manual Clear Scores Button */}
         <button id="clear-scores-btn" class="${styles.controlButton} ${styles.warning}">🧹 Clear Scores</button>
       </div>
 
@@ -182,12 +182,10 @@ export function initializeGameControlsLogic() {
       dataVersion: Date.now()
     }, { merge: true });
 
-    const startBroadcastRef = collection(db, 'conversations', 'CONTROL_ALL', 'messages');
-    await addDoc(startBroadcastRef, {
-      sender: 'CONTROL',
-      recipient: 'ALL',
-      text: '🏁 The race has begun! Zones are now active — good luck racers!',
-      timestamp: Date.now()
+    await addDoc(collection(db, "communications"), {
+      teamName: "Game Master",
+      message: '🏁 The race has begun! Zones are now active — good luck racers!',
+      timestamp: new Date()
     });
 
     alert(`🏁 Game Started — Zones Released!\nScores cleared.\n${teamsInPlay.size} teams active.`);
@@ -353,3 +351,4 @@ ${blankLines}
     });
   }
 }
+
