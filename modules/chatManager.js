@@ -1,7 +1,7 @@
 // ============================================================================
 // File: modules/chatManager.js
 // Purpose: Handles all chat and communication between teams & control
-// Author: Route Riot Control - 2025
+// Author: Route Riot Control - 2025 (final patched broadcast-safe version)
 // ============================================================================
 
 import { db } from './config.js';
@@ -44,16 +44,21 @@ export async function listenToAllMessages() {
       const time = new Date(ts).toLocaleTimeString();
       const entry = document.createElement('p');
 
-      if (msg.sender === 'Game Master' || msg.teamName === 'Game Master') {
+      if (
+        msg.sender === 'Game Master' ||
+        msg.teamName === 'Game Master' ||
+        msg.recipient === 'ALL' ||
+        msg.isBroadcast
+      ) {
         entry.innerHTML = `
           <span style="color:#888;">[${time}]</span>
-          <strong style="color:#fdd835;">GAME MASTER:</strong> ${msg.text || msg.message}
+          <strong style="color:#fdd835;">GAME MASTER:</strong> ${msg.text || msg.message || '(no message)'}
         `;
       } else {
         entry.innerHTML = `
           <span style="color:#888;">[${time}]</span>
-          <strong style="color:#FFD700;">${msg.sender}</strong> ➡️
-          <strong style="color:#00CED1;">${msg.recipient}</strong>: ${msg.text}
+          <strong style="color:#FFD700;">${msg.sender || 'Unknown'}</strong> ➡️
+          <strong style="color:#00CED1;">${msg.recipient || 'Unknown'}</strong>: ${msg.text || msg.message || ''}
         `;
       }
       logBox.appendChild(entry);
@@ -170,13 +175,19 @@ function listenForMyMessages(myTeamName, logBox) {
   const renderLog = () => {
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
     logBox.innerHTML = '';
+
     allMessages.forEach(msg => {
       const ts = msg.timestamp?.toMillis ? msg.timestamp.toMillis() : msg.timestamp;
       const time = new Date(ts).toLocaleTimeString();
       const entry = document.createElement('p');
 
-      if (msg.sender === 'Game Master' || msg.teamName === 'Game Master') {
-        // 💬 Broadcast styling
+      if (
+        msg.sender === 'Game Master' ||
+        msg.teamName === 'Game Master' ||
+        msg.recipient === 'ALL' ||
+        msg.isBroadcast
+      ) {
+        // 💬 Broadcast styling (safe render)
         entry.style.backgroundColor = '#3a3a24';
         entry.style.padding = '8px';
         entry.style.borderRadius = '5px';
@@ -184,19 +195,20 @@ function listenForMyMessages(myTeamName, logBox) {
         entry.innerHTML = `
           <span style="color: #aaa;">[${time}]</span>
           <strong style="color: #fdd835; text-transform: uppercase;">Game Master:</strong>
-          <span style="font-weight:bold;">${msg.text || msg.message}</span>
+          <span style="font-weight:bold;">${msg.text || msg.message || '(no message)'}</span>
         `;
       } else {
         // 🧑‍🤝‍🧑 Team-to-team chat
         const isMine = msg.sender === myTeamName;
         const color = isMine ? '#FFD700' : '#00CED1';
         const prefix = isMine
-          ? `<strong style="color:${color};">You ➡️ ${msg.recipient}:</strong>`
-          : `<strong style="color:${color};">${msg.sender} ➡️ You:</strong>`;
-        entry.innerHTML = `${prefix} ${msg.text} <span style="color:#888;">(${time})</span>`;
+          ? `<strong style="color:${color};">You ➡️ ${msg.recipient || 'Unknown'}:</strong>`
+          : `<strong style="color:${color};">${msg.sender || 'Unknown'} ➡️ You:</strong>`;
+        entry.innerHTML = `${prefix} ${msg.text || msg.message || ''} <span style="color:#888;">(${time})</span>`;
       }
       logBox.appendChild(entry);
     });
+
     logBox.scrollTop = logBox.scrollHeight;
   };
 
@@ -212,11 +224,11 @@ function listenForMyMessages(myTeamName, logBox) {
     renderLog();
   };
 
-  // Individual team message streams
+  // Private chats
   onSnapshot(sentQuery, processSnapshot, (err) => console.error("❌ Sent query error:", err));
   onSnapshot(receivedQuery, processSnapshot, (err) => console.error("❌ Received query error:", err));
 
-  // 🛰️ Broadcast listener (communications collection)
+  // Broadcasts (communications)
   onSnapshot(broadcastQuery, (snapshot) => {
     snapshot.docChanges().forEach(change => {
       if (change.type === 'added' && !messageIds.has(change.doc.id)) {
@@ -225,15 +237,16 @@ function listenForMyMessages(myTeamName, logBox) {
         allMessages.push({
           sender: "Game Master",
           recipient: "ALL",
-          text: data.message,
-          timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp
+          text: data.message || data.text || '',
+          timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
+          isBroadcast: true
         });
       }
     });
     renderLog();
   }, (err) => console.error("❌ Broadcast snapshot error:", err));
 
-  // 🛰️ 👇 NEW: Global CONTROL_ALL broadcast channel
+  // CONTROL_ALL broadcasts
   onSnapshot(controlAllQuery, (snapshot) => {
     snapshot.docChanges().forEach(change => {
       if (change.type !== 'added') return;
@@ -247,6 +260,7 @@ function listenForMyMessages(myTeamName, logBox) {
         recipient: 'ALL',
         text: data.text || data.message || '',
         timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp || Date.now(),
+        isBroadcast: true
       });
     });
     renderLog();
