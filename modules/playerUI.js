@@ -1,12 +1,12 @@
 // ============================================================================
 // File: modules/playerUI.js
 // Purpose: Displays team info, roster, and live countdown timer for players
-// Author: Route Riot Control - 2025 (final merged build)
+// Author: Route Riot Control - 2025 (final version - uses data.js for team info)
 // ============================================================================
 
 import { db } from './config.js';
 import { allTeams } from '../data.js';
-import { onSnapshot, collection, query, where } 
+import { onSnapshot, collection, query, where }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { listenForGameStatus } from './gameStateManager.js';
 
@@ -14,30 +14,46 @@ import { listenForGameStatus } from './gameStateManager.js';
 // Simple DOM helpers
 // ---------------------------------------------------------------------------
 function $(id) { return document.getElementById(id); }
-function setText(id, value) { const el = $(id); if (el) el.textContent = value; }
+function setText(id, value) {
+  const el = $(id);
+  if (el) el.textContent = value;
+}
 
 // ---------------------------------------------------------------------------
 // Initialize Player UI
 // ---------------------------------------------------------------------------
-export function initializePlayerUI(teamName) {
-  console.log('🎨 Initializing Player UI for team:', teamName);
+export function initializePlayerUI(teamInput) {
+  console.log('🎨 Initializing Player UI with:', teamInput);
 
-  const team = allTeams.find(t => t.name === teamName) || {};
+  // Normalize input (handles both string or object)
+  const teamName =
+    typeof teamInput === 'string'
+      ? teamInput
+      : teamInput?.name || teamInput?.team?.name || 'Unknown Team';
+
+  // Load team info from data.js only
+  const team = allTeams.find(t => t.name === teamName);
+  const displayName = team?.name || teamName;
+  const displaySlogan = team?.slogan || 'Ready to race!';
 
   // 🏷️ Team name + slogan
-  setText('team-name', team.name || teamName);
-  setText('team-slogan', team.slogan || 'Ready to race!');
+  setText('team-name', displayName);
+  setText('team-slogan', displaySlogan);
+  console.log(`✅ Team info set: ${displayName} — "${displaySlogan}"`);
 
-  // 👥 Real-time roster listener
+  // 👥 Real-time roster listener (from Firestore)
   const memberList = $('team-member-list');
   if (memberList) {
-    // ⚠️ Firestore field fix: adjust to your actual field name
-    const q = query(collection(db, "racers"), where("teamName", "==", teamName));
-    onSnapshot(q, (snapshot) => {
-      memberList.innerHTML = '';
-      if (snapshot.empty) {
-        memberList.innerHTML = '<li>No racers assigned to this team yet.</li>';
-      } else {
+    // Primary: team field; fallback: teamName field
+    const q = query(collection(db, "racers"), where("team", "==", teamName));
+    onSnapshot(
+      q,
+      (snapshot) => {
+        memberList.innerHTML = '';
+        if (snapshot.empty) {
+          memberList.innerHTML = '<li>No racers assigned to this team yet.</li>';
+          return;
+        }
         snapshot.forEach(docSnap => {
           const member = docSnap.data();
           const li = document.createElement('li');
@@ -47,12 +63,13 @@ export function initializePlayerUI(teamName) {
           li.innerHTML = info;
           memberList.appendChild(li);
         });
-      }
-    }, (err) => console.error("❌ Error loading racers:", err));
+      },
+      (err) => console.error("❌ Error loading racers:", err)
+    );
   }
 
-  // ⏱️ Time Remaining
-  const timerEl = $('time-remaining');
+  // ⏱️ Time Remaining (match correct HTML ID)
+  const timerEl = $('time-remaining') || $('player-timer');
   if (timerEl) {
     timerEl.textContent = '⏳ Waiting...';
 
@@ -66,15 +83,23 @@ export function initializePlayerUI(teamName) {
       }
 
       if (status === 'active') {
-        const start = startTime?.toMillis ? startTime.toMillis() : startTime || Date.now();
-        // 🕒 If no endTime in Firestore, fallback to 30-minute round
-        const end = endTime?.toMillis ? endTime.toMillis() : (start + 30 * 60 * 1000);
-        console.log(`⏱️ Starting countdown: ${new Date(start).toLocaleTimeString()} → ${new Date(end).toLocaleTimeString()}`);
+        const start = startTime?.toMillis
+          ? startTime.toMillis()
+          : startTime || Date.now();
+
+        // 🕒 If no endTime in Firestore, fallback to 30 minutes
+        const end = endTime?.toMillis
+          ? endTime.toMillis()
+          : start + 30 * 60 * 1000;
+
+        console.log(
+          `⏱️ Countdown: ${new Date(start).toLocaleTimeString()} → ${new Date(end).toLocaleTimeString()}`
+        );
         startCountdown(timerEl, start, end);
         return;
       }
 
-      if (status === 'finished' || status === 'ended') {
+      if (['finished', 'ended'].includes(status)) {
         timerEl.textContent = '🏁 Game Over!';
       }
     });
@@ -85,12 +110,10 @@ export function initializePlayerUI(teamName) {
 // Countdown Timer Helper
 // ---------------------------------------------------------------------------
 function startCountdown(el, start, end) {
-  if (!end || !start) {
+  if (!start || !end) {
     el.textContent = '⚠️ Timer unavailable';
     return;
   }
-
-  let interval = null;
 
   const update = () => {
     const now = Date.now();
@@ -108,5 +131,5 @@ function startCountdown(el, start, end) {
   };
 
   update();
-  interval = setInterval(update, 1000);
+  const interval = setInterval(update, 1000);
 }
