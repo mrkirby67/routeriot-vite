@@ -1,5 +1,5 @@
 // ============================================================================
-// CONTROL PAGE SCRIPT (FINALIZED MODULAR BUILD)
+// CONTROL PAGE SCRIPT (FINALIZED MODULAR BUILD - SAFE START/END)
 // Emails sent on “Racers Take Your Marks” instead of Start
 // ============================================================================
 
@@ -20,6 +20,19 @@ import { setGameStatus, releaseZones, listenForGameStatus } from './modules/game
 import { showCountdownBanner, showFlashMessage } from './modules/gameUI.js';
 import { emailAllTeams } from './modules/emailTeams.js';
 import { allTeams } from './data.js';
+
+// 👉 We also need some direct Firestore ops for safe start/end & zone reset
+import {
+  doc, getDoc, updateDoc, serverTimestamp,
+  collection, getDocs, setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from './modules/config.js';
+
+// ---------------------------------------------------------------------------
+// ⚙️ CONSTANTS
+// ---------------------------------------------------------------------------
+const GAME_STATE_REF = doc(db, "game", "gameState");
+const DEFAULT_DURATION_MIN = 30; // used if no explicit duration is stored
 
 // ---------------------------------------------------------------------------
 // 🧠 MAIN INITIALIZATION
@@ -62,11 +75,11 @@ function renderAllSections() {
 // 🎮 CONTROL BUTTONS
 // ---------------------------------------------------------------------------
 function wireGameControls() {
-  const startBtn    = document.getElementById('start-game-btn');
-  const releaseBtn  = document.getElementById('release-zones-btn');
-  const endBtn      = document.getElementById('end-game-btn');
-  const resetBtn    = document.getElementById('reset-game-btn');
-  const marksBtn    = document.getElementById('take-marks-btn'); // 🏁 NEW BUTTON
+  const startBtn   = document.getElementById('start-game-btn');
+  const releaseBtn = document.getElementById('release-zones-btn');
+  const endBtn     = document.getElementById('end-game-btn');
+  const resetBtn   = document.getElementById('reset-game-btn');
+  const marksBtn   = document.getElementById('take-marks-btn'); // 🏁 NEW BUTTON
 
   // 🏁 RACERS TAKE YOUR MARKS — opens Gmail compose popups
   if (marksBtn) {
@@ -75,6 +88,7 @@ function wireGameControls() {
         const rulesBox  = document.getElementById('rules-textarea');
         const rulesText = rulesBox ? rulesBox.value.trim() : '';
 
+        // If you have active team selection elsewhere, plug that in here.
         const activeTeams = allTeams.reduce((acc, t) => {
           acc[t.name] = [
             { email: `${t.name.toLowerCase().replace(/\s+/g, '')}@example.com` }
@@ -91,16 +105,49 @@ function wireGameControls() {
     });
   }
 
-  // ▶️ START GAME
+  // ▶️ START GAME (SAFE: do not overwrite startTime if it already exists)
   if (startBtn) {
     startBtn.addEventListener('click', async () => {
       try {
-        await setGameStatus('active', true);
+        const snap = await getDoc(GAME_STATE_REF);
+        const existing = snap.exists() ? snap.data() : {};
+        const update = {
+          status: 'active',
+          zonesReleased: true, // you can toggle this if you want “Release” separate
+          updatedAt: serverTimestamp(),
+        };
+
+        // Only set startTime once
+        if (!existing.startTime) {
+          update.startTime = serverTimestamp();
+        }
+
+        // Store duration once so all players compute the same end time
+        if (!existing.durationMinutes) {
+          update.durationMinutes = DEFAULT_DURATION_MIN;
+        }
+
+        await updateDoc(GAME_STATE_REF, update);
+
         showCountdownBanner({ parent: document.body });
         showFlashMessage('✅ Game Started!', '#2e7d32', 3000);
       } catch (e) {
         console.error('Error starting game:', e);
-        showFlashMessage('Start failed.', '#c62828', 2500);
+        // Fallback to setGameStatus if doc was missing
+        try {
+          await setDoc(GAME_STATE_REF, {
+            status: 'active',
+            zonesReleased: true,
+            startTime: serverTimestamp(),
+            durationMinutes: DEFAULT_DURATION_MIN,
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+          showCountdownBanner({ parent: document.body });
+          showFlashMessage('✅ Game Started!', '#2e7d32', 3000);
+        } catch (err2) {
+          console.error('Start fallback failed:', err2);
+          showFlashMessage('Start failed.', '#c62828', 2500);
+        }
       }
     });
   }
@@ -118,12 +165,12 @@ function wireGameControls() {
     });
   }
 
-  // 🏁 END GAME
+  // 🏁 END GAME — also resets zones & clears teamStatus locations
   if (endBtn) {
     endBtn.addEventListener('click', async () => {
       try {
-        await setGameStatus('ended');
-        showFlashMessage('🏁 Game Ended!', '#c62828', 4000);
+        await safelyEndGameAndResetZones();
+        showFlashMessage('🏁 Game Ended! Zones reset.', '#c62828', 4000);
       } catch (e) {
         console.error('Error ending game:', e);
         showFlashMessage('End failed.', '#c62828', 2500);
@@ -131,13 +178,18 @@ function wireGameControls() {
     });
   }
 
-  // 🔄 RESET
+  // 🔄 RESET → back to waiting (does not wipe zones)
   if (resetBtn) {
     resetBtn.addEventListener('click', async () => {
-      if (confirm('Reset game state to WAITING?')) {
+      if (confirm('Reset game state to WAITING?\n(Does NOT wipe zones)')) {
         try {
-          await setGameStatus('waiting', false);
-          showFlashMessage('🔄 Game Reset.', '#757575', 2500);
+          await setDoc(GAME_STATE_REF, {
+            status: 'waiting',
+            zonesReleased: false,
+            // keep historical start/end if you want—players only read current status
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+          showFlashMessage('🔄 Game Reset to WAITING.', '#757575', 2500);
         } catch (e) {
           console.error('Error resetting game:', e);
           showFlashMessage('Reset failed.', '#c62828', 2500);
@@ -152,7 +204,7 @@ function wireGameControls() {
 // ---------------------------------------------------------------------------
 function watchLiveGameStatus() {
   listenForGameStatus((state) => {
-    const { status = 'waiting', zonesReleased = false } = state;
+    const { status = 'waiting', zonesReleased = false } = state || {};
     console.log('🎯 Live game state update:', state);
 
     const statusEl = document.getElementById('live-game-status');
@@ -165,6 +217,7 @@ function watchLiveGameStatus() {
       case 'active':
         if (zonesReleased) showFlashMessage('Zones are LIVE!', '#2e7d32');
         break;
+      case 'finished':
       case 'ended':
         showFlashMessage('Game Over!', '#7b1fa2');
         break;
@@ -174,6 +227,38 @@ function watchLiveGameStatus() {
         break;
     }
   });
+}
+
+// ---------------------------------------------------------------------------
+// 🧹 SAFE END + RESET ZONES
+// ---------------------------------------------------------------------------
+async function safelyEndGameAndResetZones() {
+  // 1) Mark the game finished (don’t touch startTime)
+  await updateDoc(GAME_STATE_REF, {
+    status: 'finished',
+    updatedAt: serverTimestamp(),
+    // optionally set endTime if you want a hard stop timestamp:
+    // endTime: serverTimestamp(),
+  });
+
+  // 2) Reset every zone to available
+  const zonesSnap = await getDocs(collection(db, "zones"));
+  for (const z of zonesSnap.docs) {
+    await updateDoc(doc(db, "zones", z.id), {
+      status: 'Available',
+      controllingTeam: '',
+      lastUpdated: serverTimestamp()
+    });
+  }
+
+  // 3) (Optional) Clear teamStatus last known location
+  const teamStatusSnap = await getDocs(collection(db, "teamStatus"));
+  for (const t of teamStatusSnap.docs) {
+    await updateDoc(doc(db, "teamStatus", t.id), {
+      lastKnownLocation: '',
+      timestamp: serverTimestamp()
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
