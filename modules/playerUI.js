@@ -1,6 +1,6 @@
 // ============================================================================
 // File: modules/playerUI.js
-// Purpose: Displays team info, roster, location, inline live timer, pause + game-over UI
+// Purpose: Displays team info, roster, location, pause + game-over UI
 // ============================================================================
 
 import { db } from './config.js';
@@ -53,7 +53,6 @@ export function initializePlayerUI(teamInput) {
   const team = allTeams.find(t => t.name === resolvedTeamName);
   setText('team-name', team?.name || resolvedTeamName);
   setText('team-slogan', team?.slogan || 'Ready to race!');
-  initializeInlineTimer(); // ensure inline timer exists immediately
 
   // 👥 Team Roster (live)
   const memberList = $('team-member-list');
@@ -109,54 +108,6 @@ export function initializePlayerUI(teamInput) {
       flashPlayerLocation(display);
     });
   }
-}
-
-// ---------------------------------------------------------------------------
-// ⏱️ INLINE TIMER DISPLAY (inserted properly in Game Info section)
-// ---------------------------------------------------------------------------
-export function initializeInlineTimer(retries = 10) {
-  // if already exists, just reset it
-  const inline = document.getElementById('time-remaining');
-  if (inline) {
-    inline.textContent = '--:--:--';
-    return;
-  }
-
-  // find the Game Info container
-  const gameInfo = document.querySelector('#game-info');
-  if (!gameInfo) {
-    // if not yet rendered, retry in 200ms (max 10 times)
-    if (retries > 0) {
-      setTimeout(() => initializeInlineTimer(retries - 1), 200);
-    } else {
-      console.warn('⚠️ Could not find #game-info after multiple retries — adding timer at top of page');
-      const timerLine = document.createElement('div');
-      timerLine.innerHTML = `<strong>Time Remaining:</strong> <span id="time-remaining">--:--:--</span>`;
-      document.body.prepend(timerLine);
-    }
-    return;
-  }
-
-  // create the timer line inside the Game Info section
-  const timerLine = document.createElement('div');
-  timerLine.innerHTML = `<strong>Time Remaining:</strong> <span id="time-remaining">--:--:--</span>`;
-  // ✅ ensure it appears just after the Status line
-  const statusEl = gameInfo.querySelector('#status-line') || gameInfo.firstChild;
-  if (statusEl && statusEl.nextSibling) {
-    gameInfo.insertBefore(timerLine, statusEl.nextSibling);
-  } else {
-    gameInfo.append(timerLine);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 🔄 UPDATE INLINE TIMER (used by player.js)
-// ---------------------------------------------------------------------------
-export function updatePlayerTimer(text) {
-  let inline = document.getElementById('time-remaining');
-  if (!inline) initializeInlineTimer(); // if not ready yet, try again
-  inline = document.getElementById('time-remaining');
-  if (inline) inline.textContent = text || '--:--:--';
 }
 
 // ---------------------------------------------------------------------------

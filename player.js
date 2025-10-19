@@ -10,7 +10,6 @@ import { listenForGameStatus } from './modules/gameStateManager.js';
 import { initializeZones } from './modules/zones.js';
 import {
   initializePlayerUI,
-  updatePlayerTimer,
   showPausedOverlay,
   hidePausedOverlay,
   showGameOverOverlay
@@ -96,7 +95,7 @@ function getEndTimestampMs(data) {
   const et = data.endTime;
   if (et) {
     if (typeof et.toMillis === 'function') return et.toMillis();
-    if (et.seconds) return et.seconds * 1000 + (et.nanoseconds || 0) / 1e6;
+    if (et.seconds) return et.seconds * 1000 + Math.floor((et.nanoseconds || 0) / 1e6);
     if (typeof et === 'number') return et;
   }
 
@@ -132,7 +131,7 @@ function handleLiveGameState(state) {
       removeWaitingBanner();
       hidePausedOverlay();
 
-      let endTimestamp = getEndTimestampMs({ endTime, startTime, durationMinutes, remainingMs });
+      const endTimestamp = getEndTimestampMs({ endTime, startTime, durationMinutes, remainingMs });
       if (endTimestamp) {
         startPlayerTimer(endTimestamp);
         showFlashMessage('🏁 Game in Progress!', '#2e7d32', 1200);
@@ -196,10 +195,9 @@ function removeWaitingBanner() {
 }
 
 function setInlineTimer(text) {
-  const el = document.getElementById('time-remaining');
+  // ✅ Write ONLY to the Game Info spot
+  const el = document.getElementById('timer-display'); // << matches your HTML
   if (el) el.textContent = text;
-  // Only update inline spot (not floating)
-  updatePlayerTimer(text);
 }
 
 // ============================================================================
