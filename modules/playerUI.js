@@ -1,6 +1,6 @@
 // ============================================================================
 // File: modules/playerUI.js
-// Purpose: Displays team info, roster, location, pause + game-over UI
+// Purpose: Displays team info, roster, opponent last known locations, pause + game-over UI
 // ============================================================================
 
 import { db } from './config.js';
@@ -21,12 +21,25 @@ function setText(id, value) {
   const el = $(id);
   if (el) el.textContent = value;
 }
-function flashPlayerLocation(text) {
-  const el = $('player-location');
-  if (!el) return;
-  el.textContent = text;
-  el.classList.add('flash');
-  setTimeout(() => el.classList.remove('flash'), 800);
+function fmtTime(ts) {
+  // Supports Firestore Timestamp, {seconds}, number(ms), or Date
+  try {
+    if (!ts) return '';
+    if (typeof ts.toDate === 'function') return ts.toDate().toLocaleTimeString();
+    if (typeof ts.toMillis === 'function') return new Date(ts.toMillis()).toLocaleTimeString();
+    if (typeof ts.seconds === 'number') return new Date(ts.seconds * 1000).toLocaleTimeString();
+    if (typeof ts === 'number') return new Date(ts).toLocaleTimeString();
+    if (ts instanceof Date) return ts.toLocaleTimeString();
+  } catch (e) {}
+  return '';
+}
+
+// ---------------------------------------------------------------------------
+// Exported: update timer text in the Game Info section
+// ---------------------------------------------------------------------------
+export function updatePlayerTimer(text) {
+  const el = document.getElementById('timer-display');
+  if (el) el.textContent = text || '--:--:--';
 }
 
 // ---------------------------------------------------------------------------
@@ -45,67 +58,116 @@ export function initializePlayerUI(teamInput) {
   const teamNameFromUrl = getTeamNameFromUrl();
   const resolvedTeamName =
     teamNameFromUrl ||
-    (typeof teamInput === 'string' ? teamInput : teamInput?.name || 'Unknown Team');
+    (typeof teamInput === 'string' ? teamInput : (teamInput && teamInput.name) || 'Unknown Team');
 
   console.log('🎨 Initializing Player UI for:', resolvedTeamName);
 
   // 🏷️ Team Info
-  const team = allTeams.find(t => t.name === resolvedTeamName);
-  setText('team-name', team?.name || resolvedTeamName);
-  setText('team-slogan', team?.slogan || 'Ready to race!');
+  const team = allTeams.find(function (t) { return t.name === resolvedTeamName; });
+  setText('team-name', team ? team.name : resolvedTeamName);
+  setText('team-slogan', team && team.slogan ? team.slogan : 'Ready to race!');
 
   // 👥 Team Roster (live)
   const memberList = $('team-member-list');
   if (memberList) {
-    const q = query(collection(db, "racers"), where("team", "==", resolvedTeamName));
-    onSnapshot(q, (snapshot) => {
+    const qy = query(collection(db, "racers"), where("team", "==", resolvedTeamName));
+    onSnapshot(qy, function (snapshot) {
       memberList.innerHTML = '';
       if (snapshot.empty) {
         memberList.innerHTML = '<li>No racers assigned yet.</li>';
         return;
       }
-      snapshot.forEach(docSnap => {
+      snapshot.forEach(function (docSnap) {
         const m = docSnap.data();
         const li = document.createElement('li');
-        let info = `<strong>${m.name || 'Unnamed Racer'}</strong>`;
-        if (m.cell) info += ` - 📱 ${m.cell}`;
-        if (m.email) info += ` - ✉️ ${m.email}`;
+        var info = '<strong>' + (m.name || 'Unnamed Racer') + '</strong>';
+        if (m.cell) info += ' - 📱 ' + m.cell;
+        if (m.email) info += ' - ✉️ ' + m.email;
         li.innerHTML = info;
         memberList.appendChild(li);
       });
     });
   }
 
-  // 📍 Live Location Tracking
-  const locationEl = $('player-location');
-  if (locationEl) {
-    const teamRef = doc(db, "teamStatus", resolvedTeamName);
-    onSnapshot(teamRef, (docSnap) => {
-      if (!docSnap.exists()) {
-        locationEl.textContent = '📍 No location yet.';
-        return;
+  // 🆚 Opponent Status & Messaging (live Firestore updates)
+  const opponentsTbody = $('opponents-tbody');
+  if (opponentsTbody) {
+    opponentsTbody.innerHTML = '';
+
+    const opponents = allTeams.filter(function (t) { return t.name !== resolvedTeamName; });
+
+    opponents.forEach(function (opp) {
+      const safeName = opp.name.replace(/\s+/g, '-');
+      const tr = document.createElement('tr');
+      tr.id = 'opp-row-' + safeName;
+
+      tr.innerHTML =
+        '<td>' + opp.name + '</td>' +
+        '<td id="opp-loc-' + safeName + '">--</td>' +
+        '<td>' +
+          '<input id="msg-input-' + safeName + '" placeholder="Message ' + opp.name + '..." style="width:90%; margin-right:4px;">' +
+          '<button id="msg-send-' + safeName + '" class="send-btn" data-team="' + opp.name + '">Send</button>' +
+        '</td>';
+
+      opponentsTbody.appendChild(tr);
+
+      // Listen to Firestore for each opponent's live lastKnownLocation
+      const teamRef = doc(db, "teamStatus", opp.name);
+      onSnapshot(teamRef, function (docSnap) {
+        const locCell = $('opp-loc-' + safeName);
+        if (!locCell) return;
+
+        if (!docSnap.exists()) {
+          locCell.textContent = '--';
+          return;
+        }
+
+        const data = docSnap.data() || {};
+        const zoneRaw = data.lastKnownLocation;
+        const zone = (zoneRaw && String(zoneRaw).trim() !== '') ? zoneRaw : '--';
+        const timeStr = fmtTime(data.timestamp);
+
+        if (zone !== '--') {
+          locCell.textContent = '📍 ' + zone + (timeStr ? ' (updated ' + timeStr + ')' : '');
+        } else {
+          locCell.textContent = '--';
+        }
+
+        // brief flash to highlight updates
+        locCell.style.background = '#f0c420';
+        locCell.style.color = '#000';
+        setTimeout(function () {
+          locCell.style.background = '';
+          locCell.style.color = '';
+        }, 800);
+      });
+    });
+
+    // Send Message buttons (preserve chatManager integration)
+    opponentsTbody.addEventListener('click', function (e) {
+      const target = e.target;
+      if (target && target.classList.contains('send-btn')) {
+        const teamTo = target.getAttribute('data-team');
+        const safe = teamTo.replace(/\s+/g, '-');
+        const input = $('msg-input-' + safe);
+        const msg = input && input.value ? input.value.trim() : '';
+        if (!msg) return;
+
+        console.log('📨 [Message to ' + teamTo + '] ' + msg);
+        input.value = '';
+
+        try {
+          if (typeof window.sendTeamMessage === 'function') {
+            window.sendTeamMessage(teamTo, msg);
+          } else if (window.chatManager && typeof window.chatManager.sendTeamMessage === 'function') {
+            window.chatManager.sendTeamMessage(teamTo, msg);
+          } else {
+            console.warn('⚠️ No sendTeamMessage() available — message not sent.');
+          }
+        } catch (err) {
+          console.error('💥 Error sending message:', err);
+        }
       }
-      const data = docSnap.data() || {};
-
-      const zone = (data.lastKnownLocation && data.lastKnownLocation.trim() !== '')
-        ? data.lastKnownLocation
-        : 'No location yet';
-
-      let timeStr = '';
-      if (data.timestamp) {
-        if (data.timestamp.seconds)
-          timeStr = new Date(data.timestamp.seconds * 1000).toLocaleTimeString();
-        else if (typeof data.timestamp === 'number')
-          timeStr = new Date(data.timestamp).toLocaleTimeString();
-        else if (data.timestamp.toDate)
-          timeStr = data.timestamp.toDate().toLocaleTimeString();
-      }
-
-      const display = zone === 'No location yet'
-        ? '📍 No location yet.'
-        : `📍 ${zone}${timeStr ? ` (updated ${timeStr})` : ''}`;
-
-      flashPlayerLocation(display);
     });
   }
 }
@@ -115,53 +177,46 @@ export function initializePlayerUI(teamInput) {
 // ---------------------------------------------------------------------------
 export function showPausedOverlay() {
   if ($('paused-overlay')) return;
-
   const overlay = document.createElement('div');
   overlay.id = 'paused-overlay';
-  overlay.innerHTML = `
-    <div class="paused-message">
-      ⏸️ Paused<br><small>Wait for host to resume...</small>
-    </div>
-  `;
-  Object.assign(overlay.style, {
-    position: 'fixed',
-    top: '0', left: '0', width: '100%', height: '100%',
-    background: 'rgba(0,0,0,0.85)',
-    color: '#fff',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '2.5rem',
-    fontWeight: 'bold',
-    zIndex: '5000',
-    opacity: '0',
-    transition: 'opacity 0.6s ease-in-out',
-  });
-
-  const msg = overlay.querySelector('.paused-message');
-  msg.style.textAlign = 'center';
-  msg.style.animation = 'pulse 1.5s infinite';
-  msg.querySelector('small').style.fontSize = '1.1rem';
-  msg.querySelector('small').style.opacity = '0.8';
+  overlay.innerHTML = '<div class="paused-message">⏸️ Paused<br><small>Wait for host to resume...</small></div>';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.background = 'rgba(0,0,0,0.85)';
+  overlay.style.color = '#fff';
+  overlay.style.display = 'flex';
+  overlay.style.flexDirection = 'column';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.fontSize = '2.5rem';
+  overlay.style.fontWeight = 'bold';
+  overlay.style.zIndex = '5000';
+  overlay.style.opacity = '0';
+  overlay.style.transition = 'opacity 0.6s ease-in-out';
 
   const styleTag = document.createElement('style');
-  styleTag.textContent = `
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.1); opacity: 0.85; }
-    }
-  `;
+  styleTag.textContent =
+    '@keyframes pulse {0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.1);opacity:0.85;}}';
   document.head.appendChild(styleTag);
+
+  const msg = overlay.querySelector('.paused-message');
+  if (msg) {
+    msg.style.textAlign = 'center';
+    msg.style.animation = 'pulse 1.5s infinite';
+  }
+
   document.body.appendChild(overlay);
-  requestAnimationFrame(() => (overlay.style.opacity = '1'));
+  requestAnimationFrame(function () { overlay.style.opacity = '1'; });
 }
 
 export function hidePausedOverlay() {
   const overlay = $('paused-overlay');
   if (overlay) {
     overlay.style.opacity = '0';
-    setTimeout(() => overlay.remove(), 600);
+    setTimeout(function () { overlay.remove(); }, 600);
   }
 }
 
@@ -170,40 +225,33 @@ export function hidePausedOverlay() {
 // ---------------------------------------------------------------------------
 export function showGameOverOverlay() {
   if ($('gameover-overlay')) return;
-
   const overlay = document.createElement('div');
   overlay.id = 'gameover-overlay';
-  overlay.innerHTML = `
-    <div class="finish-message">🏁 GAME OVER<br><small>Return to base!</small></div>
-    <canvas id="confetti-canvas"></canvas>
-  `;
-  Object.assign(overlay.style, {
-    position: 'fixed',
-    top: '0', left: '0', width: '100%', height: '100%',
-    background: 'rgba(0,0,0,0.9)',
-    color: '#fff',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '3rem',
-    fontWeight: 'bold',
-    zIndex: '6000',
-    opacity: '0',
-    transition: 'opacity 0.8s ease-in-out',
-  });
-
-  const msg = overlay.querySelector('.finish-message');
-  msg.style.textAlign = 'center';
-  msg.style.animation = 'pulse 1.6s infinite';
-  msg.querySelector('small').style.fontSize = '1.2rem';
-  msg.querySelector('small').style.opacity = '0.8';
+  overlay.innerHTML =
+    '<div class="finish-message">🏁 GAME OVER<br><small>Return to base!</small></div>' +
+    '<canvas id="confetti-canvas"></canvas>';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.background = 'rgba(0,0,0,0.9)';
+  overlay.style.color = '#fff';
+  overlay.style.display = 'flex';
+  overlay.style.flexDirection = 'column';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.fontSize = '3rem';
+  overlay.style.fontWeight = 'bold';
+  overlay.style.zIndex = '6000';
+  overlay.style.opacity = '0';
+  overlay.style.transition = 'opacity 0.8s ease-in-out';
 
   document.body.appendChild(overlay);
-  requestAnimationFrame(() => (overlay.style.opacity = '1'));
+  requestAnimationFrame(function () { overlay.style.opacity = '1'; });
 
   startConfetti();
-  setTimeout(() => stopConfetti(), 7000);
+  setTimeout(stopConfetti, 7000);
 }
 
 // ---------------------------------------------------------------------------
@@ -211,22 +259,27 @@ export function showGameOverOverlay() {
 // ---------------------------------------------------------------------------
 function startConfetti() {
   const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  const pieces = new Array(200).fill().map(() => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height - canvas.height,
-    size: 5 + Math.random() * 5,
-    color: `hsl(${Math.random() * 360}, 100%, 60%)`,
-    speed: 2 + Math.random() * 3,
-  }));
+  const pieces = [];
+  for (var i = 0; i < 200; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      size: 5 + Math.random() * 5,
+      color: 'hsl(' + (Math.random() * 360) + ', 100%, 60%)',
+      speed: 2 + Math.random() * 3
+    });
+  }
 
-  let running = true;
+  var running = true;
   function draw() {
     if (!running) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const p of pieces) {
+    for (var j = 0; j < pieces.length; j++) {
+      var p = pieces[j];
       ctx.beginPath();
       ctx.fillStyle = p.color;
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -237,19 +290,18 @@ function startConfetti() {
     requestAnimationFrame(draw);
   }
   draw();
-  window._confettiStop = () => (running = false);
+  window._confettiStop = function () { running = false; };
 }
-
 function stopConfetti() {
-  window._confettiStop?.();
+  if (window._confettiStop) window._confettiStop();
   const overlay = $('gameover-overlay');
-  if (overlay) setTimeout(() => overlay.remove(), 2500);
+  if (overlay) setTimeout(function () { overlay.remove(); }, 2500);
 }
 
 // ---------------------------------------------------------------------------
 // Auto-init (only if loaded standalone)
 // ---------------------------------------------------------------------------
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function () {
   const teamName = getTeamNameFromUrl();
   if (teamName) initializePlayerUI(teamName);
 });
