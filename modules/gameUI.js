@@ -9,6 +9,33 @@ let timerInterval = null;
 function $(id) { return document.getElementById(id); }
 
 /**
+ * Starts a count-down timer to a given Firestore timestamp.
+ * @param {object} endTime - Firestore server timestamp.
+ */
+export function startCountdownTimer(endTime) {
+  const timerEl = $('player-timer');
+  if (!timerEl || !endTime) return;
+
+  clearElapsedTimer(); // This function also clears countdown timers
+
+  const end = new Date(endTime.seconds * 1000);
+
+  timerInterval = setInterval(() => {
+    const remaining = end.getTime() - Date.now();
+    if (remaining <= 0) {
+      timerEl.textContent = "00:00:00";
+      clearInterval(timerInterval);
+    } else {
+      const hrs  = String(Math.floor((remaining / 3600000) % 24)).padStart(2, '0');
+      const mins = String(Math.floor((remaining / 60000) % 60)).padStart(2, '0');
+      const secs = String(Math.floor((remaining / 1000) % 60)).padStart(2, '0');
+      timerEl.textContent = `${hrs}:${mins}:${secs}`;
+    }
+  }, 1000);
+}
+
+
+/**
  * Starts a count-up timer from a given Firestore timestamp.
  * @param {object} startTime - Firestore server timestamp.
  */
@@ -30,7 +57,7 @@ export function startElapsedTimer(startTime) {
 }
 
 /**
- * Stops and clears the elapsed timer display.
+ * Stops and clears the timer display.
  */
 export function clearElapsedTimer() {
   if (timerInterval) clearInterval(timerInterval);

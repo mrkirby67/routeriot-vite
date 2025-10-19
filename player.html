@@ -6,13 +6,15 @@
   <title>Route Riot – Player</title>
   <meta name="description" content="Route Riot Player Dashboard – view team info, chat, zones, and live scores.">
   <meta name="theme-color" content="#0d1117" />
-  <link rel="stylesheet" href="style.css" />
-
+  
   <!-- Favicons -->
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="manifest" href="/site.webmanifest" />
+
+  <!-- The main stylesheet is now linked externally -->
+  <link rel="stylesheet" href="style.css" />
 
   <style>
     /* ------------------------------------------------------------------
@@ -147,7 +149,20 @@
     </div>
 
     <!-- 3️⃣ Unified Scoreboard -->
-    <div class="control-section" id="scoreboard-container"></div>
+    <div class="control-section" id="scoreboard-container">
+        <h2>Live Scoreboard</h2>
+        <table class="data-table" id="player-scoreboard-table">
+            <thead>
+                <tr>
+                    <th>Team Name</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody id="player-scoreboard-tbody">
+                <!-- Scores will be populated here by scoreboardManager.js -->
+            </tbody>
+        </table>
+    </div>
 
     <!-- 4️⃣ Zones -->
     <div class="control-section">
@@ -165,7 +180,7 @@
       </table>
     </div>
 
-    <!-- 5️⃣ Challenge Box -->
+    <!-- 5️⃣ Challenge Box (hidden by default) -->
     <div id="challenge-box" class="control-section" style="display:none;">
       <h2 id="challenge-zone-name">Challenge: Zone X</h2>
       <p id="challenge-question">Question will appear here…</p>
@@ -201,9 +216,7 @@
   </div>
 
   <!-- 9️⃣ Script Loader -->
-  <script type="module">
-    import { initializePlayerPage } from './player.js';
-    window.addEventListener('DOMContentLoaded', () => initializePlayerPage());
-  </script>
+  <script type="module" src="player.js"></script>
 </body>
 </html>
+

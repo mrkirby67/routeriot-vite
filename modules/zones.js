@@ -15,7 +15,7 @@ import {
 import { addPointsToTeam, updateControlledZones } from './scoreboardManager.js';
 
 /* ---------------------------------------------------------------------------
- *  LOCAL STATE
+ * LOCAL STATE
  * ------------------------------------------------------------------------ */
 let currentTeamName = null;
 let zonesLocked = true;
@@ -23,7 +23,7 @@ let gameStarted = false;
 let challengeState = { zoneId: null, questionId: null, attemptsLeft: 3 };
 
 /* ---------------------------------------------------------------------------
- *  UTILS
+ * UTILS
  * ------------------------------------------------------------------------ */
 function waitForElement(id, timeout = 4000) {
   return new Promise((resolve, reject) => {
@@ -50,7 +50,7 @@ function flashPlayerLocation(text) {
 }
 
 /* ---------------------------------------------------------------------------
- *  FIRESTORE EVENT HELPERS
+ * FIRESTORE EVENT HELPERS
  * ------------------------------------------------------------------------ */
 async function broadcastEvent(teamName, message) {
   try {
@@ -88,7 +88,7 @@ async function updateTeamLocation(teamName, zoneName) {
 }
 
 /* ---------------------------------------------------------------------------
- *  COUNTDOWN + GAME START VISUAL
+ * COUNTDOWN + GAME START VISUAL
  * ------------------------------------------------------------------------ */
 function showCountdownBanner(message, color = '#222') {
   let banner = document.getElementById('game-banner');
@@ -134,7 +134,7 @@ async function playRaceStartSequence() {
 }
 
 /* ---------------------------------------------------------------------------
- *  DISTANCE & VALIDATION HELPERS
+ * DISTANCE & VALIDATION HELPERS
  * ------------------------------------------------------------------------ */
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -163,7 +163,7 @@ function validateAnswer(playerAnswer, correctAnswer, type) {
 }
 
 /* ---------------------------------------------------------------------------
- *  MAP HELPERS (Safe Geometry Handling)
+ * MAP HELPERS (Safe Geometry Handling)
  * --------------------------------------------------------------------------- */
 function calculateZoomLevel(diameterKm, imageWidthPixels = 150) {
   const GLOBE_WIDTH = 256;
@@ -240,7 +240,7 @@ function generateMiniMap(zoneData) {
 }
 
 /* ---------------------------------------------------------------------------
- *  MAIN EXPORT — Initialize Zones (Player Page)
+ * MAIN EXPORT — Initialize Zones (Player Page)
  * --------------------------------------------------------------------------- */
 export async function initializeZones(teamName) {
   currentTeamName = teamName;
@@ -295,7 +295,7 @@ export async function initializeZones(teamName) {
 }
 
 /* ---------------------------------------------------------------------------
- *  CHALLENGE LOGIC
+ * CHALLENGE LOGIC
  * ------------------------------------------------------------------------ */
 async function displayZoneQuestions(zoneId, zoneName) {
   challengeState = { zoneId, questionId: null, attemptsLeft: 3 };
@@ -414,3 +414,4 @@ async function handleAnswerSubmit() {
     }
   }
 }
+

@@ -4,6 +4,7 @@
 import { db } from '../../modules/config.js';
 import { allTeams } from '../../data.js';
 import { emailAllTeams } from '../../modules/emailTeams.js';
+// --- THIS IMPORT STATEMENT HAS BEEN CORRECTED ---
 import {
   onSnapshot,
   doc,
@@ -16,7 +17,8 @@ import {
   limit,
   addDoc,
   getDoc,
-  deleteDoc
+  deleteDoc,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './GameControls.module.css';
 
@@ -33,7 +35,6 @@ export function GameControlsComponent() {
         <button id="pause-btn" class="${styles.controlButton} ${styles.pause}">Pause Game</button>
         <button id="end-btn" class="${styles.controlButton} ${styles.end}">End Game</button>
         <button id="reset-game-btn" class="${styles.controlButton} ${styles.pause}">Reset Game Data</button>
-        <!-- 🧹 New Manual Clear Scores Button -->
         <button id="clear-scores-btn" class="${styles.controlButton} ${styles.warning}">🧹 Clear Scores</button>
       </div>
 
@@ -75,7 +76,7 @@ export function initializeGameControlsLogic() {
   const pauseBtn = document.getElementById('pause-btn');
   const endBtn = document.getElementById('end-btn');
   const resetBtn = document.getElementById('reset-game-btn');
-  const clearScoresBtn = document.getElementById('clear-scores-btn'); // 🧹 NEW
+  const clearScoresBtn = document.getElementById('clear-scores-btn');
   const randomizeBtn = document.getElementById('randomize-btn');
   const sendBtn = document.getElementById('send-links-btn');
   const timerDisplay = document.getElementById('timer-display');
@@ -89,27 +90,21 @@ export function initializeGameControlsLogic() {
 
   let gameTimerInterval;
 
-  // === Load existing rules ===
   getDoc(rulesDocRef).then(snap => {
-    rulesText.value = snap.exists()
-      ? (snap.data().content || '')
-      : "Enter your Route Riot rules here...";
+    rulesText.value = snap.exists() ? (snap.data().content || '') : "Enter your Route Riot rules here...";
   });
 
-  // === Toggle rules panel ===
   toggleRulesBtn.addEventListener('click', () => {
     const open = rulesSection.style.display !== 'none';
     rulesSection.style.display = open ? 'none' : 'block';
     toggleRulesBtn.textContent = open ? '📜 Edit Rules' : '❌ Close Rules';
   });
 
-  // === Save rules ===
   saveRulesBtn.addEventListener('click', async () => {
     await setDoc(rulesDocRef, { content: rulesText.value.trim() }, { merge: true });
     alert('✅ Rules saved!');
   });
 
-  // === Live timer ===
   onSnapshot(doc(db, "game", "gameState"), (docSnap) => {
     if (gameTimerInterval) clearInterval(gameTimerInterval);
     const gs = docSnap.data();
@@ -123,8 +118,7 @@ export function initializeGameControlsLogic() {
           const h = Math.floor((remaining / 3_600_000) % 24);
           const m = Math.floor((remaining / 60_000) % 60);
           const s = Math.floor((remaining / 1_000) % 60);
-          timerDisplay.textContent =
-            `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+          timerDisplay.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
         }
       }, 1000);
     } else {
@@ -132,22 +126,18 @@ export function initializeGameControlsLogic() {
     }
   });
 
-  // === 🧹 Clear Scores ===
   clearScoresBtn.addEventListener('click', async () => {
     if (!confirm("This will clear ALL team scores. Proceed?")) return;
-
     try {
       const scoresSnap = await getDocs(collection(db, "scores"));
       const batch = writeBatch(db);
       scoresSnap.forEach(s => batch.delete(s.ref));
       await batch.commit();
-
       await addDoc(collection(db, "communications"), {
         teamName: "Game Master",
         message: "🧹 All scores have been cleared manually by control.",
         timestamp: new Date()
       });
-
       alert("✅ All scores cleared.");
     } catch (err) {
       console.error("Clear Scores error:", err);
@@ -155,12 +145,10 @@ export function initializeGameControlsLogic() {
     }
   });
 
-  // === Start Game (auto clears scores) ===
   startBtn.addEventListener('click', async () => {
     const mins = Number(document.getElementById('game-duration').value) || 120;
     const endTime = Date.now() + mins * 60 * 1000;
 
-    // 🧹 Auto clear scores when new game starts
     const scoreDocs = await getDocs(collection(db, "scores"));
     const clearBatch = writeBatch(db);
     scoreDocs.forEach(s => clearBatch.delete(s.ref));
@@ -173,8 +161,7 @@ export function initializeGameControlsLogic() {
       if (r.team && r.team !== '-') teamsInPlay.add(r.team);
     });
 
-    await setDoc(doc(db, "game", "activeTeams"),
-      { list: Array.from(teamsInPlay) }, { merge: true });
+    await setDoc(doc(db, "game", "activeTeams"), { list: Array.from(teamsInPlay) }, { merge: true });
     await setDoc(doc(db, "game", "gameState"), {
       status: 'active',
       endTime,
@@ -191,13 +178,11 @@ export function initializeGameControlsLogic() {
     alert(`🏁 Game Started — Zones Released!\nScores cleared.\n${teamsInPlay.size} teams active.`);
   });
 
-  // === Pause Game ===
   pauseBtn.addEventListener('click', async () => {
     await setDoc(doc(db, "game", "gameState"), { status: 'paused' }, { merge: true });
     alert('Game Paused!');
   });
 
-  // === End Game ===
   endBtn.addEventListener('click', async () => {
     try {
       await setDoc(doc(db, "game", "gameState"), { status: 'finished' }, { merge: true });
@@ -249,7 +234,6 @@ ${blankLines}
     }
   });
 
-  // === Reset Game ===
   resetBtn.addEventListener('click', async () => {
     if (!confirm("ARE YOU SURE?\nThis will permanently delete all game data.")) return;
     alert("Resetting game data...");
@@ -282,7 +266,6 @@ ${blankLines}
     }
   });
 
-  // === Randomize Teams ===
   randomizeBtn.addEventListener('click', async () => {
     const teamSize = Number(document.getElementById('team-size').value);
     if (!teamSize || teamSize < 1) return alert("Enter a valid team size.");
@@ -306,7 +289,6 @@ ${blankLines}
     alert("Teams randomized!");
   });
 
-  // === Send Links to Teams ===
   sendBtn.addEventListener('click', async () => {
     const racersSnap = await getDocs(collection(db, "racers"));
     const racers = racersSnap.docs.map(d => d.data());
@@ -337,18 +319,5 @@ ${blankLines}
     emailAllTeams(currentRules, activeTeams);
     alert(`📧 Emails prepared for ${teamNames.length} active teams.\nCheck your Gmail tabs.`);
   });
-
-  // === Optional Modal Handler ===
-  const modal = document.getElementById('roster-modal');
-  if (modal) {
-    const closeBtn = modal.querySelector('.modal-close-btn');
-    if (closeBtn) closeBtn.addEventListener('click', () => (modal.style.display = 'none'));
-    modal.addEventListener('click', e => {
-      if (e.target.classList.contains('copy-link-btn')) {
-        const link = e.target.dataset.link;
-        navigator.clipboard.writeText(link).then(() => alert('Link copied!'));
-      }
-    });
-  }
 }
 

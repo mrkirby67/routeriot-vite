@@ -1,5 +1,5 @@
 // File: modules/homeMap.js
-import { db, googleMapsApiKey } from './config.js';
+import { db, firebaseConfig } from './config.js';
 import { getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /** Parse "lat, lng" -> {lat, lng} or null */
@@ -31,17 +31,13 @@ function boundsOf(points) {
 
 /** Compute a zoom that fits bounds in given pixel size (rough but effective) */
 function computeZoom(bounds, widthPx = 900, heightPx = 600, aroundLat = 45) {
-  // Add padding so points aren’t right on the edge
   const PAD = 1.10;
   const latSpan = Math.max(0.000001, (bounds.maxLat - bounds.minLat) * PAD);
   const lngSpan = Math.max(0.000001, (bounds.maxLng - bounds.minLng) * PAD);
 
-  // Pixels per degree at a given zoom: 256 * 2^z / 360
-  // Adjust latitude by cos(phi) due to Mercator projection
   const lngZoom = Math.log2((widthPx * 360) / (lngSpan * 256));
   const latZoom = Math.log2((heightPx * 360) / (latSpan * 256 * Math.cos(aroundLat * Math.PI / 180)));
 
-  // Clamp to Static Maps range [0..21]
   return Math.max(3, Math.min(21, Math.floor(Math.min(lngZoom, latZoom))));
 }
 
@@ -72,21 +68,20 @@ function circlePathPoints(center, radiusMeters, stepDeg = 10) {
 function buildStaticMapUrl(center, zoom, zones, size = '900x600', maptype = 'roadmap') {
   const base = new URL('https://maps.googleapis.com/maps/api/staticmap');
   base.searchParams.set('size', size);
-  base.searchParams.set('maptype', maptype);       // 'roadmap' or 'satellite'
+  base.searchParams.set('maptype', maptype);
   base.searchParams.set('center', `${center.lat},${center.lng}`);
   base.searchParams.set('zoom', String(zoom));
-  base.searchParams.set('key', googleMapsApiKey);
+  // --- THIS IS THE FIX ---
+  base.searchParams.set('key', firebaseConfig.apiKey);
 
-  // Draw each zone as a semi-transparent red circle
   zones.forEach(z => {
     const diameterKm = parseFloat(z.diameter);
-    const radiusMeters = (Number.isFinite(diameterKm) ? diameterKm : 0.05) * 1000 / 2; // km -> m
+    const radiusMeters = (Number.isFinite(diameterKm) ? diameterKm : 0.05) * 1000 / 2;
     const pts = circlePathPoints(z.coords, radiusMeters, 10);
     const path = `fillcolor:0xFF000020|color:0xFF0000FF|weight:2|${pts.join('|')}`;
     base.searchParams.append('path', path);
   });
 
-  // Optional: tiny red marker at each zone center
   if (zones.length) {
     const markers = `size:tiny|color:red|${zones.map(z => `${z.coords.lat},${z.coords.lng}`).join('|')}`;
     base.searchParams.append('markers', markers);
@@ -100,7 +95,7 @@ export async function renderHomeMap() {
   try {
     const container = document.getElementById('home-map');
 
-    if (!googleMapsApiKey) {
+    if (!firebaseConfig.apiKey) {
       console.error('Missing Google Maps API key');
       if (container) container.innerHTML = `<div style="padding:20px;background:#5d1c1c;color:#fff;border-radius:8px;">Missing Google Maps API key</div>`;
       return;
@@ -110,7 +105,6 @@ export async function renderHomeMap() {
     const zonesRaw = [];
     snap.forEach(doc => zonesRaw.push(doc.data()));
 
-    // Filter to valid GPS points
     const parsed = zonesRaw
       .map(z => ({ ...z, coords: parseGPS(z.gps || '') }))
       .filter(z => z.coords);
@@ -120,16 +114,13 @@ export async function renderHomeMap() {
       return;
     }
 
-    // Compute average center & zoom that fits all points
     const points = parsed.map(z => z.coords);
     const center = averageCenter(points);
     const b = boundsOf(points);
 
-    // Fit all zones, then zoom out a touch for comfort
     let zoom = computeZoom(b, 900, 600, center.lat);
-    zoom = Math.max(3, zoom - 2); // zoom out 2 levels so every area is clearly in frame
+    zoom = Math.max(3, zoom - 2);
 
-    // Build URL and inject
     const url = buildStaticMapUrl(center, zoom, parsed, '900x600', 'roadmap');
     if (container) {
       container.innerHTML = `<img src="${url}" alt="Route Riot Game Area Map" style="max-width:100%;height:auto;border-radius:10px;display:block;margin:0 auto;">`;
@@ -140,3 +131,4 @@ export async function renderHomeMap() {
     if (container) container.innerHTML = `<div style="padding:20px;background:#5d1c1c;color:#fff;border-radius:8px;">Error loading map</div>`;
   }
 }
+

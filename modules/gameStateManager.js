@@ -16,7 +16,7 @@ import {
 import {
   showCountdownBanner,
   showFlashMessage,
-  startElapsedTimer,
+  startCountdownTimer, // <-- IMPORT THE CORRECT COUNTDOWN TIMER
   clearElapsedTimer
 } from './gameUI.js';
 
@@ -92,7 +92,13 @@ function handleGameStateUpdate({
         showCountdownBanner?.({ parent: document.body });
         showFlashMessage?.('The Race is ON!', '#2e7d32');
       }
-      if (startTime) startElapsedTimer?.(startTime);
+      // --- THIS IS THE FIX: Use the countdown timer if endTime exists ---
+      if (endTime) {
+        startCountdownTimer?.(endTime);
+      } else if (startTime) {
+        // Fallback to count-up if only startTime is available
+        startElapsedTimer?.(startTime);
+      }
       break;
 
     case 'ended':
@@ -103,6 +109,7 @@ function handleGameStateUpdate({
 
     case 'paused':
       showFlashMessage?.('Game paused by host.', '#ff9800');
+      clearElapsedTimer?.(); // Also clear the timer on pause
       break;
 
     default:
@@ -178,3 +185,4 @@ export async function resetGameState() {
     console.error("❌ Error resetting game state:", err);
   }
 }
+

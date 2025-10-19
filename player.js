@@ -1,18 +1,14 @@
-// ============================================================================
-// PLAYER PAGE INITIALIZER (Final Stable + Diagnostic Build)
-// ============================================================================
-
-import { db } from './modules/config.js';
+// --- IMPORTS ---
 import { allTeams } from './data.js';
+import { db } from './modules/config.js';
+import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { setupPlayerChat } from './modules/chatManager.js';
 import { listenForGameStatus } from './modules/gameStateManager.js';
-import { initializePlayerUI } from './modules/playerUI.js';
 import { initializeZones } from './modules/zones.js';
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializePlayerUI } from './modules/playerUI.js';
+import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 
-// ---------------------------------------------------------------------------
-// MAIN INITIALIZER
-// ---------------------------------------------------------------------------
+// --- MAIN INITIALIZATION ---
 export async function initializePlayerPage() {
   console.log('🚀 Initializing player page...');
 
@@ -20,19 +16,15 @@ export async function initializePlayerPage() {
   const params = new URLSearchParams(window.location.search);
   const currentTeamName =
     params.get('team')?.trim() ||
-    params.get('teamName')?.trim() || // ✅ Legacy link compatibility
+    params.get('teamName')?.trim() || // Legacy link compatibility
     localStorage.getItem('teamName') ||
     null;
-
-  console.log('🧾 Detected team param:', currentTeamName);
 
   if (!currentTeamName) {
     alert('No team assigned. Please use your official team link.');
     console.error('❌ Missing team name in URL or localStorage.');
     return;
   }
-
-  // Store for refresh resilience
   localStorage.setItem('teamName', currentTeamName);
 
   // 2️⃣ Validate the team exists in data.js
@@ -43,52 +35,34 @@ export async function initializePlayerPage() {
     return;
   }
 
-  console.log('✅ Found team data:', team);
-
-  // 3️⃣ Fetch the latest game state
-  let gameData = {};
+  // 3️⃣ Fetch the initial game state to show a "waiting" banner immediately
   try {
     const gameDoc = await getDoc(doc(db, 'game', 'gameState'));
-    gameData = gameDoc.exists() ? gameDoc.data() : {};
-    console.log('🎮 Game state snapshot:', gameData);
+    const gameData = gameDoc.exists() ? gameDoc.data() : {};
+    if (gameData.status !== 'active') {
+      const waitingBanner = document.createElement('div');
+      waitingBanner.id = 'waiting-banner';
+      waitingBanner.textContent = '⏳ Waiting for the game to start...';
+      waitingBanner.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%;
+        background: #333; color: white; text-align: center;
+        padding: 12px; font-weight: bold; z-index: 2000;
+      `;
+      document.body.appendChild(waitingBanner);
+    }
   } catch (err) {
-    console.error('⚠️ Could not fetch game state:', err);
+    console.error('⚠️ Could not fetch initial game state:', err);
   }
 
-  const gameStatus = gameData.status || 'waiting';
-  const isActive = gameStatus === 'active';
-  const zonesReleased = !!gameData.zonesReleased;
-
-  // 4️⃣ Display “waiting” banner if game not started
-  let waitingBanner = null;
-  if (!isActive) {
-    waitingBanner = document.createElement('div');
-    waitingBanner.id = 'waiting-banner';
-    waitingBanner.textContent = '⏳ Waiting for the game to start...';
-    waitingBanner.style.cssText = `
-      position: fixed; top: 0; left: 0; width: 100%;
-      background: #333; color: white; text-align: center;
-      padding: 12px; font-weight: bold; z-index: 2000;
-    `;
-    document.body.appendChild(waitingBanner);
-  }
-
-  // 5️⃣ Initialize UI, Chat, and Zones
+  // 5️⃣ Initialize all other UI and logic modules
   try {
-    console.log('🎨 Initializing Player UI...');
     initializePlayerUI(team, currentTeamName);
-
-    console.log('💬 Setting up chat...');
     setupPlayerChat(currentTeamName);
-
-    console.log('🗺️ Initializing zones...');
-    initializeZones?.(currentTeamName);
-
-    console.log('📡 Starting real-time game state listener...');
+    initializeZones(currentTeamName);
+    initializePlayerScoreboard();
+    
+    // Start the real-time listener, which will remove the banner when the game starts
     listenForGameStatus((state) => {
-      console.log('🛰️ Game state update received:', state);
-
-      // Remove waiting banner automatically when game starts
       if (state.status === 'active' && document.getElementById('waiting-banner')) {
         document.getElementById('waiting-banner')?.remove();
       }
@@ -100,3 +74,4 @@ export async function initializePlayerPage() {
 
   console.log('✅ Player initialization complete.');
 }
+

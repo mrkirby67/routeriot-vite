@@ -1,12 +1,14 @@
+// ============================================================================
 // File: components/ZoneManagement/ZoneManagement.js
-import { db, googleMapsApiKey } from '../../modules/config.js';
+// ============================================================================
+import { db, firebaseConfig } from '../../modules/config.js'; // Corrected import
 import {
   onSnapshot, collection, doc, setDoc, getDocs, getDoc, updateDoc, deleteDoc, addDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './ZoneManagement.module.css';
 
 /* ---------------------------------------------------------------------------
- *  MARKUP COMPONENT
+ * MARKUP COMPONENT
  * ------------------------------------------------------------------------ */
 export function ZoneManagementComponent() {
   const controlSection = styles?.controlSection || '';
@@ -65,7 +67,7 @@ export function ZoneManagementComponent() {
 }
 
 /* ---------------------------------------------------------------------------
- *  INITIALIZATION
+ * INITIALIZATION
  * ------------------------------------------------------------------------ */
 export function initializeZoneManagementLogic(googleMapsApiLoaded) {
   const tableBody = document.getElementById('zones-table-body');
@@ -76,7 +78,7 @@ export function initializeZoneManagementLogic(googleMapsApiLoaded) {
 
   /* ---------------- Mini Static Map ---------------- */
   function generateMiniMap(zoneData) {
-    if (!googleMapsApiKey) {
+    if (!firebaseConfig.apiKey) {
       return `<div style="width:600px;height:200px;background:#5d1c1c;color:white;
                 display:flex;align-items:center;justify-content:center;border-radius:8px;font-weight:bold;">
                 ❌ Missing Google Maps API Key
@@ -102,7 +104,7 @@ export function initializeZoneManagementLogic(googleMapsApiLoaded) {
     const mapUrl =
       `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}` +
       `&zoom=${zoom}&size=600x200&maptype=satellite` +
-      `&markers=color:red%7C${lat},${lng}&key=${googleMapsApiKey}`;
+      `&markers=color:red%7C${lat},${lng}&key=${firebaseConfig.apiKey}`;
     return `<img src="${mapUrl}" alt="Map preview of ${zoneData.name}" style="border-radius:8px;">`;
   }
 
@@ -140,7 +142,6 @@ export function initializeZoneManagementLogic(googleMapsApiLoaded) {
       const dataRow = document.createElement('tr');
       dataRow.dataset.zoneId = zoneId;
       const controlling = zoneData.controllingTeam || "None";
-      const teamLoc = statusDoc.exists() ? statusDoc.data().lastKnownLocation || "" : "";
 
       dataRow.innerHTML = `
         <td>${zoneData.name || zoneId}<br><span style="font-size:0.8em;color:#888;">(${zoneId})</span></td>
@@ -262,3 +263,4 @@ export function initializeZoneManagementLogic(googleMapsApiLoaded) {
     renderZones();
   };
 }
+
