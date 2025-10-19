@@ -1,6 +1,6 @@
 // ============================================================================
-// CONTROL PAGE SCRIPT (FINALIZED MODULAR BUILD - SAFE START/END)
-// Unified with GameControls.js (uses "scores" collection)
+// CONTROL PAGE SCRIPT (FINALIZED MODULAR BUILD - PAUSE/RESUME ENABLED)
+// Unified with GameControls.js (uses centralized Firestore timer system)
 // ============================================================================
 
 // ---------------------------------------------------------------------------
@@ -16,14 +16,25 @@ import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
 
 import { listenToAllMessages } from './modules/chatManager.js';
 import { loadGoogleMapsApi } from './modules/googleMapsLoader.js';
-import { releaseZones, listenForGameStatus } from './modules/gameStateManager.js';
+import {
+  releaseZones,
+  listenForGameStatus,
+  pauseGame,
+  resumeGame,
+} from './modules/gameStateManager.js';
 import { showCountdownBanner, showFlashMessage } from './modules/gameUI.js';
-import { emailAllTeams } from './modules/emailTeams.js';
 import { allTeams } from './data.js';
 
 import {
-  doc, getDoc, updateDoc, serverTimestamp,
-  collection, getDocs, setDoc, addDoc, writeBatch
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+  collection,
+  getDocs,
+  setDoc,
+  addDoc,
+  writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './modules/config.js';
 
@@ -75,46 +86,26 @@ function renderAllSections() {
 // ---------------------------------------------------------------------------
 function wireGameControls() {
   const startBtn   = document.getElementById('start-btn');
+  const pauseBtn   = document.getElementById('pause-btn');
   const releaseBtn = document.getElementById('release-zones-btn');
   const endBtn     = document.getElementById('end-btn');
   const resetBtn   = document.getElementById('reset-game-btn');
-  const marksBtn   = document.getElementById('send-links-btn');
-  const clearBtn   = document.getElementById('clear-scores-btn'); // 🧹
+  const clearBtn   = document.getElementById('clear-scores-btn');
 
-  // 🏁 RACERS TAKE YOUR MARKS
-  if (marksBtn) {
-    marksBtn.addEventListener('click', () => {
-      try {
-        const rulesBox  = document.getElementById('rules-text');
-        const rulesText = rulesBox ? rulesBox.value.trim() : '';
-        const activeTeams = allTeams.reduce((acc, t) => {
-          acc[t.name] = [
-            { email: `${t.name.toLowerCase().replace(/\s+/g, '')}@example.com` }
-          ];
-          return acc;
-        }, {});
-        emailAllTeams(rulesText, activeTeams);
-        showFlashMessage('📧 Team emails opened in Gmail!', '#1565c0', 3000);
-      } catch (err) {
-        console.error('Email send error:', err);
-        showFlashMessage('Could not open Gmail windows.', '#c62828', 3000);
-      }
-    });
-  }
-
-  // ▶️ START GAME — auto clear scores first
+  // 🏁 START GAME
   if (startBtn) {
     startBtn.addEventListener('click', async () => {
       try {
         await clearAllScores(true);
-
         const snap = await getDoc(GAME_STATE_REF);
         const existing = snap.exists() ? snap.data() : {};
+
         const update = {
           status: 'active',
           zonesReleased: true,
           updatedAt: serverTimestamp(),
         };
+
         if (!existing.startTime) update.startTime = serverTimestamp();
         if (!existing.durationMinutes) update.durationMinutes = DEFAULT_DURATION_MIN;
 
@@ -132,6 +123,30 @@ function wireGameControls() {
       } catch (e) {
         console.error('Error starting game:', e);
         showFlashMessage('Start failed.', '#c62828', 2500);
+      }
+    });
+  }
+
+  // ⏸️ / ▶️ TOGGLE PAUSE-RESUME
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', async () => {
+      try {
+        const snap = await getDoc(GAME_STATE_REF);
+        const data = snap.exists() ? snap.data() : {};
+        const isPaused = data.status === 'paused';
+
+        if (isPaused) {
+          await resumeGame();
+          pauseBtn.textContent = 'Pause Game';
+          showFlashMessage('▶️ Game Resumed!', '#2e7d32', 2500);
+        } else {
+          await pauseGame();
+          pauseBtn.textContent = 'Resume Game';
+          showFlashMessage('⏸️ Game Paused!', '#ff9800', 2500);
+        }
+      } catch (e) {
+        console.error('Pause/Resume error:', e);
+        showFlashMessage('Pause/Resume failed.', '#c62828', 2500);
       }
     });
   }
@@ -155,6 +170,7 @@ function wireGameControls() {
       try {
         await safelyEndGameAndResetZones();
         showFlashMessage('🏁 Game Ended! Zones reset.', '#c62828', 4000);
+        pauseBtn.textContent = 'Pause Game';
       } catch (e) {
         console.error('Error ending game:', e);
         showFlashMessage('End failed.', '#c62828', 2500);
@@ -172,6 +188,7 @@ function wireGameControls() {
             zonesReleased: false,
             updatedAt: serverTimestamp(),
           }, { merge: true });
+          pauseBtn.textContent = 'Pause Game';
           showFlashMessage('🔄 Game Reset to WAITING.', '#757575', 2500);
         } catch (e) {
           console.error('Error resetting game:', e);
@@ -181,7 +198,7 @@ function wireGameControls() {
     });
   }
 
-  // 🧹 CLEAR SCORES BUTTON
+  // 🧹 CLEAR SCORES
   if (clearBtn) {
     clearBtn.addEventListener('click', async () => {
       if (confirm('Clear all team scores manually?')) {
@@ -205,9 +222,18 @@ function watchLiveGameStatus() {
     if (zonesEl)  zonesEl.textContent  = zonesReleased ? 'Unlocked' : 'Locked';
 
     switch (status) {
-      case 'active':  showFlashMessage('Zones are LIVE!', '#2e7d32'); break;
-      case 'finished': showFlashMessage('Game Over!', '#7b1fa2'); break;
-      default: showFlashMessage('Waiting to start...', '#616161'); break;
+      case 'active':
+        showFlashMessage('Zones are LIVE!', '#2e7d32');
+        break;
+      case 'paused':
+        showFlashMessage('⏸️ Game Paused!', '#ff9800');
+        break;
+      case 'finished':
+        showFlashMessage('Game Over!', '#7b1fa2');
+        break;
+      default:
+        showFlashMessage('Waiting to start...', '#616161');
+        break;
     }
   });
 }
@@ -222,7 +248,6 @@ async function safelyEndGameAndResetZones() {
       updatedAt: serverTimestamp(),
     });
 
-    // Reset all zones
     const zonesSnap = await getDocs(collection(db, "zones"));
     for (const z of zonesSnap.docs) {
       await updateDoc(doc(db, "zones", z.id), {
@@ -232,7 +257,6 @@ async function safelyEndGameAndResetZones() {
       });
     }
 
-    // Reset all teamStatus
     const teamStatusSnap = await getDocs(collection(db, "teamStatus"));
     for (const t of teamStatusSnap.docs) {
       await updateDoc(doc(db, "teamStatus", t.id), {
@@ -241,10 +265,8 @@ async function safelyEndGameAndResetZones() {
       });
     }
 
-    // Clear scores
     await clearAllScores(true);
 
-    // Broadcast end-of-game message
     await addDoc(collection(db, "communications"), {
       teamName: "Game Master",
       message: "🏁 The game has ended! All zones and scores reset.",
@@ -266,7 +288,7 @@ async function clearAllScores(autoTriggered = false) {
   try {
     const scoresSnap = await getDocs(collection(db, "scores"));
     const batch = writeBatch(db);
-    scoresSnap.forEach(s => batch.delete(s.ref));
+    scoresSnap.forEach((s) => batch.delete(s.ref));
     await batch.commit();
 
     if (!autoTriggered) {
@@ -277,6 +299,7 @@ async function clearAllScores(autoTriggered = false) {
         timestamp: serverTimestamp(),
       });
     }
+
     console.log(`✅ Scores cleared (${autoTriggered ? 'auto' : 'manual'}).`);
   } catch (e) {
     console.error("❌ Error clearing scores:", e);

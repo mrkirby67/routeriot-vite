@@ -1,51 +1,54 @@
 // ============================================================================
-// GAME UI HELPERS
-// Functions for displaying visual feedback (timers, banners, messages)
+// MODULE: gameUI.js
+// Purpose: Provides visual feedback elements (timers, banners, messages)
+// Used by both Control and Player interfaces
 // ============================================================================
 
 let timerInterval = null;
+const $ = (id) => document.getElementById(id);
 
-// Simple helper for getting a DOM element by its ID
-function $(id) { return document.getElementById(id); }
-
-/**
- * Starts a count-down timer to a given Firestore timestamp.
- * @param {object} endTime - Firestore server timestamp.
- */
+// ---------------------------------------------------------------------------
+// ⏱️ COUNTDOWN TIMER (to a fixed end time)
+// ---------------------------------------------------------------------------
 export function startCountdownTimer(endTime) {
   const timerEl = $('player-timer');
   if (!timerEl || !endTime) return;
 
-  clearElapsedTimer(); // This function also clears countdown timers
+  clearElapsedTimer();
 
-  const end = new Date(endTime.seconds * 1000);
+  const end =
+    endTime?.seconds ? new Date(endTime.seconds * 1000) :
+    endTime instanceof Date ? endTime :
+    new Date(endTime);
 
   timerInterval = setInterval(() => {
     const remaining = end.getTime() - Date.now();
     if (remaining <= 0) {
       timerEl.textContent = "00:00:00";
       clearInterval(timerInterval);
-    } else {
-      const hrs  = String(Math.floor((remaining / 3600000) % 24)).padStart(2, '0');
-      const mins = String(Math.floor((remaining / 60000) % 60)).padStart(2, '0');
-      const secs = String(Math.floor((remaining / 1000) % 60)).padStart(2, '0');
-      timerEl.textContent = `${hrs}:${mins}:${secs}`;
+      return;
     }
+
+    const hrs  = String(Math.floor((remaining / 3600000) % 24)).padStart(2, '0');
+    const mins = String(Math.floor((remaining / 60000) % 60)).padStart(2, '0');
+    const secs = String(Math.floor((remaining / 1000) % 60)).padStart(2, '0');
+    timerEl.textContent = `${hrs}:${mins}:${secs}`;
   }, 1000);
 }
 
-
-/**
- * Starts a count-up timer from a given Firestore timestamp.
- * @param {object} startTime - Firestore server timestamp.
- */
+// ---------------------------------------------------------------------------
+// ⏱️ ELAPSED TIMER (counting up from a start time)
+// ---------------------------------------------------------------------------
 export function startElapsedTimer(startTime) {
   const timerEl = $('player-timer');
   if (!timerEl || !startTime) return;
 
   clearElapsedTimer();
-  // Convert Firestore timestamp to a JavaScript Date object
-  const start = new Date(startTime.seconds * 1000);
+
+  const start =
+    startTime?.seconds ? new Date(startTime.seconds * 1000) :
+    startTime instanceof Date ? startTime :
+    new Date(startTime);
 
   timerInterval = setInterval(() => {
     const elapsedSec = Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
@@ -56,9 +59,9 @@ export function startElapsedTimer(startTime) {
   }, 1000);
 }
 
-/**
- * Stops and clears the timer display.
- */
+// ---------------------------------------------------------------------------
+// 🧹 CLEAR TIMER DISPLAY
+// ---------------------------------------------------------------------------
 export function clearElapsedTimer() {
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
@@ -66,80 +69,127 @@ export function clearElapsedTimer() {
   if (timerEl) timerEl.textContent = '--:--:--';
 }
 
-/**
- * Displays a temporary "flash" message at the top of the screen.
- * @param {string} message - The text to display.
- * @param {string} color - The background color of the banner.
- * @param {number} duration - How long the message should stay on screen (in ms).
- */
-export function showFlashMessage(message, color = '#2e7d32', duration = 3000) {
-    const flash = document.createElement('div');
-    flash.textContent = message;
-    flash.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background-color: ${color};
-        color: white;
-        text-align: center;
-        padding: 16px;
-        font-size: 1.2em;
-        font-weight: bold;
-        z-index: 2000;
-        transform: translateY(-100%);
-        transition: transform 0.5s ease-in-out;
-    `;
-    document.body.appendChild(flash);
+// ---------------------------------------------------------------------------
+// ⚡ FLASH MESSAGE (top banner)
+// ---------------------------------------------------------------------------
+export function showFlashMessage(message, color = '#03dac6', duration = 3000) {
+  const existing = document.getElementById('flash-message');
+  if (existing) existing.remove();
 
-    // Animate in and out
-    setTimeout(() => { flash.style.transform = 'translateY(0)'; }, 100);
-    setTimeout(() => {
-        flash.style.transform = 'translateY(-100%)';
-        setTimeout(() => flash.remove(), 500);
-    }, duration);
+  const flash = document.createElement('div');
+  flash.id = 'flash-message';
+  flash.textContent = message;
+  Object.assign(flash.style, {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: '100%',
+    background: color,
+    color: '#000',
+    textAlign: 'center',
+    padding: '16px',
+    fontSize: '1.2em',
+    fontWeight: 'bold',
+    letterSpacing: '0.5px',
+    zIndex: '5000',
+    transform: 'translateY(-100%)',
+    transition: 'transform 0.4s ease-in-out',
+    boxShadow: `0 0 12px ${color}`,
+    textShadow: '0 0 6px rgba(0,0,0,0.3)',
+  });
+
+  document.body.appendChild(flash);
+  setTimeout(() => (flash.style.transform = 'translateY(0)'), 100);
+  setTimeout(() => {
+    flash.style.transform = 'translateY(-100%)';
+    setTimeout(() => flash.remove(), 500);
+  }, duration);
 }
 
-/**
- * Displays a 3, 2, 1, GO! countdown banner over the whole screen.
- * @param {object} config - Configuration object, e.g., { parent: document.body }.
- */
-export function showCountdownBanner({ parent = document.body }) {
-    const banner = document.createElement('div');
-    banner.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.9); display: flex; justify-content: center;
-        align-items: center; z-index: 9999; color: white; font-size: 20vw;
-        font-weight: bold; text-shadow: 0 0 20px #ff0;
-        -webkit-font-smoothing: antialiased;
-    `;
-    parent.appendChild(banner);
+// ---------------------------------------------------------------------------
+// 🕹️ COUNTDOWN BANNER (3, 2, 1, GO! overlay)
+// ---------------------------------------------------------------------------
+export function showCountdownBanner({ parent = document.body, seconds = 3 } = {}) {
+  const existing = document.getElementById('countdown-banner');
+  if (existing) existing.remove();
 
-    let count = 3;
-    const update = () => {
-        if (count > 0) {
-            banner.textContent = count;
-            // Animation effect for each number
-            banner.style.transform = 'scale(1.5)';
-            banner.style.opacity = '0';
-            setTimeout(() => {
-                banner.style.transition = 'transform 0.4s ease-out, opacity 0.4s ease-out';
-                banner.style.transform = 'scale(1)';
-                banner.style.opacity = '1';
-            }, 50);
-            count--;
-        } else {
-            banner.textContent = 'GO!';
-            setTimeout(() => {
-                banner.style.transition = 'opacity 0.5s ease-out';
-                banner.style.opacity = '0';
-                setTimeout(() => banner.remove(), 500);
-            }, 1000);
-            clearInterval(interval);
-        }
-    };
-    
-    const interval = setInterval(update, 1000);
-    update(); // Run once immediately
+  const banner = document.createElement('div');
+  banner.id = 'countdown-banner';
+  Object.assign(banner.style, {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    background: 'rgba(0,0,0,0.92)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: '9999',
+    fontSize: '18vw',
+    color: '#00ff90',
+    fontWeight: 'bold',
+    textShadow: '0 0 30px #00ff90',
+    letterSpacing: '4px',
+    fontFamily: 'monospace',
+    transition: 'opacity 0.5s ease',
+  });
+
+  parent.appendChild(banner);
+
+  let count = seconds;
+  const tick = () => {
+    if (count > 0) {
+      banner.textContent = count;
+      banner.style.transform = 'scale(1.4)';
+      banner.style.opacity = '0';
+      setTimeout(() => {
+        banner.style.transition = 'transform 0.4s, opacity 0.4s';
+        banner.style.transform = 'scale(1)';
+        banner.style.opacity = '1';
+      }, 50);
+      count--;
+    } else {
+      banner.textContent = 'GO!';
+      banner.style.color = '#03dac6';
+      banner.style.textShadow = '0 0 40px #03dac6';
+      setTimeout(() => {
+        banner.style.opacity = '0';
+        setTimeout(() => banner.remove(), 500);
+      }, 900);
+      clearInterval(interval);
+    }
+  };
+
+  const interval = setInterval(tick, 1000);
+  tick();
 }
 
+// ---------------------------------------------------------------------------
+// 🕓 WAITING BANNER (for player before game start)
+// ---------------------------------------------------------------------------
+export function showWaitingBanner() {
+  if (document.getElementById('waiting-banner')) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'waiting-banner';
+  banner.textContent = '⏳ Waiting for the game to start...';
+  Object.assign(banner.style, {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100%',
+    background: '#333',
+    color: '#fff',
+    textAlign: 'center',
+    padding: '12px',
+    fontWeight: 'bold',
+    fontSize: '1.1rem',
+    zIndex: '3000',
+  });
+  document.body.appendChild(banner);
+}
+
+export function removeWaitingBanner() {
+  document.getElementById('waiting-banner')?.remove();
+}

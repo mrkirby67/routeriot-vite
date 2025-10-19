@@ -1,7 +1,6 @@
 // ============================================================================
 // File: player.js
-// Purpose: Main entry point for each player page.
-// Uses the unified ?teamName= parameter system
+// Purpose: Player-side entry point with true pause/resume + synced countdown
 // ============================================================================
 
 import { allTeams } from './data.js';
@@ -10,8 +9,15 @@ import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 import { setupPlayerChat } from './modules/chatManager.js';
 import { listenForGameStatus } from './modules/gameStateManager.js';
 import { initializeZones } from './modules/zones.js';
-import { initializePlayerUI } from './modules/playerUI.js';
+import {
+  initializePlayerUI,
+  updatePlayerTimer,
+  showPausedOverlay,
+  hidePausedOverlay,
+  showGameOverOverlay
+} from './modules/playerUI.js';
 import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
+import { showFlashMessage } from './modules/gameUI.js';
 
 // ============================================================================
 // MAIN INITIALIZATION
@@ -19,24 +25,23 @@ import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 export async function initializePlayerPage() {
   console.log('🚀 Initializing player page...');
 
-  // 1️⃣ Identify the team from URL (standardized ?teamName=) or localStorage
+  // 1️⃣ Identify the team
   const params = new URLSearchParams(window.location.search);
   const currentTeamName =
-    params.get('teamName')?.trim() || // ✅ Standard unified param
-    params.get('team')?.trim() ||     // Legacy fallback
+    params.get('teamName')?.trim() ||
+    params.get('team')?.trim() ||
     localStorage.getItem('teamName') ||
     null;
 
   if (!currentTeamName) {
     alert('No team assigned. Please use your official team link.');
-    console.error('❌ Missing team name in URL or localStorage.');
+    console.error('❌ Missing team name.');
     return;
   }
 
-  // Always store the latest for reload persistence
   localStorage.setItem('teamName', currentTeamName);
 
-  // 2️⃣ Validate team exists in data.js
+  // 2️⃣ Validate team exists
   const team = allTeams.find(t => t.name === currentTeamName);
   if (!team) {
     alert(`Team "${currentTeamName}" not found in data.js`);
@@ -44,20 +49,12 @@ export async function initializePlayerPage() {
     return;
   }
 
-  // 3️⃣ Show "Waiting for game" banner if needed
+  // 3️⃣ Show “waiting” banner until game starts
   try {
     const gameDoc = await getDoc(doc(db, 'game', 'gameState'));
     const gameData = gameDoc.exists() ? gameDoc.data() : {};
     if (gameData.status !== 'active') {
-      const waitingBanner = document.createElement('div');
-      waitingBanner.id = 'waiting-banner';
-      waitingBanner.textContent = '⏳ Waiting for the game to start...';
-      waitingBanner.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%;
-        background: #333; color: white; text-align: center;
-        padding: 12px; font-weight: bold; z-index: 2000;
-      `;
-      document.body.appendChild(waitingBanner);
+      showWaitingBanner();
     }
   } catch (err) {
     console.error('⚠️ Could not fetch initial game state:', err);
@@ -65,27 +62,154 @@ export async function initializePlayerPage() {
 
   // 4️⃣ Initialize all player modules
   try {
-    // Unified: playerUI auto-detects teamName via URL, but we pass it anyway for clarity
     initializePlayerUI(team, currentTeamName);
     setupPlayerChat(currentTeamName);
     initializeZones(currentTeamName);
     initializePlayerScoreboard();
 
-    // Live listener removes waiting banner when game starts
-    listenForGameStatus((state) => {
-      if (state.status === 'active' && document.getElementById('waiting-banner')) {
-        document.getElementById('waiting-banner')?.remove();
-      }
-    });
+    // 🧠 Listen for real-time game state (with pause/resume)
+    listenForGameStatus((state) => handleLiveGameState(state));
   } catch (err) {
     console.error('🔥 Error during initialization:', err);
-    alert('Error initializing player. Check console for details.');
+    alert('Error initializing player. Check console.');
   }
 
-  console.log('✅ Player initialization complete for team:', currentTeamName);
+  console.log('✅ Player initialized for team:', currentTeamName);
 }
 
-// ---------------------------------------------------------------------------
-// Auto-init on DOM load
-// ---------------------------------------------------------------------------
+// ============================================================================
+// 🕹️ HANDLE GAME STATE UPDATES
+// ============================================================================
+let lastRemainingMs = null;
+let playerTimerInterval = null;
+let pausedAt = null;
+
+function handleLiveGameState(state) {
+  const { status, endTime, remainingMs } = state || {};
+
+  switch (status) {
+    // 🟡 WAITING
+    case 'waiting':
+      showWaitingBanner();
+      hidePausedOverlay();
+      updatePlayerTimer('--:--');
+      pausePlayerTimer();
+      break;
+
+    // 🟢 ACTIVE
+    case 'active': {
+      removeWaitingBanner();
+      hidePausedOverlay();
+
+      let resumeFrom = null;
+      if (pausedAt && lastRemainingMs) {
+        // Resume from remainingMs (resume point)
+        resumeFrom = Date.now() + lastRemainingMs;
+      } else if (remainingMs) {
+        // Resync from server if provided
+        resumeFrom = Date.now() + remainingMs;
+      } else if (endTime) {
+        // Fall back to fixed end time
+        resumeFrom = endTime.toMillis ? endTime.toMillis() : endTime;
+      }
+
+      if (resumeFrom) startPlayerTimer(resumeFrom);
+      pausedAt = null;
+      showFlashMessage('🏁 Game Resumed!', '#2e7d32', 2000);
+      break;
+    }
+
+    // ⏸️ PAUSED
+    case 'paused': {
+      pausedAt = Date.now();
+      lastRemainingMs = stopAndCalculateRemaining();
+      showPausedOverlay();
+      showFlashMessage('⏸️ Game Paused by Control', '#ff9800', 2000);
+      break;
+    }
+
+    // 🏁 FINISHED / ENDED
+    case 'finished':
+    case 'ended':
+      pausePlayerTimer();
+      updatePlayerTimer('00:00');
+      hidePausedOverlay();
+      showGameOverOverlay();
+      showFlashMessage('🏁 Game Over! Return to base.', '#c62828', 4000);
+      break;
+
+    default:
+      console.warn('⚠️ Unknown status:', status);
+      break;
+  }
+}
+
+// ============================================================================
+// 🧭 UI HELPERS
+// ============================================================================
+function showWaitingBanner() {
+  if (document.getElementById('waiting-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'waiting-banner';
+  banner.textContent = '⏳ Waiting for the game to start...';
+  banner.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%;
+    background: #333; color: white; text-align: center;
+    padding: 12px; font-weight: bold; z-index: 2000;
+  `;
+  document.body.appendChild(banner);
+}
+
+function removeWaitingBanner() {
+  document.getElementById('waiting-banner')?.remove();
+}
+
+// ============================================================================
+// ⏱️ TIMER HANDLERS
+// ============================================================================
+function startPlayerTimer(endTimestamp) {
+  clearInterval(playerTimerInterval);
+  updateTimerDisplay(endTimestamp);
+
+  playerTimerInterval = setInterval(() => {
+    updateTimerDisplay(endTimestamp);
+  }, 1000);
+}
+
+function pausePlayerTimer() {
+  clearInterval(playerTimerInterval);
+  playerTimerInterval = null;
+}
+
+function stopAndCalculateRemaining() {
+  if (!window._currentEndTime) return null;
+  const now = Date.now();
+  const remaining = window._currentEndTime - now;
+  pausePlayerTimer();
+  return remaining > 0 ? remaining : 0;
+}
+
+function updateTimerDisplay(endTimestamp) {
+  window._currentEndTime = endTimestamp;
+  const now = Date.now();
+  const remaining = endTimestamp - now;
+
+  if (remaining <= 0) {
+    clearInterval(playerTimerInterval);
+    updatePlayerTimer('00:00');
+    showGameOverOverlay();
+    return;
+  }
+
+  const totalSeconds = Math.floor(remaining / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  const display = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  updatePlayerTimer(display);
+}
+
+// ============================================================================
+// 🚀 ENTRY POINT
+// ============================================================================
 document.addEventListener('DOMContentLoaded', initializePlayerPage);
