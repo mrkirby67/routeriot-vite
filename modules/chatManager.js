@@ -2,6 +2,7 @@
 // File: modules/chatManager.js
 // Purpose: Handles all chat and communication between teams & control
 // Author: Route Riot Control - 2025 (teamName broadcast fix + Live Locations)
+// UPDATED: Handles teamStatus deletions + chat clears gracefully
 // ============================================================================
 
 import { db } from './config.js';
@@ -28,7 +29,6 @@ export async function listenToAllMessages() {
   const activeSnap = await getDoc(doc(db, "game", "activeTeams"));
   const activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
 
-  // Listen to both private team messages and global communications
   const privateMessagesQuery = query(collectionGroup(db, 'messages'), orderBy('timestamp', 'asc'));
   const publicCommsQuery = query(collection(db, 'communications'), orderBy('timestamp', 'asc'));
   const controlAllQuery = query(collection(db, 'conversations', 'CONTROL_ALL', 'messages'), orderBy('timestamp', 'asc'));
@@ -43,7 +43,6 @@ export async function listenToAllMessages() {
       const ts = msg.timestamp?.toMillis ? msg.timestamp.toMillis() : msg.timestamp;
       const time = new Date(ts).toLocaleTimeString();
       const entry = document.createElement('p');
-
       if (msg.isBroadcast || msg.recipient === 'ALL') {
         const senderDisplay =
           msg.sender && msg.sender !== 'Game Master'
@@ -66,6 +65,12 @@ export async function listenToAllMessages() {
   };
 
   const processSnapshot = (snapshot) => {
+    if (snapshot.empty) {
+      logBox.innerHTML = '<p style="color:#888;">(No messages)</p>';
+      allMessages.length = 0;
+      messageIds.clear();
+      return;
+    }
     snapshot.docChanges().forEach(change => {
       if (change.type === 'added' && !messageIds.has(change.doc.id)) {
         messageIds.add(change.doc.id);
@@ -77,46 +82,9 @@ export async function listenToAllMessages() {
     renderLog();
   };
 
-  // Watch all message sources
-  onSnapshot(privateMessagesQuery, processSnapshot, (err) =>
-    console.error("❌ Private chat snapshot error:", err)
-  );
-
-  // 🛰️ Broadcast sources
-  onSnapshot(publicCommsQuery, (snapshot) => {
-    snapshot.docChanges().forEach(change => {
-      if (change.type === 'added' && !messageIds.has(change.doc.id)) {
-        const data = change.doc.data();
-        messageIds.add(change.doc.id);
-        allMessages.push({
-          sender: data.teamName || "Game Master",
-          recipient: "ALL",
-          text: data.message || data.text || '',
-          timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
-          isBroadcast: true
-        });
-      }
-    });
-    renderLog();
-  }, (err) => console.error("❌ Public comms snapshot error:", err));
-
-  onSnapshot(controlAllQuery, (snapshot) => {
-    snapshot.docChanges().forEach(change => {
-      if (change.type !== 'added') return;
-      const id = change.doc.id;
-      if (messageIds.has(id)) return;
-      messageIds.add(id);
-      const data = change.doc.data();
-      allMessages.push({
-        sender: data.teamName || 'Game Master',
-        recipient: 'ALL',
-        text: data.text || data.message || '',
-        timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp || Date.now(),
-        isBroadcast: true
-      });
-    });
-    renderLog();
-  }, (err) => console.error("❌ CONTROL_ALL snapshot error:", err));
+  onSnapshot(privateMessagesQuery, processSnapshot);
+  onSnapshot(publicCommsQuery, processSnapshot);
+  onSnapshot(controlAllQuery, processSnapshot);
 }
 
 // ============================================================================
@@ -129,7 +97,6 @@ export async function setupPlayerChat(currentTeamName) {
 
   opponentsTbody.innerHTML = '';
 
-  // Get active teams or fall back to allTeams
   const activeSnap = await getDoc(doc(db, "game", "activeTeams"));
   const activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
   const playableTeams =
@@ -137,7 +104,6 @@ export async function setupPlayerChat(currentTeamName) {
       ? activeTeams.filter(t => t !== currentTeamName)
       : allTeams.filter(t => t.name !== currentTeamName).map(t => t.name);
 
-  // Render opponent chat rows
   playableTeams.forEach(teamName => {
     const row = document.createElement('tr');
     row.dataset.team = teamName;
@@ -153,20 +119,35 @@ export async function setupPlayerChat(currentTeamName) {
     opponentsTbody.appendChild(row);
   });
 
-  // 🛰️ Live Last Known Location Listener
+  // 🛰️ Live Last Known Location Listener (handles clears)
   const teamStatusCol = collection(db, 'teamStatus');
   onSnapshot(teamStatusCol, (snapshot) => {
-    snapshot.forEach((docSnap) => {
-      const team = docSnap.id;
-      const data = docSnap.data();
-      const location = data.lastKnownLocation || '--';
+    // Reset everyone to "--" if collection is cleared
+    if (snapshot.empty) {
+      opponentsTbody.querySelectorAll('.last-location').forEach(cell => {
+        cell.textContent = '--';
+      });
+      return;
+    }
+
+    snapshot.docChanges().forEach(change => {
+      const team = change.doc.id;
       const row = opponentsTbody.querySelector(`[data-team="${team}"]`);
-      if (row) {
-        const cell = row.querySelector('.last-location');
-        if (cell) cell.textContent = location;
+      if (!row) return;
+
+      const cell = row.querySelector('.last-location');
+      if (!cell) return;
+
+      if (change.type === 'removed') {
+        // 🔹 Team doc deleted → reset to --
+        cell.textContent = '--';
+      } else if (change.type === 'added' || change.type === 'modified') {
+        const data = change.doc.data();
+        const location = data.lastKnownLocation || '--';
+        cell.textContent = location;
       }
     });
-  }, (err) => console.error("❌ teamStatus snapshot error:", err));
+  });
 
   // Hook up send buttons
   opponentsTbody.querySelectorAll('.send-btn').forEach(button => {
@@ -221,6 +202,11 @@ function listenForMyMessages(myTeamName, logBox) {
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
     logBox.innerHTML = '';
 
+    if (allMessages.length === 0) {
+      logBox.innerHTML = '<p style="color:#888;">(No messages yet)</p>';
+      return;
+    }
+
     allMessages.forEach(msg => {
       const ts = msg.timestamp?.toMillis ? msg.timestamp.toMillis() : msg.timestamp;
       const time = new Date(ts).toLocaleTimeString();
@@ -249,61 +235,33 @@ function listenForMyMessages(myTeamName, logBox) {
       }
       logBox.appendChild(entry);
     });
-
     logBox.scrollTop = logBox.scrollHeight;
   };
 
   const processSnapshot = (snapshot) => {
+    if (snapshot.empty) {
+      allMessages.length = 0;
+      messageIds.clear();
+      renderLog();
+      return;
+    }
     snapshot.docChanges().forEach(change => {
       if (change.type === 'added' && !messageIds.has(change.doc.id)) {
         const data = change.doc.data();
         data.timestamp = data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp;
         messageIds.add(change.doc.id);
         allMessages.push(data);
+      } else if (change.type === 'removed') {
+        // 🔹 Message deleted → rebuild
+        const idx = allMessages.findIndex(m => m.id === change.doc.id);
+        if (idx !== -1) allMessages.splice(idx, 1);
       }
     });
     renderLog();
   };
 
-  // Private chats
-  onSnapshot(sentQuery, processSnapshot, (err) => console.error("❌ Sent query error:", err));
-  onSnapshot(receivedQuery, processSnapshot, (err) => console.error("❌ Received query error:", err));
-
-  // Broadcasts (communications)
-  onSnapshot(broadcastQuery, (snapshot) => {
-    snapshot.docChanges().forEach(change => {
-      if (change.type === 'added' && !messageIds.has(change.doc.id)) {
-        const data = change.doc.data();
-        messageIds.add(change.doc.id);
-        allMessages.push({
-          sender: data.teamName || "Game Master",
-          recipient: "ALL",
-          text: data.message || data.text || '',
-          timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
-          isBroadcast: true
-        });
-      }
-    });
-    renderLog();
-  }, (err) => console.error("❌ Broadcast snapshot error:", err));
-
-  // CONTROL_ALL broadcasts
-  onSnapshot(controlAllQuery, (snapshot) => {
-    snapshot.docChanges().forEach(change => {
-      if (change.type !== 'added') return;
-      const id = change.doc.id;
-      if (messageIds.has(id)) return;
-      messageIds.add(id);
-
-      const data = change.doc.data();
-      allMessages.push({
-        sender: data.teamName || 'Game Master',
-        recipient: 'ALL',
-        text: data.text || data.message || '',
-        timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp || Date.now(),
-        isBroadcast: true
-      });
-    });
-    renderLog();
-  }, (err) => console.error("❌ CONTROL_ALL snapshot error:", err));
+  onSnapshot(sentQuery, processSnapshot);
+  onSnapshot(receivedQuery, processSnapshot);
+  onSnapshot(broadcastQuery, processSnapshot);
+  onSnapshot(controlAllQuery, processSnapshot);
 }
