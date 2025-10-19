@@ -6,14 +6,13 @@
   <title>Route Riot – Player</title>
   <meta name="description" content="Route Riot Player Dashboard – view team info, chat, zones, and live scores.">
   <meta name="theme-color" content="#0d1117" />
-  
+
   <!-- Favicons -->
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="manifest" href="/site.webmanifest" />
 
-  <!-- The main stylesheet is now linked externally -->
   <link rel="stylesheet" href="style.css" />
 
   <style>
@@ -49,7 +48,6 @@
       padding: 1rem 1.5rem;
       margin-bottom: 1.5rem;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      transition: all 0.2s ease-in-out;
     }
     table.data-table {
       width: 100%;
@@ -77,9 +75,7 @@
       cursor: pointer;
       transition: background 0.2s ease-in-out;
     }
-    button:hover {
-      background: #2ea043;
-    }
+    button:hover { background: #2ea043; }
     .log-box {
       background: #0e1117;
       border: 1px solid #30363d;
@@ -109,13 +105,8 @@
       background: #1c2128;
       border-radius: 4px;
     }
-    .status-taken {
-      opacity: 0.6;
-      border: 2px solid #c62828;
-    }
-    .status-available {
-      border: 2px solid #2e7d32;
-    }
+    .status-taken { opacity: 0.6; border: 2px solid #c62828; }
+    .status-available { border: 2px solid #2e7d32; }
 
     /* 🌟 Flash animation for location updates */
     #player-location.flash {
@@ -131,15 +122,14 @@
 
 <body>
   <div class="container">
-    <!-- 1️⃣ Header -->
     <h1 id="team-name">Team Name Loading…</h1>
     <p id="team-slogan" class="slogan">Slogan Loading…</p>
 
-    <!-- 2️⃣ Game Info -->
+    <!-- ✅ Corrected Game Info section -->
     <div class="control-section">
       <h2>Game Info</h2>
       <p><strong>Status:</strong> <span id="game-status">Not Started</span></p>
-      <p><strong>Time Remaining:</strong> <span id="time-remaining">--:--:--</span></p>
+      <p><strong>Time Remaining:</strong> <span id="timer-display">--:--:--</span></p>
       <p><strong>Last Known Location:</strong> <span id="player-location">--</span></p>
 
       <div class="team-members">
@@ -150,18 +140,16 @@
 
     <!-- 3️⃣ Unified Scoreboard -->
     <div class="control-section" id="scoreboard-container">
-        <h2>Live Scoreboard</h2>
-        <table class="data-table" id="player-scoreboard-table">
-            <thead>
-                <tr>
-                    <th>Team Name</th>
-                    <th>Score</th>
-                </tr>
-            </thead>
-            <tbody id="player-scoreboard-tbody">
-                <!-- Scores will be populated here by scoreboardManager.js -->
-            </tbody>
-        </table>
+      <h2>Live Scoreboard</h2>
+      <table class="data-table" id="player-scoreboard-table">
+        <thead>
+          <tr>
+            <th>Team Name</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="player-scoreboard-tbody"></tbody>
+      </table>
     </div>
 
     <!-- 4️⃣ Zones -->
@@ -180,7 +168,7 @@
       </table>
     </div>
 
-    <!-- 5️⃣ Challenge Box (hidden by default) -->
+    <!-- 5️⃣ Challenge Box -->
     <div id="challenge-box" class="control-section" style="display:none;">
       <h2 id="challenge-zone-name">Challenge: Zone X</h2>
       <p id="challenge-question">Question will appear here…</p>
@@ -215,8 +203,6 @@
     <div id="commissioner-message" class="broadcast-message-display"></div>
   </div>
 
-  <!-- 9️⃣ Script Loader -->
   <script type="module" src="player.js"></script>
 </body>
 </html>
-

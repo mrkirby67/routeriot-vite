@@ -44,14 +44,14 @@ export function initializePlayerUI(teamInput) {
 
   console.log('🎨 Initializing Player UI for:', resolvedTeamName);
 
-  // 🏷️ Static Team Info
+  // 🏷️ Team Info
   const team = allTeams.find(t => t.name === resolvedTeamName);
   setText('team-name', team?.name || resolvedTeamName);
   setText('team-slogan', team?.slogan || 'Ready to race!');
 
-  ensureTimerDisplay(); // ⏱️ bottom-right timer
+  ensureTimerDisplay(); // ensures timer overlay exists
 
-  // 👥 Live Team Roster
+  // 👥 Team Roster
   const memberList = $('team-member-list');
   if (memberList) {
     const q = query(collection(db, "racers"), where("team", "==", resolvedTeamName));
@@ -73,7 +73,7 @@ export function initializePlayerUI(teamInput) {
     });
   }
 
-  // 📍 Last Known Location
+  // 📍 Location Tracking (updates live)
   const locationEl = $('player-location');
   if (locationEl) {
     const teamRef = doc(db, "teamStatus", resolvedTeamName);
@@ -83,7 +83,11 @@ export function initializePlayerUI(teamInput) {
         return;
       }
       const data = docSnap.data() || {};
-      const zone = data.lastKnownLocation || 'Unknown zone';
+
+      // Handle blank/cleared location properly
+      const zone = (data.lastKnownLocation && data.lastKnownLocation.trim() !== '')
+        ? data.lastKnownLocation
+        : 'No location yet';
 
       let timeStr = '';
       if (data.timestamp) {
@@ -95,16 +99,24 @@ export function initializePlayerUI(teamInput) {
           timeStr = data.timestamp.toDate().toLocaleTimeString();
       }
 
-      flashPlayerLocation(`📍 ${zone}${timeStr ? ` (updated ${timeStr})` : ''}`);
+      // Animate only when there's a meaningful update
+      const display = zone === 'No location yet'
+        ? '📍 No location yet.'
+        : `📍 ${zone}${timeStr ? ` (updated ${timeStr})` : ''}`;
+
+      flashPlayerLocation(display);
     });
   }
 }
 
 // ---------------------------------------------------------------------------
-// ⏱️ TIMER DISPLAY
+// ⏱️ TIMER DISPLAY (supports inline + overlay fallback)
 // ---------------------------------------------------------------------------
 function ensureTimerDisplay() {
-  if ($('player-timer')) return;
+  // if #time-remaining exists in HTML, no floating timer needed
+  if ($('time-remaining') || $('player-timer')) return;
+
+  // Otherwise create floating fallback
   const timerEl = document.createElement('div');
   timerEl.id = 'player-timer';
   timerEl.textContent = '--:--:--';
@@ -126,7 +138,11 @@ function ensureTimerDisplay() {
   document.body.appendChild(timerEl);
 }
 
+// Update timer across both inline (#time-remaining) and overlay (#player-timer)
 export function updatePlayerTimer(text) {
+  const inlineTimer = $('time-remaining');
+  if (inlineTimer) inlineTimer.textContent = text;
+
   if (!$('player-timer')) ensureTimerDisplay();
   $('player-timer').textContent = text;
 }
@@ -160,12 +176,11 @@ export function showPausedOverlay() {
     transition: 'opacity 0.6s ease-in-out',
   });
 
-  const message = overlay.querySelector('.paused-message');
-  message.style.textAlign = 'center';
-  message.style.animation = 'pulse 1.5s infinite';
-  message.style.lineHeight = '1.4';
-  message.querySelector('small').style.fontSize = '1.1rem';
-  message.querySelector('small').style.opacity = '0.8';
+  const msg = overlay.querySelector('.paused-message');
+  msg.style.textAlign = 'center';
+  msg.style.animation = 'pulse 1.5s infinite';
+  msg.querySelector('small').style.fontSize = '1.1rem';
+  msg.querySelector('small').style.opacity = '0.8';
 
   const styleTag = document.createElement('style');
   styleTag.textContent = `
@@ -175,7 +190,6 @@ export function showPausedOverlay() {
     }
   `;
   document.head.appendChild(styleTag);
-
   document.body.appendChild(overlay);
   requestAnimationFrame(() => (overlay.style.opacity = '1'));
 }
@@ -189,7 +203,7 @@ export function hidePausedOverlay() {
 }
 
 // ---------------------------------------------------------------------------
-// 🏁 GAME OVER OVERLAY (Confetti Celebration)
+// 🏁 GAME OVER OVERLAY (with confetti)
 // ---------------------------------------------------------------------------
 export function showGameOverOverlay() {
   if ($('gameover-overlay')) return;
@@ -226,11 +240,11 @@ export function showGameOverOverlay() {
   requestAnimationFrame(() => (overlay.style.opacity = '1'));
 
   startConfetti();
-  setTimeout(() => stopConfetti(), 7000); // confetti runs 7s
+  setTimeout(() => stopConfetti(), 7000);
 }
 
 // ---------------------------------------------------------------------------
-// 🎉 Simple Confetti Animation (no library)
+// 🎉 Confetti Animation
 // ---------------------------------------------------------------------------
 function startConfetti() {
   const canvas = document.getElementById('confetti-canvas');
@@ -260,7 +274,6 @@ function startConfetti() {
     requestAnimationFrame(draw);
   }
   draw();
-
   window._confettiStop = () => (running = false);
 }
 function stopConfetti() {
@@ -270,7 +283,7 @@ function stopConfetti() {
 }
 
 // ---------------------------------------------------------------------------
-// Auto-init if player.html directly loads this script
+// Auto-init (only if loaded standalone)
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   const teamName = getTeamNameFromUrl();

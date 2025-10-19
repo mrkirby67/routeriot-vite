@@ -1,83 +1,54 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>🔥 Firestore GameState Live Monitor</title>
-  <style>
-    body {
-      font-family: monospace;
-      background-color: #0d0d0d;
-      color: #00ff66;
-      padding: 20px;
-      line-height: 1.5;
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, onSnapshot } 
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ✅ Pull config safely from your existing module
+  import { firebaseConfig } from './modules/config.js';
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const gameOutput = document.getElementById("gameOutput");
+  const gameStatus = document.getElementById("gameStatus");
+  const teamOutput = document.getElementById("teamOutput");
+  const teamStatus = document.getElementById("teamStatus");
+  const teamInput = document.getElementById("teamNameInput");
+  const watchBtn = document.getElementById("watchTeam");
+
+  // 🎮 Listen to GAMESTATE
+  const gameRef = doc(db, "game", "gameState");
+  onSnapshot(gameRef, (snap) => {
+    if (!snap.exists()) {
+      gameOutput.textContent = "❌ No document found at game/gameState";
+      return;
     }
-    h1, h2 {
-      color: #0ff;
-    }
-    pre {
-      background: #111;
-      padding: 12px;
-      border-radius: 8px;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .error {
-      color: #ff5555;
-    }
-    .status {
-      margin-top: 10px;
-      font-style: italic;
-    }
-  </style>
-</head>
-<body>
-  <h1>📡 Firestore GameState Debugger</h1>
-  <h2>Collection: <code>game</code> → Document: <code>gameState</code></h2>
-  <pre id="output">Connecting...</pre>
-  <div id="status" class="status"></div>
+    const data = snap.data();
+    gameOutput.textContent = JSON.stringify(data, null, 2);
+    const st = data.status || "unknown";
+    gameStatus.textContent = `Status: ${st.toUpperCase()} • Updated: ${new Date().toLocaleTimeString()}`;
+    console.log("🎮 gameState snapshot:", data);
+  });
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, onSnapshot } 
-      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  // 🏁 Listen to TEAMSTATUS (on demand)
+  let unsubscribeTeam = null;
+  watchBtn.onclick = () => {
+    const teamName = teamInput.value.trim();
+    if (!teamName) return alert("Enter your team name first!");
+    if (unsubscribeTeam) unsubscribeTeam();
 
-    // 🚨 SECURITY NOTE 🚨
-    // Do NOT commit your actual API key here — use placeholders or a local-only file.
-    // Paste your values temporarily *only for local debugging*.
-    const firebaseConfig = {
-      apiKey: "REDACTED_FOR_SECURITY",  // 🔒 <— Replace with your local key ONLY for testing
-      authDomain: "routeriotgame.firebaseapp.com",
-      projectId: "routeriotgame",
-    };
+    const ref = doc(db, "teamStatus", teamName);
+    teamOutput.textContent = "Connecting to Firestore…";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const output = document.getElementById("output");
-    const status = document.getElementById("status");
-    const ref = doc(db, "game", "gameState");
-
-    try {
-      onSnapshot(ref, (snap) => {
-        if (!snap.exists()) {
-          output.textContent = "❌ No document found at game/gameState";
-          status.textContent = "Listening for updates...";
-          return;
-        }
-
-        const data = snap.data();
-        output.textContent = JSON.stringify(data, null, 2);
-
-        const st = data.status || "unknown";
-        status.textContent = `Status: ${st.toUpperCase()} • Updated: ${new Date().toLocaleTimeString()}`;
-        console.log("🔥 Live GameState Snapshot:", data);
-      });
-    } catch (err) {
-      output.textContent = "⚠️ Error connecting to Firestore:\n" + err.message;
-      output.classList.add("error");
-      console.error("🔥 Firestore connection error:", err);
-    }
-  </script>
-</body>
-</html>
+    unsubscribeTeam = onSnapshot(ref, (snap) => {
+      if (!snap.exists()) {
+        teamOutput.textContent = "❌ No document found for team: " + teamName;
+        return;
+      }
+      const data = snap.data();
+      teamOutput.textContent = JSON.stringify(data, null, 2);
+      teamStatus.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+      console.log("🏁 teamStatus snapshot:", data);
+    });
+  };
+</script>
