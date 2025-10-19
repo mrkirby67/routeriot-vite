@@ -1,7 +1,7 @@
 // ============================================================================
 // MODULE: controlStatus.js (UPDATED)
 // Purpose: Watch Firestore for live game updates and team status sync
-// Includes auto Top 3 broadcast + global chat clear on reset
+// Includes auto Top 3 broadcast + global chat clear on reset + teamStatus clear
 // ============================================================================
 
 import { listenForGameStatus } from './gameStateManager.js';
@@ -11,7 +11,9 @@ import {
   getDocs,
   deleteDoc,
   doc,
-  onSnapshot
+  onSnapshot,
+  updateDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './config.js';
 import { broadcastTopThree, resetScores } from './scoreboardManager.js';
@@ -87,11 +89,11 @@ function watchTeamStatuses() {
 }
 
 // ---------------------------------------------------------------------------
-// 🧹 CLEAR ALL CHAT & SCORES (Global Reset)
+// 🧹 CLEAR ALL CHAT, SCORES, & TEAM STATUS (Global Reset)
 // ---------------------------------------------------------------------------
 export async function clearAllChatAndScores() {
   try {
-    console.log('🧹 Clearing all chat collections and scoreboard data...');
+    console.log('🧹 Clearing all chat collections, scoreboard data, and team statuses...');
 
     // 1️⃣ Delete all documents in communications
     const commSnap = await getDocs(collection(db, 'communications'));
@@ -116,15 +118,40 @@ export async function clearAllChatAndScores() {
       }
     }
 
-    // 4️⃣ Reset scoreboard + zones
+    // 4️⃣ Reset scoreboard
     await resetScores();
 
-    // 5️⃣ Broadcast a system notice that all chat is cleared
-    await addSystemNotice('\n'.repeat(10) + '🧹 ALL CHAT AND SCORES CLEARED BY GAME MASTER 🧹');
+    // 5️⃣ Clear all teamStatus locations
+    await clearAllTeamStatuses();
 
-    console.log('✅ All chat and scores cleared.');
+    // 6️⃣ Broadcast a system notice that all chat & status are cleared
+    await addSystemNotice('\n'.repeat(10) + '🧹 ALL CHAT, SCORES & TEAM STATUSES CLEARED BY GAME MASTER 🧹');
+
+    console.log('✅ All chat, scores, and team statuses cleared.');
   } catch (err) {
-    console.error('❌ Error clearing chat/scores:', err);
+    console.error('❌ Error clearing data:', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 🧼 Clear all team statuses (used by Clear All button or reset)
+// ---------------------------------------------------------------------------
+export async function clearAllTeamStatuses() {
+  try {
+    const teamStatusRef = collection(db, "teamStatus");
+    const snapshot = await getDocs(teamStatusRef);
+
+    const updates = snapshot.docs.map((docSnap) =>
+      updateDoc(docSnap.ref, {
+        lastKnownLocation: "",
+        timestamp: serverTimestamp(),
+      })
+    );
+
+    await Promise.allSettled(updates);
+    console.log("🧼 All teamStatus entries cleared!");
+  } catch (err) {
+    console.error("❌ Error clearing teamStatus collection:", err);
   }
 }
 

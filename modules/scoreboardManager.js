@@ -1,14 +1,15 @@
 // ============================================================================
-// FILE: /modules/scoreboardManager.js
+// FILE: /modules/scoreboardManager.js (UPDATED)
 // PURPOSE: Manage all score and zone updates for the scoreboard
+// Includes safer batch reset, broadcast-ready Top 3, and improved logs
 // ============================================================================
+
 import { db } from './config.js';
 import { allTeams } from '../data.js';
 import {
   doc,
   setDoc,
   updateDoc,
-  increment,
   runTransaction,
   collection,
   getDocs,
@@ -29,7 +30,6 @@ import {
 export async function addPointsToTeam(teamName, points) {
   if (!teamName || typeof points !== 'number') return;
 
-  // Ensure standardized team name from allTeams
   const team = allTeams.find(t => t.name === teamName);
   const cleanName = team ? team.name : teamName;
   const scoreRef = doc(db, 'scores', cleanName);
@@ -79,25 +79,24 @@ export async function updateControlledZones(teamName, zoneName) {
  * ------------------------------------------------------------------------ */
 /**
  * Resets all team scores and clears zone control data.
- * Called by Control panel → “Clear Scoreboard” button.
+ * Called by Control panel → “Clear All” button.
  */
 export async function resetScores() {
   try {
-    console.log('🧹 Resetting all team scores and zone control data...');
+    console.log('🧹 Resetting all team scores and zone ownership...');
     const batch = writeBatch(db);
 
     // 1️⃣ Reset all team scores
     const scoreSnaps = await getDocs(collection(db, 'scores'));
     scoreSnaps.forEach(snap => {
-      const id = snap.id;
-      batch.set(doc(db, 'scores', id), {
+      batch.set(doc(db, 'scores', snap.id), {
         score: 0,
         zonesControlled: '—',
         updatedAt: serverTimestamp(),
       }, { merge: true });
     });
 
-    // 2️⃣ Reset all zone ownerships
+    // 2️⃣ Reset all zones
     const zoneSnaps = await getDocs(collection(db, 'zones'));
     zoneSnaps.forEach(zSnap => {
       batch.set(doc(db, 'zones', zSnap.id), {
@@ -143,10 +142,11 @@ export function initializePlayerScoreboard() {
 
     // Render table
     scoreboardBody.innerHTML = '';
-    teams.forEach(t => {
+    teams.forEach((t, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td>${t.name}</td>
+        <td>${medal} ${t.name}</td>
         <td>${t.score}</td>
       `;
       scoreboardBody.appendChild(row);
@@ -159,7 +159,7 @@ export function initializePlayerScoreboard() {
  * ------------------------------------------------------------------------ */
 /**
  * Broadcasts the top 3 finishers to all players.
- * Adds 10 blank lines before the leaderboard for visibility.
+ * Adds spacing for visibility and includes celebration emojis.
  */
 export async function broadcastTopThree() {
   try {
@@ -170,19 +170,22 @@ export async function broadcastTopThree() {
       scores.push({ team: docSnap.id, score: data.score || 0 });
     });
 
+    if (scores.length === 0) {
+      console.warn('⚠️ No scores found to broadcast.');
+      return;
+    }
+
     // Sort descending by score
     scores.sort((a, b) => b.score - a.score);
     const topThree = scores.slice(0, 3);
 
-    // Prepare formatted text with 10 blank lines
     const spacer = '\n'.repeat(10);
-    const message =
-      `${spacer}🏁🏁🏁  FINAL RESULTS  🏁🏁🏁\n\n` +
-      topThree.map((t, i) => {
-        const medals = ['🥇','🥈','🥉'][i] || '🏅';
-        return `${medals}  ${t.team} — ${t.score} pts`;
-      }).join('\n') +
-      `\n\n🎉 Congratulations to all teams! 🎉`;
+    let message = `${spacer}🏁🏁🏁  FINAL RESULTS  🏁🏁🏁\n\n`;
+    topThree.forEach((t, i) => {
+      const medals = ['🥇', '🥈', '🥉'][i] || '🏅';
+      message += `${medals}  ${t.team} — ${t.score} pts\n`;
+    });
+    message += `\n🎉 Congratulations to all teams! 🎉`;
 
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',

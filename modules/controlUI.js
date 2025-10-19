@@ -1,11 +1,13 @@
 // ============================================================================
-// MODULE: controlUI.js
+// MODULE: controlUI.js (UPDATED)
 // Purpose: Wire up UI buttons and trigger controlActions
+// Now integrates with clearAllChatAndScores() from controlStatus.js
 // ============================================================================
 
 import { showCountdownBanner, showFlashMessage } from './gameUI.js';
 import { pauseGame, resumeGame, releaseZones } from './gameStateManager.js';
-import { clearAllScores, safelyEndGameAndResetZones, resetFullGameState } from './controlActions.js';
+import { safelyEndGameAndResetZones, resetFullGameState } from './controlActions.js';
+import { clearAllChatAndScores } from './controlStatus.js'; // ✅ NEW IMPORT
 import { db } from './config.js';
 import {
   doc, getDoc, updateDoc, addDoc, collection, serverTimestamp
@@ -20,14 +22,13 @@ export function wireGameControls() {
   const releaseBtn = document.getElementById('release-zones-btn');
   const endBtn     = document.getElementById('end-btn');
   const resetBtn   = document.getElementById('reset-game-btn');
-  const clearBtn   = document.getElementById('clear-scores-btn'); // now represents "Clear Scoreboard"
+  const clearBtn   = document.getElementById('clear-scores-btn'); // 🧹 "Clear All"
 
   // 🏁 START GAME
   if (startBtn) {
     startBtn.addEventListener('click', async () => {
       try {
-        await clearAllScores(true);
-
+        await clearAllChatAndScores(); // 🧹 Clears everything before starting
         const snap = await getDoc(GAME_STATE_REF);
         const existing = snap.exists() ? snap.data() : {};
 
@@ -42,13 +43,13 @@ export function wireGameControls() {
         await updateDoc(GAME_STATE_REF, update);
         await addDoc(collection(db, "communications"), {
           teamName: "Game Master",
-          message: "🏁 A new game has begun! Scoreboard cleared and zones live.",
+          message: "🏁 A new game has begun! Scoreboard cleared, chat wiped, and zones live.",
           isBroadcast: true,
           timestamp: serverTimestamp(),
         });
 
         showCountdownBanner({ parent: document.body });
-        showFlashMessage('✅ Game Started! Scoreboard cleared.', '#2e7d32', 3000);
+        showFlashMessage('✅ Game Started! Everything cleared and ready.', '#2e7d32', 3000);
       } catch (e) {
         console.error('Error starting game:', e);
         showFlashMessage('Start failed.', '#c62828', 2500);
@@ -118,12 +119,17 @@ export function wireGameControls() {
     });
   }
 
-  // 🧹 CLEAR SCOREBOARD
+  // 🧹 CLEAR EVERYTHING (chat + scores + zones + team statuses)
   if (clearBtn) {
     clearBtn.addEventListener('click', async () => {
-      if (confirm('Clear the entire scoreboard (scores + locations)?')) {
-        await clearAllScores(false, true);
-        showFlashMessage('🧹 Scoreboard cleared.', '#1565c0', 3000);
+      if (confirm('⚠️ This will clear ALL chat, scores, zones, and team statuses. Continue?')) {
+        try {
+          await clearAllChatAndScores();
+          showFlashMessage('🧹 All chat, scores, and team statuses cleared.', '#1565c0', 4000);
+        } catch (err) {
+          console.error('Error clearing data:', err);
+          showFlashMessage('❌ Clear failed.', '#c62828', 2500);
+        }
       }
     });
   }
