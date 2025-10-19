@@ -1,7 +1,9 @@
 // ============================================================================
-// CONTROL PAGE SCRIPT (Orchestrator Only)
+// CONTROL PAGE SCRIPT (Orchestrator Only) ✅ FINAL VERSION
 // Modular structure with controlUI, controlActions, controlStatus
-// Now includes synced countdown timer (same as player.js)
+// Includes synced countdown timer (same as player.js)
+// Auto-clears all Firestore data (chat, scores, statuses, zones) on load
+// ─ but only if the game is NOT currently active
 // ============================================================================
 import {
   GameControlsComponent, initializeGameControlsLogic
@@ -16,9 +18,13 @@ import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
 import { listenToAllMessages } from './modules/chatManager.js';
 import { loadGoogleMapsApi } from './modules/googleMapsLoader.js';
 import { wireGameControls } from './modules/controlUI.js';
-import { watchLiveGameStatus } from './modules/controlStatus.js';
+import { watchLiveGameStatus, clearAllChatAndScores } from './modules/controlStatus.js'; // ✅ Added clearAllChatAndScores
 import { listenForGameStatus } from './modules/gameStateManager.js';
 import { showFlashMessage, startCountdownTimer, clearElapsedTimer } from './modules/gameUI.js';
+import { db } from './modules/config.js';
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const GAME_STATE_REF = doc(db, "game", "gameState");
 
 // ---------------------------------------------------------------------------
 // 🧠 MAIN INITIALIZATION
@@ -137,6 +143,28 @@ function safeSetHTML(id, html) {
 }
 
 // ---------------------------------------------------------------------------
-// 🚀 ENTRY POINT
+// 🚀 ENTRY POINT (Auto-clears only if no active game)
 // ---------------------------------------------------------------------------
-document.addEventListener('DOMContentLoaded', main);
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    console.log('🧭 Checking current game state before initialization...');
+    const snap = await getDoc(GAME_STATE_REF);
+    const data = snap.exists() ? snap.data() : {};
+    const status = data.status || 'waiting';
+
+    if (status === 'active') {
+      console.log('⚠️ Active game detected. Skipping cleanup.');
+      showFlashMessage('⚠️ Active game detected — skipping auto-clean to preserve data.', '#ff9800', 4000);
+    } else {
+      console.log('🧹 Performing initial cleanup before control panel loads...');
+      await clearAllChatAndScores();
+      showFlashMessage('🧼 Control panel cleaned. Fresh start ready!', '#2196f3', 3000);
+    }
+  } catch (err) {
+    console.error('⚠️ Initial cleanup check failed:', err);
+    showFlashMessage('⚠️ Cleanup check failed. Proceeding without wipe.', '#c62828', 3000);
+  }
+
+  // After check (and optional cleanup), start the app
+  main();
+});
