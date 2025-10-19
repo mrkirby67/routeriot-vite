@@ -71,7 +71,6 @@ export async function initializePlayerPage() {
 
     if (gameData?.status === 'active') {
       removeWaitingBanner();
-
       const endTimestamp = getEndTimestampMs(gameData);
       if (endTimestamp) {
         startPlayerTimer(endTimestamp);
@@ -92,35 +91,33 @@ export async function initializePlayerPage() {
 
 // ============================================================================
 // 🧠 Helper: get end timestamp (ms) from a gameState object
-// Supports Firestore Timestamp, {seconds,nanoseconds}, numbers, remainingMs
 // ============================================================================
 function getEndTimestampMs(data) {
   if (!data) return null;
 
-  // endTime present
+  // endTime (handle Timestamp, object, or number)
   if (data.endTime) {
-    if (typeof data.endTime.toMillis === 'function') {
-      return data.endTime.toMillis();
-    }
-    if (typeof data.endTime === 'number') {
-      return data.endTime;
-    }
-    if (typeof data.endTime.seconds === 'number') {
-      return data.endTime.seconds * 1000 + ((data.endTime.nanoseconds || 0) / 1_000_000);
+    const endTime = data.endTime;
+    if (typeof endTime.toMillis === 'function') {
+      return endTime.toMillis();
+    } else if (endTime.seconds) {
+      return endTime.seconds * 1000 + Math.floor((endTime.nanoseconds || 0) / 1e6);
+    } else if (typeof endTime === 'number') {
+      return endTime;
     }
   }
 
   // startTime + durationMinutes
   if (data.startTime && data.durationMinutes) {
-    if (typeof data.startTime.toMillis === 'function') {
-      return data.startTime.toMillis() + data.durationMinutes * 60 * 1000;
-    }
-    if (typeof data.startTime.seconds === 'number') {
-      return (data.startTime.seconds * 1000) + data.durationMinutes * 60 * 1000;
+    const st = data.startTime;
+    if (typeof st.toMillis === 'function') {
+      return st.toMillis() + data.durationMinutes * 60 * 1000;
+    } else if (st.seconds) {
+      return st.seconds * 1000 + data.durationMinutes * 60 * 1000;
     }
   }
 
-  // remainingMs (right after resume)
+  // remainingMs (resume)
   if (typeof data.remainingMs === 'number') {
     return Date.now() + data.remainingMs;
   }
@@ -129,7 +126,7 @@ function getEndTimestampMs(data) {
 }
 
 // ============================================================================
-// 🕹️ HANDLE GAME STATE UPDATES (Now includes duration + startTime sync)
+// 🕹️ HANDLE GAME STATE UPDATES
 // ============================================================================
 let lastRemainingMs = null;
 let playerTimerInterval = null;
@@ -153,8 +150,32 @@ function handleLiveGameState(state) {
       removeWaitingBanner();
       hidePausedOverlay();
 
-      const endTimestamp = getEndTimestampMs(state);
-      if (endTimestamp) {
+      console.log("🧭 RAW gameState:", state);
+
+      let endTimestamp = null;
+      const { endTime, startTime, durationMinutes, remainingMs } = state;
+
+      // 🔍 Robust handling for all timestamp shapes
+      if (endTime) {
+        if (typeof endTime.toMillis === 'function') {
+          endTimestamp = endTime.toMillis();
+        } else if (endTime.seconds) {
+          endTimestamp = endTime.seconds * 1000 + Math.floor((endTime.nanoseconds || 0) / 1e6);
+        } else if (typeof endTime === 'number') {
+          endTimestamp = endTime;
+        }
+      }
+
+      // ⏰ Fallbacks
+      if (!endTimestamp && startTime?.seconds && durationMinutes) {
+        endTimestamp = startTime.seconds * 1000 + durationMinutes * 60 * 1000;
+      } else if (!endTimestamp && typeof remainingMs === 'number') {
+        endTimestamp = Date.now() + remainingMs;
+      }
+
+      console.log("⏱️ Calculated endTimestamp:", endTimestamp);
+
+      if (endTimestamp && !isNaN(endTimestamp)) {
         startPlayerTimer(endTimestamp);
         showFlashMessage('🏁 Game in Progress!', '#2e7d32', 1200);
       } else {
@@ -172,8 +193,6 @@ function handleLiveGameState(state) {
       lastRemainingMs = stopAndCalculateRemaining();
       showPausedOverlay();
       showFlashMessage('⏸️ Game Paused by Control', '#ff9800', 1600);
-
-      // Show frozen time if we have it
       if (typeof lastRemainingMs === 'number') {
         setInlineTimer(formatHMS(lastRemainingMs));
       }
@@ -212,16 +231,13 @@ function showWaitingBanner() {
   `;
   document.body.appendChild(banner);
 }
-
 function removeWaitingBanner() {
   document.getElementById('waiting-banner')?.remove();
 }
-
-// Keep inline timer (#time-remaining) in sync with overlay updatePlayerTimer()
 function setInlineTimer(text) {
   const el = document.getElementById('time-remaining');
   if (el) el.textContent = text;
-  updatePlayerTimer(text); // floating bottom-right
+  updatePlayerTimer(text);
 }
 
 // ============================================================================
@@ -231,25 +247,20 @@ function startPlayerTimer(endTimestamp) {
   clearInterval(playerTimerInterval);
   window._currentEndTime = endTimestamp;
   updateTimerDisplay(endTimestamp);
-
   playerTimerInterval = setInterval(() => {
     updateTimerDisplay(endTimestamp);
   }, 1000);
 }
-
 function pausePlayerTimer() {
   clearInterval(playerTimerInterval);
   playerTimerInterval = null;
 }
-
 function stopAndCalculateRemaining() {
   if (!window._currentEndTime) return null;
-  const now = Date.now();
-  const remaining = window._currentEndTime - now;
+  const remaining = window._currentEndTime - Date.now();
   pausePlayerTimer();
   return remaining > 0 ? remaining : 0;
 }
-
 function formatHMS(ms) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(totalSeconds / 3600);
@@ -257,7 +268,6 @@ function formatHMS(ms) {
   const s = totalSeconds % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
-
 function updateTimerDisplay(endTimestamp) {
   const remaining = endTimestamp - Date.now();
   if (remaining <= 0) {
