@@ -1,12 +1,12 @@
 // ============================================================================
 // FILE: components/GameControls/GameControls.js
 // PURPOSE: Main control dashboard for starting, pausing, ending, and resetting games.
+// UPDATED: Adds full "🧹 Clear All" (chat + scores + zones + locations)
 // ============================================================================
 import { db } from '../../modules/config.js';
 import { allTeams } from '../../data.js';
 import { emailAllTeams } from '../../modules/emailTeams.js';
-import { resetScores } from '../../modules/scoreboardManager.js';
-
+import { clearAllChatAndScores } from '../../modules/controlStatus.js'; // 🔹 NEW IMPORT
 import {
   doc,
   setDoc,
@@ -15,6 +15,7 @@ import {
   collection,
   addDoc,
   getDoc,
+  deleteDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -43,7 +44,7 @@ export function GameControlsComponent() {
         <button id="pause-btn" class="${styles.controlButton} ${styles.pause}">⏸️ Pause Game</button>
         <button id="end-btn" class="${styles.controlButton} ${styles.end}">🏁 End Game</button>
         <button id="reset-game-btn" class="${styles.controlButton} ${styles.pause}">🔄 Reset Game Data</button>
-        <button id="clear-scores-btn" class="${styles.controlButton} ${styles.warning}">🧹 Clear Scoreboard</button>
+        <button id="clear-scores-btn" class="${styles.controlButton} ${styles.warning}">🧹 Clear All</button>
       </div>
 
       <div class="${styles.teamSetup}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -121,7 +122,6 @@ export function initializeGameControlsLogic() {
     const mins = Number(document.getElementById('game-duration').value) || 120;
     const endTime = new Date(Date.now() + mins * 60 * 1000);
 
-    // Collect all active racers → determine active teams
     const racersSnap = await getDocs(collection(db, 'racers'));
     const teamsInPlay = new Set();
     racersSnap.forEach(docSnap => {
@@ -129,11 +129,7 @@ export function initializeGameControlsLogic() {
       if (r.team && r.team !== '-') teamsInPlay.add(r.team);
     });
 
-    // Write active teams & start state
-    await setDoc(doc(db, 'game', 'activeTeams'), {
-      list: Array.from(teamsInPlay)
-    }, { merge: true });
-
+    await setDoc(doc(db, 'game', 'activeTeams'), { list: Array.from(teamsInPlay) }, { merge: true });
     await setDoc(doc(db, 'game', 'gameState'), {
       status: 'active',
       startTime: serverTimestamp(),
@@ -177,7 +173,7 @@ export function initializeGameControlsLogic() {
     alert('🏁 Game ended.');
   });
 
-  // 🔄 RESET GAME
+  // 🔄 RESET GAME STATE
   resetBtn.addEventListener('click', async () => {
     if (!confirm('Reset all game data?')) return;
     try {
@@ -196,20 +192,34 @@ export function initializeGameControlsLogic() {
     }
   });
 
-  // 🧹 CLEAR SCORES
+  // 🧹 CLEAR ALL (Chat + Scores + Locations + Zones)
   clearScoresBtn.addEventListener('click', async () => {
-    if (confirm('Clear all scores and zones?')) {
-      await resetScores();
+    if (!confirm('⚠️ This will clear ALL chat, scores, zones, and last-known locations.\nAre you sure?')) return;
+
+    try {
+      // 1️⃣ Clear everything via controlStatus.js
+      await clearAllChatAndScores();
+
+      // 2️⃣ Also clear all teamStatus docs (last known locations)
+      const teamSnap = await getDocs(collection(db, 'teamStatus'));
+      for (const teamDoc of teamSnap.docs) {
+        await deleteDoc(teamDoc.ref);
+      }
+
       await addDoc(collection(db, 'communications'), {
         teamName: 'Game Master',
-        message: '🧹 All scores and zones have been reset by control.',
+        message: '🧹 All chat, scores, zones, and locations cleared by Control.',
         timestamp: new Date()
       });
-      alert('✅ Scores and zones reset.');
+
+      alert('✅ Everything cleared successfully!');
+    } catch (err) {
+      console.error('❌ Failed to clear all data:', err);
+      alert('❌ Something went wrong while clearing all data.');
     }
   });
 
-  // 🎲 RANDOMIZE TEAMS (Standardized Names)
+  // 🎲 RANDOMIZE TEAMS
   randomizeBtn.addEventListener('click', async () => {
     const teamSize = Number(document.getElementById('team-size').value);
     if (!teamSize || teamSize < 1) return alert('Enter a valid team size.');
@@ -217,7 +227,6 @@ export function initializeGameControlsLogic() {
     const snap = await getDocs(collection(db, 'racers'));
     const racers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.name);
 
-    // Shuffle racers
     for (let i = racers.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [racers[i], racers[j]] = [racers[j], racers[i]];
@@ -226,12 +235,12 @@ export function initializeGameControlsLogic() {
     const batch = writeBatch(db);
     racers.forEach((r, i) => {
       const tIndex = Math.floor(i / teamSize);
-      const team = allTeams[tIndex % allTeams.length]; // standardized from data.js
+      const team = allTeams[tIndex % allTeams.length];
       batch.update(doc(db, 'racers', r.id), { team: team.name });
     });
 
     await batch.commit();
-    alert('🎲 Teams randomized using standardized team names!');
+    alert('🎲 Teams randomized!');
   });
 
   // 📧 EMAIL TEAMS
@@ -255,7 +264,7 @@ export function initializeGameControlsLogic() {
 
     if (confirm(`Email links to ${teamNames.length} teams?`)) {
       emailAllTeams(currentRules, activeTeams);
-      alert(`📧 Emails prepared for ${teamNames.length} standardized teams.`);
+      alert(`📧 Emails prepared for ${teamNames.length} teams.`);
     }
   });
 }
