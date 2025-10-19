@@ -1,22 +1,26 @@
 // ============================================================================
 // MODULE: controlStatus.js (UPDATED)
 // Purpose: Watch Firestore for live game updates and team status sync
-// Works with game/gameState and teamStatus/{teamName}
+// Includes auto Top 3 broadcast + global chat clear on reset
 // ============================================================================
 
 import { listenForGameStatus } from './gameStateManager.js';
 import { showFlashMessage } from './gameUI.js';
 import {
   collection,
+  getDocs,
+  deleteDoc,
+  doc,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './config.js';
+import { broadcastTopThree, resetScores } from './scoreboardManager.js';
 
 // ---------------------------------------------------------------------------
 // 🔹 Main Game Status Watcher
 // ---------------------------------------------------------------------------
 export function watchLiveGameStatus() {
-  listenForGameStatus((state) => {
+  listenForGameStatus(async (state) => {
     const { status = 'waiting', zonesReleased = false } = state || {};
     const statusEl = document.getElementById('live-game-status');
     const zonesEl  = document.getElementById('live-zones-status');
@@ -28,13 +32,17 @@ export function watchLiveGameStatus() {
       case 'active':
         showFlashMessage('🏁 Zones are LIVE!', '#2e7d32');
         break;
+
       case 'paused':
         showFlashMessage('⏸️ Game Paused!', '#ff9800');
         break;
+
       case 'finished':
       case 'ended':
         showFlashMessage('🏁 Game Over!', '#7b1fa2');
+        await broadcastTopThree(); // 🎯 Send Top 3 leaderboard
         break;
+
       default:
         showFlashMessage('Waiting to start...', '#616161');
         break;
@@ -76,6 +84,65 @@ function watchTeamStatuses() {
   });
 
   console.log('📡 Watching live teamStatus updates...');
+}
+
+// ---------------------------------------------------------------------------
+// 🧹 CLEAR ALL CHAT & SCORES (Global Reset)
+// ---------------------------------------------------------------------------
+export async function clearAllChatAndScores() {
+  try {
+    console.log('🧹 Clearing all chat collections and scoreboard data...');
+
+    // 1️⃣ Delete all documents in communications
+    const commSnap = await getDocs(collection(db, 'communications'));
+    for (const docSnap of commSnap.docs) {
+      await deleteDoc(doc(db, 'communications', docSnap.id));
+    }
+
+    // 2️⃣ Delete all CONTROL_ALL conversation messages
+    const controlSnap = await getDocs(collection(db, 'conversations', 'CONTROL_ALL', 'messages'));
+    for (const docSnap of controlSnap.docs) {
+      await deleteDoc(doc(db, 'conversations', 'CONTROL_ALL', 'messages', docSnap.id));
+    }
+
+    // 3️⃣ Delete all player-to-player conversation subcollections
+    const convoSnap = await getDocs(collection(db, 'conversations'));
+    for (const docSnap of convoSnap.docs) {
+      if (docSnap.id !== 'CONTROL_ALL') {
+        const msgSnap = await getDocs(collection(db, 'conversations', docSnap.id, 'messages'));
+        for (const msgDoc of msgSnap.docs) {
+          await deleteDoc(doc(db, 'conversations', docSnap.id, 'messages', msgDoc.id));
+        }
+      }
+    }
+
+    // 4️⃣ Reset scoreboard + zones
+    await resetScores();
+
+    // 5️⃣ Broadcast a system notice that all chat is cleared
+    await addSystemNotice('\n'.repeat(10) + '🧹 ALL CHAT AND SCORES CLEARED BY GAME MASTER 🧹');
+
+    console.log('✅ All chat and scores cleared.');
+  } catch (err) {
+    console.error('❌ Error clearing chat/scores:', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 💬 Helper: Add broadcast system notice
+// ---------------------------------------------------------------------------
+async function addSystemNotice(message) {
+  try {
+    const { addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    await addDoc(collection(db, 'communications'), {
+      teamName: 'Game Master',
+      message,
+      isBroadcast: true,
+      timestamp: serverTimestamp()
+    });
+  } catch (err) {
+    console.error('⚠️ Failed to broadcast system notice:', err);
+  }
 }
 
 // ---------------------------------------------------------------------------

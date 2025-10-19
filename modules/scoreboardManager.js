@@ -15,6 +15,7 @@ import {
   writeBatch,
   serverTimestamp,
   onSnapshot,
+  addDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ---------------------------------------------------------------------------
@@ -151,4 +152,47 @@ export function initializePlayerScoreboard() {
       scoreboardBody.appendChild(row);
     });
   });
+}
+
+/* ---------------------------------------------------------------------------
+ * 🏁 BROADCAST TOP 3 FINISHERS (called when game ends)
+ * ------------------------------------------------------------------------ */
+/**
+ * Broadcasts the top 3 finishers to all players.
+ * Adds 10 blank lines before the leaderboard for visibility.
+ */
+export async function broadcastTopThree() {
+  try {
+    const scoresSnap = await getDocs(collection(db, 'scores'));
+    const scores = [];
+    scoresSnap.forEach(docSnap => {
+      const data = docSnap.data();
+      scores.push({ team: docSnap.id, score: data.score || 0 });
+    });
+
+    // Sort descending by score
+    scores.sort((a, b) => b.score - a.score);
+    const topThree = scores.slice(0, 3);
+
+    // Prepare formatted text with 10 blank lines
+    const spacer = '\n'.repeat(10);
+    const message =
+      `${spacer}🏁🏁🏁  FINAL RESULTS  🏁🏁🏁\n\n` +
+      topThree.map((t, i) => {
+        const medals = ['🥇','🥈','🥉'][i] || '🏅';
+        return `${medals}  ${t.team} — ${t.score} pts`;
+      }).join('\n') +
+      `\n\n🎉 Congratulations to all teams! 🎉`;
+
+    await addDoc(collection(db, 'communications'), {
+      teamName: 'Game Master',
+      message,
+      isBroadcast: true,
+      timestamp: serverTimestamp()
+    });
+
+    console.log('✅ Top 3 broadcast sent successfully.');
+  } catch (err) {
+    console.error('❌ Error broadcasting top 3:', err);
+  }
 }
