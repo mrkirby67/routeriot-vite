@@ -1,4 +1,7 @@
-/* File: /public/components/ZoneManagement/ZoneManagement.module.css */
+/* ============================================================================
+   File: /public/components/ZoneManagement/ZoneManagement.module.css
+   Purpose: Scoped styling for Zone Management UI (Control Page)
+   ============================================================================ */
 
 .controlSection {
     background-color: #1e1e1e;
@@ -42,12 +45,18 @@
     outline: 1px solid #bb86fc;
 }
 
+/* ✨ Subtle hover effect for better user experience */
+.dataTable tr:hover td {
+    background-color: #292929;
+    transition: background-color 0.15s ease-in-out;
+}
+
 .mapPreviewRow {
     display: none; /* Hidden by default */
 }
 
 .mapPreviewRow.visible {
-    display: table-row; /* Becomes visible when it has a map */
+    display: table-row; /* Becomes visible when toggled */
 }
 
 .mapPreviewRow td {
