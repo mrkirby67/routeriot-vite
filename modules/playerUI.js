@@ -53,7 +53,7 @@ export function initializePlayerUI(teamInput) {
   const team = allTeams.find(t => t.name === resolvedTeamName);
   setText('team-name', team?.name || resolvedTeamName);
   setText('team-slogan', team?.slogan || 'Ready to race!');
-  initializeInlineTimer(); // ✅ ensures inline timer exists right away
+  initializeInlineTimer(); // ensure inline timer exists immediately
 
   // 👥 Team Roster (live)
   const memberList = $('team-member-list');
@@ -112,23 +112,33 @@ export function initializePlayerUI(teamInput) {
 }
 
 // ---------------------------------------------------------------------------
-// ⏱️ INLINE TIMER DISPLAY (always shows in "Time Remaining:" section)
+// ⏱️ INLINE TIMER DISPLAY (use existing element; never add new one)
 // ---------------------------------------------------------------------------
 export function initializeInlineTimer() {
+  // Only reset if it already exists; don't create new
   let inline = document.getElementById('time-remaining');
-  if (!inline) {
-    const gameInfo = document.querySelector('#game-info') || document.body;
-    const timerLine = document.createElement('div');
-    timerLine.innerHTML = `<strong>Time Remaining:</strong> <span id="time-remaining">--:--:--</span>`;
-    gameInfo.append(timerLine);   // ✅ append, not prepend
-    inline = document.getElementById('time-remaining');
+
+  if (inline) {
+    inline.textContent = '--:--:--';
+    return;
   }
-  inline.textContent = '--:--:--';
+
+  // Fallback: if missing, create one inside #game-info or body
+  const gameInfo = document.querySelector('#game-info');
+  const timerLine = document.createElement('div');
+  timerLine.innerHTML =
+    `<strong>Time Remaining:</strong> <span id="time-remaining">--:--:--</span>`;
+
+  if (gameInfo) gameInfo.append(timerLine);
+  else document.body.append(timerLine);
 }
 
+// ---------------------------------------------------------------------------
+// 🔄 UPDATE INLINE TIMER (used by player.js)
+// ---------------------------------------------------------------------------
 export function updatePlayerTimer(text) {
   let inline = document.getElementById('time-remaining');
-  if (!inline) initializeInlineTimer(); // create if missing
+  if (!inline) initializeInlineTimer();
   inline.textContent = text || '--:--:--';
 }
 
@@ -261,6 +271,7 @@ function startConfetti() {
   draw();
   window._confettiStop = () => (running = false);
 }
+
 function stopConfetti() {
   window._confettiStop?.();
   const overlay = $('gameover-overlay');
