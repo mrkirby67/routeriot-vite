@@ -225,45 +225,105 @@ export function showGameOverOverlay() {
 }
 
 // ---------------------------------------------------------------------------
-// 🎉 Confetti Animation
+// 🎉 Confetti Animation (sparkling + color-fade version)
 // ---------------------------------------------------------------------------
-function startConfetti() {
-  const canvas = document.getElementById('confetti-canvas');
-  if (!canvas) return;
+let confettiActive = false;
+let confettiPieces = [];
+let confettiAnimation;
+
+export function startConfetti() {
+  if (confettiActive) return;
+  confettiActive = true;
+
+  // --- Canvas setup
+  let canvas = document.getElementById('confetti-canvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'confetti-canvas';
+    Object.assign(canvas.style, {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none',
+      zIndex: '99998'
+    });
+    document.body.appendChild(canvas);
+  }
+
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  const pieces = Array.from({ length: 200 }, () => ({
+
+  const colors = [
+    'hsl(0, 100%, 60%)',   // red
+    'hsl(30, 100%, 60%)',  // orange
+    'hsl(60, 100%, 60%)',  // yellow
+    'hsl(120, 100%, 60%)', // green
+    'hsl(200, 100%, 60%)', // blue
+    'hsl(280, 100%, 70%)'  // purple
+  ];
+
+  confettiPieces = Array.from({ length: 250 }, () => ({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height - canvas.height,
-    size: 5 + Math.random() * 5,
-    color: `hsl(${Math.random() * 360}, 100%, 60%)`,
-    speed: 2 + Math.random() * 3,
+    size: 4 + Math.random() * 5,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    speed: 1 + Math.random() * 3,
+    opacity: 1,
+    drift: (Math.random() - 0.5) * 1.5,
+    hueShift: Math.random() * 360
   }));
-  let running = true;
+
   function draw() {
-    if (!running) return;
+    if (!confettiActive) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const p of pieces) {
+
+    confettiPieces.forEach((p) => {
+      // 🌈 Hue shift sparkle effect
+      p.hueShift = (p.hueShift + 2) % 360;
+      const hueColor = `hsl(${p.hueShift}, 100%, 65%)`;
+
+      // ✨ Fading shimmer
+      p.opacity -= 0.002;
+      if (p.opacity < 0.2) p.opacity = 1;
+
+      ctx.fillStyle = hueColor;
+      ctx.globalAlpha = p.opacity;
       ctx.beginPath();
-      ctx.fillStyle = p.color;
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();
+      ctx.globalAlpha = 1.0;
+
+      // Motion
       p.y += p.speed;
+      p.x += p.drift;
       if (p.y > canvas.height) p.y = -10;
-    }
-    requestAnimationFrame(draw);
+      if (p.x > canvas.width) p.x = 0;
+      if (p.x < 0) p.x = canvas.width;
+    });
+
+    confettiAnimation = requestAnimationFrame(draw);
   }
+
   draw();
-  window._confettiStop = () => (running = false);
+  console.log('🎆 Sparkling confetti started!');
 }
 
-function stopConfetti() {
-  if (window._confettiStop) window._confettiStop();
-  const overlay = $('gameover-overlay');
-  if (overlay) setTimeout(() => overlay.remove(), 2500);
-}
+export function stopConfetti() {
+  if (!confettiActive) return;
+  confettiActive = false;
 
+  cancelAnimationFrame(confettiAnimation);
+  const canvas = document.getElementById('confetti-canvas');
+  if (canvas) {
+    canvas.style.transition = 'opacity 0.8s ease';
+    canvas.style.opacity = '0';
+    setTimeout(() => canvas.remove(), 1000);
+  }
+  console.log('✨ Confetti stopped.');
+}
 // ---------------------------------------------------------------------------
 // Auto-init (only if loaded standalone)
 // ---------------------------------------------------------------------------

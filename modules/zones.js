@@ -8,16 +8,20 @@ import {
   onSnapshot,
   collection,
   getDoc,
-  getDocs
+  getDocs,
+  query,
+  orderBy,
+  limit
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { waitForElement } from './zonesUtils.js';
+import { waitForElement, flashPlayerLocation } from './zonesUtils.js';
 import { generateMiniMap } from './zonesMap.js';
 import { playRaceStartSequence } from './zonesUtils.js';
 import { displayZoneQuestions, setTeamContext } from './zonesChallenge.js';
 import { broadcastChallenge } from './zonesFirestore.js';
 import { calculateDistance } from './zonesUtils.js';
 import { updateControlledZones } from './scoreboardManager.js';
+import { startConfetti, stopConfetti } from './playerUI.js';
 import { allTeams } from '../data.js';
 
 let zonesLocked = true;
@@ -52,7 +56,7 @@ export async function initializeZones(teamName) {
 
     // 🏆 Detect Game End → Show Top 3 Winners overlay
     if (data.status === 'finished' || data.status === 'ended') {
-      showWinnersOverlay();
+      showFinalStandings(); // ✅ call directly here
     }
 
     zonesLocked = shouldLock;
@@ -114,15 +118,12 @@ export async function initializeZones(teamName) {
             targetLng
           );
 
-          // Within zone radius
           if (dist <= targetRadiusKm + pos.coords.accuracy / 1000) {
             console.log(`✅ ${currentTeamName} reached ${zoneData.name} zone.`);
 
-            // Broadcast challenge → shows questions to team
             await broadcastChallenge(currentTeamName, zoneData.name);
             displayZoneQuestions(zoneId, zoneData.name);
 
-            // Update scoreboard ownership immediately
             await updateControlledZones(currentTeamName, zoneData.name);
             console.log(`🏆 Zone updated → ${currentTeamName} now controls ${zoneData.name}`);
           } else {
@@ -138,63 +139,76 @@ export async function initializeZones(teamName) {
   }
 }
 
-/* ---------------------------------------------------------------------------
- * 🏁 WINNERS OVERLAY FOR PLAYER PAGES
- * ------------------------------------------------------------------------ */
-async function showWinnersOverlay() {
+// ============================================================================
+// 🏁 GAME OVER HANDLER (Player View)
+// Displays final standings with confetti + 20s timer
+// ============================================================================
+async function showFinalStandings() {
   try {
-    const scoresSnap = await getDocs(collection(db, 'scores'));
-    const teams = [];
-    scoresSnap.forEach(docSnap => {
-      const d = docSnap.data();
-      teams.push({ name: docSnap.id, score: d.score || 0 });
+    const topTeamsSnap = await getDocs(
+      query(collection(db, "scores"), orderBy("score", "desc"), limit(3))
+    );
+
+    const winners = [];
+    topTeamsSnap.forEach((docSnap) => {
+      winners.push({ name: docSnap.id, ...docSnap.data() });
     });
 
-    if (teams.length === 0) return;
-
-    teams.sort((a, b) => b.score - a.score);
-    const podium = teams.slice(0, 3);
-
-    // 🎉 Create overlay
-    const overlay = document.createElement('div');
-    overlay.id = 'winners-overlay';
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.95);
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 999999;
-      text-align: center;
-      font-family: 'Orbitron', sans-serif;
-      animation: fadeIn 0.6s ease;
+    const title = "🏁 GAME OVER 🏁";
+    let message = `
+      <h2 style='color:gold; font-size:2em; margin-bottom:0;'>🏆 Final Standings 🏆</h2>
+      <ol style='list-style:none; padding:0; margin:10px 0;'>
     `;
+    winners.forEach((team, i) => {
+      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉";
+      message += `<li style="font-size:1.4em; margin:6px 0;">${medal} <strong>${team.name}</strong> — ${team.score} pts</li>`;
+    });
+    message += "</ol>";
 
+    const overlay = document.createElement("div");
+    overlay.id = "game-over-overlay";
+    overlay.style.cssText = `
+      position:fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.92);
+      color:white;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      z-index:99999;
+      font-family:system-ui, sans-serif;
+      opacity:0;
+      transition:opacity 0.6s ease;
+    `;
     overlay.innerHTML = `
-      <h1 style="font-size:3em;color:#ffeb3b;margin-bottom:10px;">🏁 GAME OVER 🏁</h1>
-      <h2 style="margin:0 0 20px 0;">FINAL STANDINGS</h2>
-      <div style="font-size:1.5em;line-height:1.6;">
-        ${podium[0] ? `🥇 <b>${podium[0].name}</b> – ${podium[0].score} pts<br>` : ''}
-        ${podium[1] ? `🥈 <b>${podium[1].name}</b> – ${podium[1].score} pts<br>` : ''}
-        ${podium[2] ? `🥉 <b>${podium[2].name}</b> – ${podium[2].score} pts<br>` : ''}
-      </div>
+      <div>${title}</div>
+      <div style="margin-top:10px;">${message}</div>
+      <div id="countdown" style="margin-top:20px;font-size:1.3em;">Closing in 20s...</div>
     `;
     document.body.appendChild(overlay);
+    requestAnimationFrame(() => (overlay.style.opacity = "1")); // smooth fade in
 
-    // 🎊 Trigger existing confetti from playerUI
-    try {
-      const mod = await import('./playerUI.js');
-      if (mod.startConfetti) mod.startConfetti();
-    } catch (err) {
-      console.warn('Confetti module not available:', err);
-    }
+    // --- Confetti celebration
+    startConfetti();
+    let remaining = 20;
+    const countdownEl = overlay.querySelector("#countdown");
 
-    console.log('🏆 Winners overlay displayed for player page.');
+    const interval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(interval);
+        stopConfetti();
+        overlay.style.opacity = "0";
+        setTimeout(() => overlay.remove(), 600);
+        flashPlayerLocation("🎉 Thanks for playing Route Riot!");
+      } else {
+        countdownEl.textContent = `Closing in ${remaining}s...`;
+      }
+    }, 1000);
   } catch (err) {
-    console.error('Failed to render winners overlay:', err);
+    console.error("Error showing final standings:", err);
   }
 }
