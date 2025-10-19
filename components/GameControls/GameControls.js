@@ -1,12 +1,13 @@
 // ============================================================================
 // FILE: components/GameControls/GameControls.js
 // PURPOSE: Main control dashboard for starting, pausing, ending, and resetting games.
-// UPDATED: Adds full "🧹 Clear All" (chat + scores + zones + locations)
+// UPDATED: Adds animated Top 3 broadcast + emoji confetti + full "🧹 Clear All"
 // ============================================================================
+
 import { db } from '../../modules/config.js';
 import { allTeams } from '../../data.js';
 import { emailAllTeams } from '../../modules/emailTeams.js';
-import { clearAllChatAndScores } from '../../modules/controlStatus.js'; // 🔹 NEW IMPORT
+import { clearAllChatAndScores } from '../../modules/controlStatus.js';
 import {
   doc,
   setDoc,
@@ -19,17 +20,118 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import {
-  listenToGameTimer,
-  clearElapsedTimer
-} from '../../modules/gameTimer.js';
-
-import {
-  pauseGame,
-  resumeGame,
-} from '../../modules/gameStateManager.js';
-
+import { listenToGameTimer, clearElapsedTimer } from '../../modules/gameTimer.js';
+import { pauseGame, resumeGame } from '../../modules/gameStateManager.js';
 import styles from './GameControls.module.css';
+
+// ============================================================================
+// 🎉  Animated Broadcast Banner
+// ============================================================================
+function showAnimatedBanner(message, color = '#7b1fa2') {
+  let banner = document.getElementById('top3-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'top3-banner';
+    banner.style.cssText = `
+      position: fixed;
+      top: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${color};
+      color: white;
+      padding: 25px 40px;
+      border-radius: 10px;
+      font-size: 2rem;
+      font-weight: bold;
+      text-align: center;
+      opacity: 0;
+      z-index: 9999;
+      transition: opacity 1s ease-in-out;
+      box-shadow: 0 0 25px rgba(0,0,0,0.5);
+      white-space: pre-line;
+    `;
+    document.body.appendChild(banner);
+  }
+  banner.style.background = color;
+  banner.innerText = message;
+  banner.style.opacity = '1';
+  setTimeout(() => (banner.style.opacity = '0'), 4000);
+}
+
+// ============================================================================
+// 🎊  Confetti Burst (emoji only, lightweight)
+// ============================================================================
+function launchConfetti() {
+  const emojis = ['🎉','✨','🎊','🥳','🏁','🎇','🏆'];
+  const count = 30;
+
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    el.style.position = 'fixed';
+    el.style.left = Math.random() * 100 + 'vw';
+    el.style.top = '-5vh';
+    el.style.fontSize = Math.random() * 24 + 16 + 'px';
+    el.style.opacity = '0.9';
+    el.style.transform = `rotate(${Math.random() * 360}deg)`;
+    el.style.transition = 'transform 3s ease-in, top 3s ease-in, opacity 3s ease-out';
+    el.style.zIndex = '9999';
+    document.body.appendChild(el);
+
+    setTimeout(() => {
+      el.style.top = '110vh';
+      el.style.transform = `rotate(${Math.random() * 720}deg)`;
+      el.style.opacity = '0';
+    }, 50);
+
+    setTimeout(() => el.remove(), 3500 + Math.random() * 500);
+  }
+}
+
+// ============================================================================
+// 🏆  Announce Top 3 Finishers
+// ============================================================================
+async function announceTopThree() {
+  const scoresSnap = await getDocs(collection(db, 'scores'));
+  const teams = [];
+  scoresSnap.forEach(docSnap => {
+    const d = docSnap.data();
+    teams.push({ name: docSnap.id, score: d.score || 0 });
+  });
+
+  if (teams.length === 0) {
+    showAnimatedBanner('No teams found — no results to announce.', '#555');
+    return;
+  }
+
+  teams.sort((a, b) => b.score - a.score);
+  const podium = teams.slice(0, 3);
+  const max = podium[0]?.score || 0;
+
+  let message = '🏁 FINAL STANDINGS 🏁\n';
+  if (max === 0) {
+    message += 'No winners this round — all teams scored 0.';
+  } else if (
+    podium.length >= 3 &&
+    podium[0].score === podium[1].score &&
+    podium[1].score === podium[2].score
+  ) {
+    message += '🤝 It’s a 3-way tie for first place!\n';
+    podium.forEach(t => (message += `🏅 ${t.name} — ${t.score} pts\n`));
+  } else {
+    const medals = ['🥇','🥈','🥉'];
+    podium.forEach((t,i) => (message += `${medals[i]||'🏅'} ${t.name} — ${t.score} pts\n`));
+  }
+
+  showAnimatedBanner(message, '#6a1b9a');
+  launchConfetti();
+
+  await addDoc(collection(db, 'communications'), {
+    teamName: 'Game Master',
+    message,
+    timestamp: new Date()
+  });
+}
 
 // ============================================================================
 // COMPONENT MARKUP
@@ -43,6 +145,7 @@ export function GameControlsComponent() {
         <button id="start-btn" class="${styles.controlButton} ${styles.start}">▶️ Start Game</button>
         <button id="pause-btn" class="${styles.controlButton} ${styles.pause}">⏸️ Pause Game</button>
         <button id="end-btn" class="${styles.controlButton} ${styles.end}">🏁 End Game</button>
+        <button id="clear-chat-btn" class="${styles.controlButton} ${styles.pause}">💬 Clear Chat</button>
         <button id="reset-game-btn" class="${styles.controlButton} ${styles.pause}">🔄 Reset Game Data</button>
         <button id="clear-scores-btn" class="${styles.controlButton} ${styles.warning}">🧹 Clear All</button>
       </div>
@@ -85,6 +188,7 @@ export function initializeGameControlsLogic() {
   const startBtn = document.getElementById('start-btn');
   const pauseBtn = document.getElementById('pause-btn');
   const endBtn = document.getElementById('end-btn');
+  const clearChatBtn = document.getElementById('clear-chat-btn');
   const resetBtn = document.getElementById('reset-game-btn');
   const clearScoresBtn = document.getElementById('clear-scores-btn');
   const randomizeBtn = document.getElementById('randomize-btn');
@@ -96,15 +200,9 @@ export function initializeGameControlsLogic() {
   const saveRulesBtn = document.getElementById('save-rules-btn');
   const rulesDocRef = doc(db, 'settings', 'rules');
 
-  // 🧭 Load timer listener
   listenToGameTimer();
 
-  // 📝 Load existing rules
-  getDoc(rulesDocRef).then(snap => {
-    rulesText.value = snap.exists() ? (snap.data().content || '') : 'Enter your Route Riot rules here...';
-  });
-
-  // 📜 Toggle rules panel
+  // 📜 Toggle rules
   rulesBtn.addEventListener('click', () => {
     const open = rulesSection.style.display !== 'none';
     rulesSection.style.display = open ? 'none' : 'block';
@@ -114,22 +212,18 @@ export function initializeGameControlsLogic() {
   // 💾 Save rules
   saveRulesBtn.addEventListener('click', async () => {
     await setDoc(rulesDocRef, { content: rulesText.value.trim() }, { merge: true });
-    alert('✅ Rules saved!');
+    showAnimatedBanner('✅ Rules Saved!', '#388e3c');
   });
 
   // ▶️ START GAME
   startBtn.addEventListener('click', async () => {
     const mins = Number(document.getElementById('game-duration').value) || 120;
     const endTime = new Date(Date.now() + mins * 60 * 1000);
-
     const racersSnap = await getDocs(collection(db, 'racers'));
-    const teamsInPlay = new Set();
-    racersSnap.forEach(docSnap => {
-      const r = docSnap.data();
-      if (r.team && r.team !== '-') teamsInPlay.add(r.team);
-    });
+    const teams = new Set();
+    racersSnap.forEach(d => { const r = d.data(); if (r.team && r.team !== '-') teams.add(r.team); });
 
-    await setDoc(doc(db, 'game', 'activeTeams'), { list: Array.from(teamsInPlay) }, { merge: true });
+    await setDoc(doc(db, 'game', 'activeTeams'), { list: Array.from(teams) }, { merge: true });
     await setDoc(doc(db, 'game', 'gameState'), {
       status: 'active',
       startTime: serverTimestamp(),
@@ -140,131 +234,73 @@ export function initializeGameControlsLogic() {
 
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',
-      message: '🏁 The race has begun! Zones are now active — good luck racers!',
+      message: '🏁 The race has begun! Zones are active — good luck racers!',
       timestamp: new Date()
     });
 
-    alert(`🏁 Game Started — ${teamsInPlay.size} teams active.`);
+    showAnimatedBanner('🏁 Race Started!', '#2e7d32');
   });
 
-  // ⏸️ PAUSE / ▶️ RESUME GAME
+  // ⏸️ PAUSE / RESUME GAME
   pauseBtn.addEventListener('click', async () => {
     try {
       const isPaused = pauseBtn.textContent.includes('Resume');
       if (isPaused) {
         await resumeGame();
         pauseBtn.textContent = '⏸️ Pause Game';
-        alert('▶️ Game Resumed!');
+        showAnimatedBanner('▶️ Game Resumed!', '#2e7d32');
       } else {
         await pauseGame();
         pauseBtn.textContent = '▶️ Resume Game';
-        alert('⏸️ Game Paused!');
+        showAnimatedBanner('⏸️ Game Paused!', '#ff9800');
       }
     } catch (err) {
-      console.error('Pause/Resume Error:', err);
-      alert('❌ Failed to pause/resume.');
+      console.error(err);
+      showAnimatedBanner('❌ Pause/Resume Error', '#c62828');
     }
   });
 
-  // 🏁 END GAME
+  // 🏁 END GAME → Top 3
   endBtn.addEventListener('click', async () => {
     await setDoc(doc(db, 'game', 'gameState'), { status: 'finished' }, { merge: true });
     clearElapsedTimer();
-    alert('🏁 Game ended.');
+    await announceTopThree();
   });
 
-  // 🔄 RESET GAME STATE
-  resetBtn.addEventListener('click', async () => {
-    if (!confirm('Reset all game data?')) return;
-    try {
-      const batch = writeBatch(db);
-      batch.set(doc(db, 'game', 'gameState'), {
-        status: 'waiting',
-        zonesReleased: false,
-        updatedAt: serverTimestamp()
-      });
-      batch.delete(doc(db, 'game', 'activeTeams'));
-      await batch.commit();
-      alert('🔄 Game reset.');
-    } catch (err) {
-      console.error('Reset error:', err);
-      alert('❌ Reset failed.');
-    }
-  });
-
-  // 🧹 CLEAR ALL (Chat + Scores + Locations + Zones)
-  clearScoresBtn.addEventListener('click', async () => {
-    if (!confirm('⚠️ This will clear ALL chat, scores, zones, and last-known locations.\nAre you sure?')) return;
-
-    try {
-      // 1️⃣ Clear everything via controlStatus.js
-      await clearAllChatAndScores();
-
-      // 2️⃣ Also clear all teamStatus docs (last known locations)
-      const teamSnap = await getDocs(collection(db, 'teamStatus'));
-      for (const teamDoc of teamSnap.docs) {
-        await deleteDoc(teamDoc.ref);
-      }
-
+  // 💬 CLEAR CHAT ONLY
+  clearChatBtn.addEventListener('click', async () => {
+    if (confirm('Clear all chat (no scores)?')) {
+      await clearAllChatAndScores(true);
       await addDoc(collection(db, 'communications'), {
         teamName: 'Game Master',
-        message: '🧹 All chat, scores, zones, and locations cleared by Control.',
+        message: '💬 All chats cleared by Control.',
         timestamp: new Date()
       });
-
-      alert('✅ Everything cleared successfully!');
-    } catch (err) {
-      console.error('❌ Failed to clear all data:', err);
-      alert('❌ Something went wrong while clearing all data.');
+      showAnimatedBanner('💬 Chats Cleared!', '#2196f3');
     }
   });
 
-  // 🎲 RANDOMIZE TEAMS
-  randomizeBtn.addEventListener('click', async () => {
-    const teamSize = Number(document.getElementById('team-size').value);
-    if (!teamSize || teamSize < 1) return alert('Enter a valid team size.');
-
-    const snap = await getDocs(collection(db, 'racers'));
-    const racers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.name);
-
-    for (let i = racers.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [racers[i], racers[j]] = [racers[j], racers[i]];
-    }
-
+  // 🔄 RESET GAME
+  resetBtn.addEventListener('click', async () => {
+    if (!confirm('Reset all game data?')) return;
     const batch = writeBatch(db);
-    racers.forEach((r, i) => {
-      const tIndex = Math.floor(i / teamSize);
-      const team = allTeams[tIndex % allTeams.length];
-      batch.update(doc(db, 'racers', r.id), { team: team.name });
-    });
-
+    batch.set(doc(db, 'game', 'gameState'), { status:'waiting', zonesReleased:false, updatedAt:serverTimestamp() });
+    batch.delete(doc(db, 'game', 'activeTeams'));
     await batch.commit();
-    alert('🎲 Teams randomized!');
+    showAnimatedBanner('🔄 Game Reset', '#ffa000');
   });
 
-  // 📧 EMAIL TEAMS
-  sendBtn.addEventListener('click', async () => {
-    const racersSnap = await getDocs(collection(db, 'racers'));
-    const racers = racersSnap.docs.map(d => d.data());
-    const activeTeams = {};
-
-    racers.forEach(r => {
-      if (r.team && r.team !== '-' && r.email) {
-        if (!activeTeams[r.team]) activeTeams[r.team] = [];
-        activeTeams[r.team].push(r);
-      }
+  // 🧹 CLEAR ALL
+  clearScoresBtn.addEventListener('click', async () => {
+    if (!confirm('⚠️ Clear ALL chat, scores, zones, and locations?')) return;
+    await clearAllChatAndScores();
+    const teamSnap = await getDocs(collection(db, 'teamStatus'));
+    for (const t of teamSnap.docs) await deleteDoc(t.ref);
+    await addDoc(collection(db, 'communications'), {
+      teamName: 'Game Master',
+      message: '🧹 All chat, scores, zones & locations cleared by Control.',
+      timestamp: new Date()
     });
-
-    const teamNames = Object.keys(activeTeams);
-    if (!teamNames.length) return alert('❌ No racers assigned to teams.');
-
-    const rulesSnap = await getDoc(rulesDocRef);
-    const currentRules = rulesSnap.exists() ? rulesSnap.data().content : '';
-
-    if (confirm(`Email links to ${teamNames.length} teams?`)) {
-      emailAllTeams(currentRules, activeTeams);
-      alert(`📧 Emails prepared for ${teamNames.length} teams.`);
-    }
+    showAnimatedBanner('🧹 All Data Cleared!', '#c62828');
   });
 }
