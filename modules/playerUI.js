@@ -53,6 +53,7 @@ export function initializePlayerUI(teamInput) {
   const team = allTeams.find(t => t.name === resolvedTeamName);
   setText('team-name', team?.name || resolvedTeamName);
   setText('team-slogan', team?.slogan || 'Ready to race!');
+  initializeInlineTimer(); // ✅ ensures inline timer exists right away
 
   // 👥 Team Roster (live)
   const memberList = $('team-member-list');
@@ -111,11 +112,25 @@ export function initializePlayerUI(teamInput) {
 }
 
 // ---------------------------------------------------------------------------
-// ⏱️ INLINE TIMER DISPLAY (no floating timer anymore)
+// ⏱️ INLINE TIMER DISPLAY (always shows in "Time Remaining:" section)
 // ---------------------------------------------------------------------------
+export function initializeInlineTimer() {
+  // Ensure there's a visible inline timer in the HTML
+  let inline = document.getElementById('time-remaining');
+  if (!inline) {
+    const gameInfo = document.querySelector('#game-info') || document.body;
+    const timerLine = document.createElement('div');
+    timerLine.innerHTML = `<strong>Time Remaining:</strong> <span id="time-remaining">--:--:--</span>`;
+    gameInfo.prepend(timerLine);
+    inline = document.getElementById('time-remaining');
+  }
+  inline.textContent = '--:--:--';
+}
+
 export function updatePlayerTimer(text) {
-  const inlineTimer = $('time-remaining');
-  if (inlineTimer) inlineTimer.textContent = text;
+  let inline = document.getElementById('time-remaining');
+  if (!inline) initializeInlineTimer(); // create if missing
+  inline.textContent = text || '--:--:--';
 }
 
 // ---------------------------------------------------------------------------
