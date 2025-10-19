@@ -53,7 +53,6 @@ export function initializePlayerUI(teamInput) {
   const team = allTeams.find(t => t.name === resolvedTeamName);
   setText('team-name', team?.name || resolvedTeamName);
   setText('team-slogan', team?.slogan || 'Ready to race!');
-  initializeInlineTimer(); // ensure inline timer exists immediately
 
   // 👥 Team Roster (live)
   const memberList = $('team-member-list');
@@ -88,7 +87,7 @@ export function initializePlayerUI(teamInput) {
       }
       const data = docSnap.data() || {};
 
-      const zone = (data.lastKnownLocation && data.lastKnownLocation.trim() !== '')
+      const zone = (data.lastKnownLocation && String(data.lastKnownLocation).trim() !== '')
         ? data.lastKnownLocation
         : 'No location yet';
 
@@ -112,51 +111,55 @@ export function initializePlayerUI(teamInput) {
 }
 
 // ---------------------------------------------------------------------------
-// ⏱️ INLINE TIMER DISPLAY (inserted properly in Game Info section)
+/**
+ * ⏱️ Timer rendering helpers
+ * - Prefer the inline element (#time-remaining) inside the "Game Info" section.
+ * - ONLY create a floating fallback if the inline element truly does not exist.
+ */
 // ---------------------------------------------------------------------------
-export function initializeInlineTimer(retries = 10) {
-  // if already exists, just reset it
-  const inline = document.getElementById('time-remaining');
-  if (inline) {
-    inline.textContent = '--:--:--';
-    return;
-  }
 
-  // find the Game Info container
-  const gameInfo = document.querySelector('#game-info');
-  if (!gameInfo) {
-    // if not yet rendered, retry in 200ms (max 10 times)
-    if (retries > 0) {
-      setTimeout(() => initializeInlineTimer(retries - 1), 200);
-    } else {
-      console.warn('⚠️ Could not find #game-info after multiple retries — adding timer at top of page');
-      const timerLine = document.createElement('div');
-      timerLine.innerHTML = `<strong>Time Remaining:</strong> <span id="time-remaining">--:--:--</span>`;
-      document.body.prepend(timerLine);
-    }
-    return;
-  }
+function ensureTimerDisplay() {
+  // If the inline timer exists, do NOT create the floating one.
+  if ($('time-remaining')) return;
 
-  // create the timer line inside the Game Info section
-  const timerLine = document.createElement('div');
-  timerLine.innerHTML = `<strong>Time Remaining:</strong> <span id="time-remaining">--:--:--</span>`;
-  // ✅ ensure it appears just after the Status line
-  const statusEl = gameInfo.querySelector('#status-line') || gameInfo.firstChild;
-  if (statusEl && statusEl.nextSibling) {
-    gameInfo.insertBefore(timerLine, statusEl.nextSibling);
-  } else {
-    gameInfo.append(timerLine);
-  }
+  // If a floating timer already exists, nothing to do.
+  if ($('player-timer')) return;
+
+  // Create a floating fallback ONLY if inline is missing.
+  const timerEl = document.createElement('div');
+  timerEl.id = 'player-timer';
+  timerEl.textContent = '--:--:--';
+  timerEl.style.cssText = `
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(0,0,0,0.75);
+    color: #00ff90;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 1.4em;
+    letter-spacing: 1px;
+    z-index: 2500;
+    box-shadow: 0 0 6px rgba(0,255,144,0.5);
+  `;
+  document.body.appendChild(timerEl);
 }
 
-// ---------------------------------------------------------------------------
-// 🔄 UPDATE INLINE TIMER (used by player.js)
-// ---------------------------------------------------------------------------
 export function updatePlayerTimer(text) {
-  let inline = document.getElementById('time-remaining');
-  if (!inline) initializeInlineTimer(); // if not ready yet, try again
-  inline = document.getElementById('time-remaining');
-  if (inline) inline.textContent = text || '--:--:--';
+  const value = text ?? '--:--:--';
+  const inline = $('time-remaining');
+
+  // Always update the inline spot when it exists.
+  if (inline) {
+    inline.textContent = value;
+    return;
+  }
+
+  // Otherwise, ensure and update the fallback.
+  ensureTimerDisplay();
+  const fallback = $('player-timer');
+  if (fallback) fallback.textContent = value;
 }
 
 // ---------------------------------------------------------------------------
@@ -288,7 +291,6 @@ function startConfetti() {
   draw();
   window._confettiStop = () => (running = false);
 }
-
 function stopConfetti() {
   window._confettiStop?.();
   const overlay = $('gameover-overlay');
