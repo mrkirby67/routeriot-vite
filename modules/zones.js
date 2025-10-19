@@ -7,7 +7,8 @@ import {
   doc,
   onSnapshot,
   collection,
-  getDoc
+  getDoc,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { waitForElement } from './zonesUtils.js';
@@ -20,7 +21,6 @@ import { updateControlledZones } from './scoreboardManager.js';
 import { allTeams } from '../data.js';
 
 let zonesLocked = true;
-let gameStarted = false;
 let currentTeamName = null;
 
 /* ---------------------------------------------------------------------------
@@ -36,7 +36,7 @@ export async function initializeZones(teamName) {
   const zonesCollection = collection(db, 'zones');
 
   /* -------------------------------------------------------------------------
-   * 🔔 LISTEN TO GAME STATE (lock/unlock zones)
+   * 🔔 LISTEN TO GAME STATE (lock/unlock zones + detect ending)
    * ---------------------------------------------------------------------- */
   onSnapshot(doc(db, 'game', 'gameState'), (gameSnap) => {
     const data = gameSnap.data();
@@ -48,6 +48,11 @@ export async function initializeZones(teamName) {
     if (wasLocked && !shouldLock) {
       playRaceStartSequence();
       console.log('🏁 Race started — zones unlocked for challenges!');
+    }
+
+    // 🏆 Detect Game End → Show Top 3 Winners overlay
+    if (data.status === 'finished' || data.status === 'ended') {
+      showWinnersOverlay();
     }
 
     zonesLocked = shouldLock;
@@ -70,6 +75,7 @@ export async function initializeZones(teamName) {
 
       const lockedAttr = zonesLocked ? 'disabled' : '';
       const row = document.createElement('tr');
+      row.dataset.zoneId = zoneId;
       row.innerHTML = `
         <td>${zone.name || zoneId}</td>
         <td>${generateMiniMap(zone)}</td>
@@ -129,5 +135,66 @@ export async function initializeZones(teamName) {
     });
 
     tableBody._listenerAttached = true;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 🏁 WINNERS OVERLAY FOR PLAYER PAGES
+ * ------------------------------------------------------------------------ */
+async function showWinnersOverlay() {
+  try {
+    const scoresSnap = await getDocs(collection(db, 'scores'));
+    const teams = [];
+    scoresSnap.forEach(docSnap => {
+      const d = docSnap.data();
+      teams.push({ name: docSnap.id, score: d.score || 0 });
+    });
+
+    if (teams.length === 0) return;
+
+    teams.sort((a, b) => b.score - a.score);
+    const podium = teams.slice(0, 3);
+
+    // 🎉 Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'winners-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.95);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 999999;
+      text-align: center;
+      font-family: 'Orbitron', sans-serif;
+      animation: fadeIn 0.6s ease;
+    `;
+
+    overlay.innerHTML = `
+      <h1 style="font-size:3em;color:#ffeb3b;margin-bottom:10px;">🏁 GAME OVER 🏁</h1>
+      <h2 style="margin:0 0 20px 0;">FINAL STANDINGS</h2>
+      <div style="font-size:1.5em;line-height:1.6;">
+        ${podium[0] ? `🥇 <b>${podium[0].name}</b> – ${podium[0].score} pts<br>` : ''}
+        ${podium[1] ? `🥈 <b>${podium[1].name}</b> – ${podium[1].score} pts<br>` : ''}
+        ${podium[2] ? `🥉 <b>${podium[2].name}</b> – ${podium[2].score} pts<br>` : ''}
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // 🎊 Trigger existing confetti from playerUI
+    try {
+      const mod = await import('./playerUI.js');
+      if (mod.startConfetti) mod.startConfetti();
+    } catch (err) {
+      console.warn('Confetti module not available:', err);
+    }
+
+    console.log('🏆 Winners overlay displayed for player page.');
+  } catch (err) {
+    console.error('Failed to render winners overlay:', err);
   }
 }
