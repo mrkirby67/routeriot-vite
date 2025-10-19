@@ -1,6 +1,7 @@
 // ============================================================================
 // File: modules/playerUI.js
 // Purpose: Displays team info, roster, opponent last known locations, pause + game-over UI
+// Standardized Firestore path: teamStatus/{teamName}
 // ============================================================================
 
 import { db } from './config.js';
@@ -22,20 +23,18 @@ function setText(id, value) {
   if (el) el.textContent = value;
 }
 function fmtTime(ts) {
-  // Supports Firestore Timestamp, {seconds}, number(ms), or Date
+  if (!ts) return '';
   try {
-    if (!ts) return '';
     if (typeof ts.toDate === 'function') return ts.toDate().toLocaleTimeString();
     if (typeof ts.toMillis === 'function') return new Date(ts.toMillis()).toLocaleTimeString();
-    if (typeof ts.seconds === 'number') return new Date(ts.seconds * 1000).toLocaleTimeString();
+    if (ts.seconds) return new Date(ts.seconds * 1000).toLocaleTimeString();
     if (typeof ts === 'number') return new Date(ts).toLocaleTimeString();
-    if (ts instanceof Date) return ts.toLocaleTimeString();
-  } catch (e) {}
+  } catch {}
   return '';
 }
 
 // ---------------------------------------------------------------------------
-// Exported: update timer text in the Game Info section
+// Exported: Timer update for Game Info
 // ---------------------------------------------------------------------------
 export function updatePlayerTimer(text) {
   const el = document.getElementById('timer-display');
@@ -63,97 +62,89 @@ export function initializePlayerUI(teamInput) {
   console.log('🎨 Initializing Player UI for:', resolvedTeamName);
 
   // 🏷️ Team Info
-  const team = allTeams.find(function (t) { return t.name === resolvedTeamName; });
+  const team = allTeams.find(t => t.name === resolvedTeamName);
   setText('team-name', team ? team.name : resolvedTeamName);
-  setText('team-slogan', team && team.slogan ? team.slogan : 'Ready to race!');
+  setText('team-slogan', team?.slogan || 'Ready to race!');
 
   // 👥 Team Roster (live)
   const memberList = $('team-member-list');
   if (memberList) {
     const qy = query(collection(db, "racers"), where("team", "==", resolvedTeamName));
-    onSnapshot(qy, function (snapshot) {
+    onSnapshot(qy, (snapshot) => {
       memberList.innerHTML = '';
       if (snapshot.empty) {
         memberList.innerHTML = '<li>No racers assigned yet.</li>';
         return;
       }
-      snapshot.forEach(function (docSnap) {
+      snapshot.forEach(docSnap => {
         const m = docSnap.data();
         const li = document.createElement('li');
-        var info = '<strong>' + (m.name || 'Unnamed Racer') + '</strong>';
-        if (m.cell) info += ' - 📱 ' + m.cell;
-        if (m.email) info += ' - ✉️ ' + m.email;
+        let info = `<strong>${m.name || 'Unnamed Racer'}</strong>`;
+        if (m.cell) info += ` - 📱 ${m.cell}`;
+        if (m.email) info += ` - ✉️ ${m.email}`;
         li.innerHTML = info;
         memberList.appendChild(li);
       });
     });
   }
 
-  // 🆚 Opponent Status & Messaging (live Firestore updates)
+  // 🆚 Opponent Status & Messaging (uses standardized Firestore path)
   const opponentsTbody = $('opponents-tbody');
   if (opponentsTbody) {
     opponentsTbody.innerHTML = '';
 
-    const opponents = allTeams.filter(function (t) { return t.name !== resolvedTeamName; });
-
-    opponents.forEach(function (opp) {
+    const opponents = allTeams.filter(t => t.name !== resolvedTeamName);
+    opponents.forEach((opp) => {
       const safeName = opp.name.replace(/\s+/g, '-');
       const tr = document.createElement('tr');
-      tr.id = 'opp-row-' + safeName;
-
-      tr.innerHTML =
-        '<td>' + opp.name + '</td>' +
-        '<td id="opp-loc-' + safeName + '">--</td>' +
-        '<td>' +
-          '<input id="msg-input-' + safeName + '" placeholder="Message ' + opp.name + '..." style="width:90%; margin-right:4px;">' +
-          '<button id="msg-send-' + safeName + '" class="send-btn" data-team="' + opp.name + '">Send</button>' +
-        '</td>';
-
+      tr.id = `opp-row-${safeName}`;
+      tr.innerHTML = `
+        <td>${opp.name}</td>
+        <td id="opp-loc-${safeName}">--</td>
+        <td>
+          <input id="msg-input-${safeName}" placeholder="Message ${opp.name}..." style="width:90%; margin-right:4px;">
+          <button id="msg-send-${safeName}" class="send-btn" data-team="${opp.name}">Send</button>
+        </td>`;
       opponentsTbody.appendChild(tr);
 
-      // Listen to Firestore for each opponent's live lastKnownLocation
+      // 🔥 Live listener for standardized teamStatus collection
       const teamRef = doc(db, "teamStatus", opp.name);
-      onSnapshot(teamRef, function (docSnap) {
-        const locCell = $('opp-loc-' + safeName);
+      onSnapshot(teamRef, (docSnap) => {
+        const locCell = $(`opp-loc-${safeName}`);
         if (!locCell) return;
-
         if (!docSnap.exists()) {
           locCell.textContent = '--';
           return;
         }
 
-        const data = docSnap.data() || {};
-        const zoneRaw = data.lastKnownLocation;
-        const zone = (zoneRaw && String(zoneRaw).trim() !== '') ? zoneRaw : '--';
+        const data = docSnap.data();
+        const zone = data.lastKnownLocation || '--';
         const timeStr = fmtTime(data.timestamp);
+        locCell.textContent =
+          zone !== '--'
+            ? `📍 ${zone}${timeStr ? ` (updated ${timeStr})` : ''}`
+            : '--';
 
-        if (zone !== '--') {
-          locCell.textContent = '📍 ' + zone + (timeStr ? ' (updated ' + timeStr + ')' : '');
-        } else {
-          locCell.textContent = '--';
-        }
-
-        // brief flash to highlight updates
+        // brief flash
         locCell.style.background = '#f0c420';
         locCell.style.color = '#000';
-        setTimeout(function () {
+        setTimeout(() => {
           locCell.style.background = '';
           locCell.style.color = '';
         }, 800);
       });
     });
 
-    // Send Message buttons (preserve chatManager integration)
-    opponentsTbody.addEventListener('click', function (e) {
+    // 💬 Handle message send (chatManager-safe)
+    opponentsTbody.addEventListener('click', (e) => {
       const target = e.target;
-      if (target && target.classList.contains('send-btn')) {
-        const teamTo = target.getAttribute('data-team');
+      if (target.classList.contains('send-btn')) {
+        const teamTo = target.dataset.team;
         const safe = teamTo.replace(/\s+/g, '-');
-        const input = $('msg-input-' + safe);
-        const msg = input && input.value ? input.value.trim() : '';
+        const input = $(`msg-input-${safe}`);
+        const msg = input?.value?.trim();
         if (!msg) return;
-
-        console.log('📨 [Message to ' + teamTo + '] ' + msg);
+        console.log(`📨 [Message to ${teamTo}] ${msg}`);
         input.value = '';
 
         try {
@@ -179,44 +170,34 @@ export function showPausedOverlay() {
   if ($('paused-overlay')) return;
   const overlay = document.createElement('div');
   overlay.id = 'paused-overlay';
-  overlay.innerHTML = '<div class="paused-message">⏸️ Paused<br><small>Wait for host to resume...</small></div>';
-  overlay.style.position = 'fixed';
-  overlay.style.top = '0';
-  overlay.style.left = '0';
-  overlay.style.width = '100%';
-  overlay.style.height = '100%';
-  overlay.style.background = 'rgba(0,0,0,0.85)';
-  overlay.style.color = '#fff';
-  overlay.style.display = 'flex';
-  overlay.style.flexDirection = 'column';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
-  overlay.style.fontSize = '2.5rem';
-  overlay.style.fontWeight = 'bold';
-  overlay.style.zIndex = '5000';
-  overlay.style.opacity = '0';
-  overlay.style.transition = 'opacity 0.6s ease-in-out';
-
+  overlay.innerHTML = `
+    <div class="paused-message">
+      ⏸️ Paused<br><small>Wait for host to resume...</small>
+    </div>`;
+  Object.assign(overlay.style, {
+    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+    background: 'rgba(0,0,0,0.85)', color: '#fff',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    fontSize: '2.5rem', fontWeight: 'bold', zIndex: '5000',
+    opacity: '0', transition: 'opacity 0.6s ease-in-out'
+  });
   const styleTag = document.createElement('style');
-  styleTag.textContent =
-    '@keyframes pulse {0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.1);opacity:0.85;}}';
+  styleTag.textContent = `@keyframes pulse {0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.1);opacity:0.85;}}`;
   document.head.appendChild(styleTag);
-
   const msg = overlay.querySelector('.paused-message');
   if (msg) {
     msg.style.textAlign = 'center';
     msg.style.animation = 'pulse 1.5s infinite';
   }
-
   document.body.appendChild(overlay);
-  requestAnimationFrame(function () { overlay.style.opacity = '1'; });
+  requestAnimationFrame(() => (overlay.style.opacity = '1'));
 }
 
 export function hidePausedOverlay() {
   const overlay = $('paused-overlay');
   if (overlay) {
     overlay.style.opacity = '0';
-    setTimeout(function () { overlay.remove(); }, 600);
+    setTimeout(() => overlay.remove(), 600);
   }
 }
 
@@ -227,29 +208,18 @@ export function showGameOverOverlay() {
   if ($('gameover-overlay')) return;
   const overlay = document.createElement('div');
   overlay.id = 'gameover-overlay';
-  overlay.innerHTML =
-    '<div class="finish-message">🏁 GAME OVER<br><small>Return to base!</small></div>' +
-    '<canvas id="confetti-canvas"></canvas>';
-  overlay.style.position = 'fixed';
-  overlay.style.top = '0';
-  overlay.style.left = '0';
-  overlay.style.width = '100%';
-  overlay.style.height = '100%';
-  overlay.style.background = 'rgba(0,0,0,0.9)';
-  overlay.style.color = '#fff';
-  overlay.style.display = 'flex';
-  overlay.style.flexDirection = 'column';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
-  overlay.style.fontSize = '3rem';
-  overlay.style.fontWeight = 'bold';
-  overlay.style.zIndex = '6000';
-  overlay.style.opacity = '0';
-  overlay.style.transition = 'opacity 0.8s ease-in-out';
-
+  overlay.innerHTML = `
+    <div class="finish-message">🏁 GAME OVER<br><small>Return to base!</small></div>
+    <canvas id="confetti-canvas"></canvas>`;
+  Object.assign(overlay.style, {
+    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+    background: 'rgba(0,0,0,0.9)', color: '#fff',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    fontSize: '3rem', fontWeight: 'bold', zIndex: '6000',
+    opacity: '0', transition: 'opacity 0.8s ease-in-out'
+  });
   document.body.appendChild(overlay);
-  requestAnimationFrame(function () { overlay.style.opacity = '1'; });
-
+  requestAnimationFrame(() => (overlay.style.opacity = '1'));
   startConfetti();
   setTimeout(stopConfetti, 7000);
 }
@@ -263,23 +233,18 @@ function startConfetti() {
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  const pieces = [];
-  for (var i = 0; i < 200; i++) {
-    pieces.push({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height - canvas.height,
-      size: 5 + Math.random() * 5,
-      color: 'hsl(' + (Math.random() * 360) + ', 100%, 60%)',
-      speed: 2 + Math.random() * 3
-    });
-  }
-
-  var running = true;
+  const pieces = Array.from({ length: 200 }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height - canvas.height,
+    size: 5 + Math.random() * 5,
+    color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+    speed: 2 + Math.random() * 3,
+  }));
+  let running = true;
   function draw() {
     if (!running) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (var j = 0; j < pieces.length; j++) {
-      var p = pieces[j];
+    for (const p of pieces) {
       ctx.beginPath();
       ctx.fillStyle = p.color;
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -290,18 +255,19 @@ function startConfetti() {
     requestAnimationFrame(draw);
   }
   draw();
-  window._confettiStop = function () { running = false; };
+  window._confettiStop = () => (running = false);
 }
+
 function stopConfetti() {
   if (window._confettiStop) window._confettiStop();
   const overlay = $('gameover-overlay');
-  if (overlay) setTimeout(function () { overlay.remove(); }, 2500);
+  if (overlay) setTimeout(() => overlay.remove(), 2500);
 }
 
 // ---------------------------------------------------------------------------
 // Auto-init (only if loaded standalone)
 // ---------------------------------------------------------------------------
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', () => {
   const teamName = getTeamNameFromUrl();
   if (teamName) initializePlayerUI(teamName);
 });

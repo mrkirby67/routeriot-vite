@@ -1,7 +1,8 @@
 // ============================================================================
-// FILE: components/Scoreboard/Scoreboard.js (SYNC + RESET SAFE)
+// FILE: components/Scoreboard/Scoreboard.js (SYNC + RESET SAFE + DEBOUNCED)
 // Purpose: Live scoreboard view (Control + Player) with cache safety + refresh
 // ============================================================================
+
 import { db } from '../../modules/config.js';
 import { addPointsToTeam } from '../../modules/scoreboardManager.js';
 import {
@@ -55,6 +56,7 @@ export function initializeScoreboardListener({ editable = true } = {}) {
   let scoresData = {};
   let statusData = {};
   let activeTeams = [];
+  let renderPending = null;
 
   // --------------------------------------------------------------
   // 🔁 Render the scoreboard table
@@ -79,8 +81,9 @@ export function initializeScoreboardListener({ editable = true } = {}) {
       const score = scoreInfo.score ?? 0;
       const zones = scoreInfo.zonesControlled ?? '—';
       const loc = statusInfo.lastKnownLocation || '—';
-      const time = statusInfo.timestamp
-        ? new Date(statusInfo.timestamp.seconds * 1000).toLocaleTimeString()
+      const ts = statusInfo.timestamp;
+      const time = ts
+        ? formatTimestamp(ts)
         : '—';
 
       const row = document.createElement('tr');
@@ -116,6 +119,23 @@ export function initializeScoreboardListener({ editable = true } = {}) {
   }
 
   // --------------------------------------------------------------
+  // 🕓 Format timestamp safely (supports Firestore + numeric)
+  // --------------------------------------------------------------
+  function formatTimestamp(ts) {
+    try {
+      if (!ts) return '';
+      if (typeof ts.toDate === 'function') return ts.toDate().toLocaleTimeString();
+      if (typeof ts.toMillis === 'function') return new Date(ts.toMillis()).toLocaleTimeString();
+      if (typeof ts.seconds === 'number') return new Date(ts.seconds * 1000).toLocaleTimeString();
+      if (typeof ts === 'number') return new Date(ts).toLocaleTimeString();
+      if (typeof ts === 'string') return new Date(ts).toLocaleTimeString();
+    } catch (err) {
+      console.warn('⚠️ Bad timestamp:', err);
+    }
+    return '';
+  }
+
+  // --------------------------------------------------------------
   // 🧩 Attach editing controls
   // --------------------------------------------------------------
   function attachHandlers() {
@@ -137,21 +157,31 @@ export function initializeScoreboardListener({ editable = true } = {}) {
   }
 
   // --------------------------------------------------------------
+  // 🧠 Debounced render trigger (prevents double calls)
+  // --------------------------------------------------------------
+  function triggerRender() {
+    if (renderPending) return;
+    renderPending = setTimeout(() => {
+      renderPending = null;
+      renderTable();
+    }, 150);
+  }
+
+  // --------------------------------------------------------------
   // 🔥 Firestore live listeners (scores + teamStatus)
   // --------------------------------------------------------------
   onSnapshot(scoresCollection, (snapshot) => {
-    // replace, not merge, to purge removed docs
     const fresh = {};
     snapshot.forEach(docSnap => (fresh[docSnap.id] = docSnap.data()));
     scoresData = fresh;
-    renderTable();
+    triggerRender();
   });
 
   onSnapshot(teamStatusCollection, (snapshot) => {
     const fresh = {};
     snapshot.forEach(docSnap => (fresh[docSnap.id] = docSnap.data()));
     statusData = fresh;
-    renderTable();
+    triggerRender();
   });
 
   // --------------------------------------------------------------

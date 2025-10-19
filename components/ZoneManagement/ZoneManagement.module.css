@@ -1,74 +1,213 @@
 /* ============================================================================
-   File: /public/components/ZoneManagement/ZoneManagement.module.css
-   Purpose: Scoped styling for Zone Management UI (Control Page)
+   FILE: /public/components/ZoneManagement/ZoneManagement.module.css
+   PURPOSE: Scoped styling for Zone Management UI (Control Page)
    ============================================================================ */
 
+/* -----------------------------
+   Main Container
+--------------------------------*/
 .controlSection {
-    background-color: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 30px;
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  color: #ddd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
+.controlSection h2 {
+  color: #bb86fc;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.4em;
+}
+
+/* -----------------------------
+   Cooldown Setup
+--------------------------------*/
 .cooldownSetup {
-    margin-bottom: 20px;
-    text-align: center;
+  margin-bottom: 15px;
+  text-align: center;
 }
 
+.cooldownSetup label {
+  font-weight: bold;
+  color: #ccc;
+}
+
+.cooldownSetup select {
+  background: #2c2c2c;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.cooldownSetup select:focus {
+  outline: none;
+  border-color: #bb86fc;
+}
+
+/* -----------------------------
+   Data Table
+--------------------------------*/
 .dataTable {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  font-size: 0.95em;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .dataTable th,
 .dataTable td {
-    border: 1px solid #333;
-    padding: 12px;
-    text-align: left;
-    vertical-align: middle;
+  border: 1px solid #333;
+  padding: 10px;
+  text-align: left;
+  vertical-align: middle;
 }
 
 .dataTable th {
-    background-color: #333;
-    color: #bb86fc;
+  background-color: #333;
+  color: #bb86fc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: bold;
 }
 
+.dataTable td {
+  color: #e0e0e0;
+  background-color: #1f1f1f;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.dataTable tr:hover td {
+  background-color: #292929;
+}
+
+/* Editable fields */
 .dataTable td[contenteditable="true"] {
-    background-color: #2c2c2c;
-    cursor: text;
+  background-color: #2c2c2c;
+  cursor: text;
 }
 
 .dataTable td[contenteditable="true"]:focus {
-    background-color: #444;
-    outline: 1px solid #bb86fc;
+  background-color: #3b3b3b;
+  outline: 1px solid #bb86fc;
 }
 
-/* ✨ Subtle hover effect for better user experience */
-.dataTable tr:hover td {
-    background-color: #292929;
-    transition: background-color 0.15s ease-in-out;
-}
-
+/* -----------------------------
+   Map Preview (details row)
+--------------------------------*/
 .mapPreviewRow {
-    display: none; /* Hidden by default */
+  display: none; /* Hidden by default */
 }
 
 .mapPreviewRow.visible {
-    display: table-row; /* Becomes visible when toggled */
+  display: table-row;
 }
 
 .mapPreviewRow td {
-    padding: 10px;
-    text-align: center;
-    background-color: #2c2c2c;
+  padding: 10px;
+  text-align: center;
+  background-color: #2c2c2c;
 }
 
 .miniMap {
-    width: 600px;
-    height: 200px;
-    border-radius: 6px;
-    border: 4px solid #555;
-    object-fit: cover;
+  width: 600px;
+  height: 200px;
+  border-radius: 6px;
+  border: 3px solid #555;
+  object-fit: cover;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+/* -----------------------------
+   Buttons (shared styling)
+--------------------------------*/
+button {
+  font-weight: bold;
+  border-radius: 6px;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* Primary Actions */
+#add-zone-btn {
+  background: #00897b;
+  color: white;
+}
+
+#refresh-zones-btn {
+  background: #3949ab;
+  color: white;
+}
+
+/* Zone management buttons in rows */
+.manage-zone-btn {
+  background: #546e7a;
+  color: white;
+}
+
+.reset-zone-btn {
+  background: #b71c1c;
+  color: white;
+}
+
+.force-capture-btn {
+  background: #2e7d32;
+  color: white;
+}
+
+/* -----------------------------
+   Status Banner
+--------------------------------*/
+#zone-status-banner {
+  background: #333;
+  color: #bbb;
+  border-radius: 6px;
+  padding: 10px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 10px;
+  display: none;
+  transition: background 0.3s ease;
+}
+
+/* Dynamic feedback colors */
+#zone-status-banner.active {
+  background: #2e7d32;
+  color: #fff;
+}
+
+#zone-status-banner.paused {
+  background: #ff9800;
+  color: #222;
+}
+
+#zone-status-banner.error {
+  background: #b71c1c;
+  color: #fff;
+}
+
+/* -----------------------------
+   Smooth transitions for consistency
+--------------------------------*/
+.dataTable td,
+button,
+#zone-status-banner {
+  transition: all 0.2s ease;
 }

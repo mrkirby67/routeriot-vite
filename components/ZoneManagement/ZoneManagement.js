@@ -1,43 +1,108 @@
 // ============================================================================
-// File: components/ZoneManagement/ZoneManagement.js
-// Purpose: Orchestrator – ties together UI, rendering, and handlers
+// FILE: components/ZoneManagement/ZoneManagement.js
+// PURPOSE: Orchestrator – ties together UI, rendering, and handlers
+// Syncs zone edits & captures with teamStatus/{teamName} (lastKnownLocation + timestamp)
 // ============================================================================
-
 import { ZoneManagementComponent } from './zoneUI.js';
 import { renderZones } from './zoneRender.js';
 import { attachZoneHandlers } from './zoneHandlers.js';
-import { collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  collection,
+  doc,
+  updateDoc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../../modules/config.js';
+import { allTeams } from '../../data.js';
 
 export { ZoneManagementComponent };
 
 /**
- * Initialize Zone Management logic for the control dashboard.
- * @param {boolean} googleMapsApiLoaded - whether Google Maps API is ready
+ * Initialize Zone Management logic for the Control dashboard.
+ * @param {boolean} googleMapsApiLoaded - Whether Google Maps API is ready
  */
 export async function initializeZoneManagementLogic(googleMapsApiLoaded) {
   const tableBody = document.getElementById('zones-table-body');
   const banner = document.getElementById('zone-status-banner');
   if (!tableBody || !banner) return;
 
-  // Reference for Firestore collection (used in handlers)
-  const zonesCollection = collection(db, "zones");
+  const zonesCollection = collection(db, 'zones');
 
-  // Initial render
-  await renderZones({ tableBody, googleMapsApiLoaded });
+  // ---------------------------------------------------------------------------
+  // 🗺️ Update Team Location Helper
+  // ---------------------------------------------------------------------------
+  async function updateTeamLocation(teamName, zoneName) {
+    if (!teamName || !zoneName) return;
 
-  // Attach handlers (edit, reset, add, force capture)
+    const standardizedTeam =
+      allTeams.find(t => t.name === teamName)?.name || teamName;
+
+    try {
+      const ref = doc(db, 'teamStatus', standardizedTeam);
+      await setDoc(
+        ref,
+        {
+          lastKnownLocation: zoneName,
+          timestamp: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      console.log(`📍 Updated ${standardizedTeam} → ${zoneName}`);
+    } catch (err) {
+      console.error(`❌ Failed to update location for ${standardizedTeam}:`, err);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // ♻️ Reset Team Location Helper
+  // ---------------------------------------------------------------------------
+  async function clearTeamLocation(teamName) {
+    if (!teamName) return;
+    const standardizedTeam =
+      allTeams.find(t => t.name === teamName)?.name || teamName;
+
+    try {
+      const ref = doc(db, 'teamStatus', standardizedTeam);
+      await updateDoc(ref, {
+        lastKnownLocation: '',
+        timestamp: serverTimestamp(),
+      });
+      console.log(`♻️ Cleared location for ${standardizedTeam}`);
+    } catch (err) {
+      console.warn(`⚠️ Could not reset location for ${standardizedTeam}:`, err);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 🌐 Hook Handlers
+  // ---------------------------------------------------------------------------
   attachZoneHandlers({
     tableBody,
     renderZones,
-    googleMapsApiLoaded
+    googleMapsApiLoaded,
+    onZoneCaptured: async (teamName, zoneName) =>
+      await updateTeamLocation(teamName, zoneName),
+
+    onZoneManuallySet: async (teamName, zoneName) =>
+      await updateTeamLocation(teamName, zoneName),
+
+    onZoneReset: async (teamName) => await clearTeamLocation(teamName),
   });
 
-  // Manual refresh button
+  // ---------------------------------------------------------------------------
+  // 🔁 Manual Refresh
+  // ---------------------------------------------------------------------------
   const refreshBtn = document.getElementById('refresh-zones-btn');
   if (refreshBtn) {
-    refreshBtn.onclick = () => renderZones({ tableBody, googleMapsApiLoaded });
+    refreshBtn.onclick = () =>
+      renderZones({ tableBody, googleMapsApiLoaded });
   }
 
-  console.log("✅ Zone Management initialized.");
+  // ---------------------------------------------------------------------------
+  // 🧭 Initial Render
+  // ---------------------------------------------------------------------------
+  await renderZones({ tableBody, googleMapsApiLoaded });
+
+  console.log('✅ Zone Management initialized with teamStatus sync.');
 }

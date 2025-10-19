@@ -1,6 +1,6 @@
 // ============================================================================
-// File: components/GameControls/GameControls.js
-// Purpose: Main control dashboard for starting, pausing, ending, and resetting games.
+// FILE: components/GameControls/GameControls.js
+// PURPOSE: Main control dashboard for starting, pausing, ending, and resetting games.
 // ============================================================================
 import { db } from '../../modules/config.js';
 import { allTeams } from '../../data.js';
@@ -116,19 +116,24 @@ export function initializeGameControlsLogic() {
     alert('✅ Rules saved!');
   });
 
-  // ▶️ Start Game
+  // ▶️ START GAME
   startBtn.addEventListener('click', async () => {
     const mins = Number(document.getElementById('game-duration').value) || 120;
     const endTime = new Date(Date.now() + mins * 60 * 1000);
 
+    // Collect all active racers → determine active teams
     const racersSnap = await getDocs(collection(db, 'racers'));
     const teamsInPlay = new Set();
-    racersSnap.forEach(d => {
-      const r = d.data();
+    racersSnap.forEach(docSnap => {
+      const r = docSnap.data();
       if (r.team && r.team !== '-') teamsInPlay.add(r.team);
     });
 
-    await setDoc(doc(db, 'game', 'activeTeams'), { list: Array.from(teamsInPlay) }, { merge: true });
+    // Write active teams & start state
+    await setDoc(doc(db, 'game', 'activeTeams'), {
+      list: Array.from(teamsInPlay)
+    }, { merge: true });
+
     await setDoc(doc(db, 'game', 'gameState'), {
       status: 'active',
       startTime: serverTimestamp(),
@@ -143,10 +148,10 @@ export function initializeGameControlsLogic() {
       timestamp: new Date()
     });
 
-    alert(`🏁 Game Started — Zones Released!\n${teamsInPlay.size} teams active.`);
+    alert(`🏁 Game Started — ${teamsInPlay.size} teams active.`);
   });
 
-  // ⏸️ Pause / ▶️ Resume
+  // ⏸️ PAUSE / ▶️ RESUME GAME
   pauseBtn.addEventListener('click', async () => {
     try {
       const isPaused = pauseBtn.textContent.includes('Resume');
@@ -165,14 +170,14 @@ export function initializeGameControlsLogic() {
     }
   });
 
-  // 🏁 End Game
+  // 🏁 END GAME
   endBtn.addEventListener('click', async () => {
     await setDoc(doc(db, 'game', 'gameState'), { status: 'finished' }, { merge: true });
     clearElapsedTimer();
     alert('🏁 Game ended.');
   });
 
-  // 🔄 Reset Game
+  // 🔄 RESET GAME
   resetBtn.addEventListener('click', async () => {
     if (!confirm('Reset all game data?')) return;
     try {
@@ -191,7 +196,7 @@ export function initializeGameControlsLogic() {
     }
   });
 
-  // 🧹 Clear Scores
+  // 🧹 CLEAR SCORES
   clearScoresBtn.addEventListener('click', async () => {
     if (confirm('Clear all scores and zones?')) {
       await resetScores();
@@ -204,7 +209,7 @@ export function initializeGameControlsLogic() {
     }
   });
 
-  // 🎲 Randomize Teams
+  // 🎲 RANDOMIZE TEAMS (Standardized Names)
   randomizeBtn.addEventListener('click', async () => {
     const teamSize = Number(document.getElementById('team-size').value);
     if (!teamSize || teamSize < 1) return alert('Enter a valid team size.');
@@ -212,6 +217,7 @@ export function initializeGameControlsLogic() {
     const snap = await getDocs(collection(db, 'racers'));
     const racers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.name);
 
+    // Shuffle racers
     for (let i = racers.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [racers[i], racers[j]] = [racers[j], racers[i]];
@@ -220,15 +226,15 @@ export function initializeGameControlsLogic() {
     const batch = writeBatch(db);
     racers.forEach((r, i) => {
       const tIndex = Math.floor(i / teamSize);
-      const team = allTeams[tIndex % allTeams.length];
+      const team = allTeams[tIndex % allTeams.length]; // standardized from data.js
       batch.update(doc(db, 'racers', r.id), { team: team.name });
     });
 
     await batch.commit();
-    alert('🎲 Teams randomized!');
+    alert('🎲 Teams randomized using standardized team names!');
   });
 
-  // 📧 Email Teams
+  // 📧 EMAIL TEAMS
   sendBtn.addEventListener('click', async () => {
     const racersSnap = await getDocs(collection(db, 'racers'));
     const racers = racersSnap.docs.map(d => d.data());
@@ -249,7 +255,7 @@ export function initializeGameControlsLogic() {
 
     if (confirm(`Email links to ${teamNames.length} teams?`)) {
       emailAllTeams(currentRules, activeTeams);
-      alert(`📧 Emails prepared for ${teamNames.length} teams.`);
+      alert(`📧 Emails prepared for ${teamNames.length} standardized teams.`);
     }
   });
 }

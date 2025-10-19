@@ -1,122 +1,152 @@
 // ============================================================================
-// File: /modules/scoreboardManager.js
-// Purpose: Manage all score and zone updates for the scoreboard
+// FILE: /modules/scoreboardManager.js
+// PURPOSE: Manage all score and zone updates for the scoreboard
 // ============================================================================
-
 import { db } from './config.js';
+import { allTeams } from '../data.js';
 import {
   doc,
   setDoc,
+  updateDoc,
   increment,
-  onSnapshot,
+  runTransaction,
   collection,
-  getDocs
+  getDocs,
+  writeBatch,
+  serverTimestamp,
+  onSnapshot,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ---------------------------------------------------------------------------
- * ADD POINTS TO TEAM
+ * 🧮 ADD POINTS TO TEAM (Transaction Safe + Standardized)
  * ------------------------------------------------------------------------ */
 /**
- * Adds a given number of points to a team's score.
- * This is used by the zones.js module when a challenge is successfully completed.
- * @param {string} teamName - The name of the team to award points to.
- * @param {number} points - The number of points to add (can be negative).
+ * Adds or subtracts a given number of points to a team's score.
+ * @param {string} teamName - The team's standardized name.
+ * @param {number} points - Positive or negative integer.
  */
 export async function addPointsToTeam(teamName, points) {
   if (!teamName || typeof points !== 'number') return;
-  const scoreRef = doc(db, "scores", teamName);
+
+  // Ensure standardized team name from allTeams
+  const team = allTeams.find(t => t.name === teamName);
+  const cleanName = team ? team.name : teamName;
+  const scoreRef = doc(db, 'scores', cleanName);
+
   try {
-    await setDoc(scoreRef, { score: increment(points) }, { merge: true });
-  } catch (error) {
-    console.error(`❌ Failed to add points for ${teamName}:`, error);
+    await runTransaction(db, async (tx) => {
+      const docSnap = await tx.get(scoreRef);
+      const prevScore = docSnap.exists() ? (docSnap.data().score || 0) : 0;
+      const newScore = prevScore + points;
+      tx.set(scoreRef, { score: newScore, updatedAt: serverTimestamp() }, { merge: true });
+    });
+    console.log(`✅ Score updated: ${cleanName} → ${points >= 0 ? '+' : ''}${points}`);
+  } catch (err) {
+    console.error(`❌ Failed to update score for ${cleanName}:`, err);
   }
 }
 
 /* ---------------------------------------------------------------------------
- * UPDATE CONTROLLED ZONES
+ * 🧭 UPDATE CONTROLLED ZONES (Standardized)
  * ------------------------------------------------------------------------ */
 /**
  * Updates the 'zonesControlled' field for a team in the scoreboard.
- * @param {string} teamName - The name of the team.
- * @param {string} zoneName - The name of the zone they now control.
+ * @param {string} teamName - The team's standardized name.
+ * @param {string} zoneName - The name of the captured zone.
  */
 export async function updateControlledZones(teamName, zoneName) {
   if (!teamName || !zoneName) return;
-  const scoreRef = doc(db, "scores", teamName);
+
+  const team = allTeams.find(t => t.name === teamName);
+  const cleanName = team ? team.name : teamName;
+  const scoreRef = doc(db, 'scores', cleanName);
+
   try {
-    // This overwrites the previous zone. Future enhancement could track multiple.
-    await setDoc(scoreRef, { zonesControlled: zoneName }, { merge: true });
-  } catch (error) {
-    console.error(`❌ Failed to update controlled zones for ${teamName}:`, error);
+    await setDoc(scoreRef, {
+      zonesControlled: zoneName,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    console.log(`📍 ${cleanName} now controls zone: ${zoneName}`);
+  } catch (err) {
+    console.error(`❌ Failed to update controlled zones for ${cleanName}:`, err);
   }
 }
 
 /* ---------------------------------------------------------------------------
- * RESET ALL SCORES + ZONES
+ * 🧹 RESET ALL SCORES & ZONES (Batch Operation)
  * ------------------------------------------------------------------------ */
 /**
- * Resets all scores to 0 and clears control data for all zones.
- * Intended for use by the Control panel's "Reset Scores" button.
+ * Resets all team scores and clears zone control data.
+ * Called by Control panel → “Clear Scoreboard” button.
  */
 export async function resetScores() {
   try {
-    const scoresCol = collection(db, 'scores');
-    const zonesCol = collection(db, 'zones');
-
     console.log('🧹 Resetting all team scores and zone control data...');
+    const batch = writeBatch(db);
 
-    // 1️⃣ Reset all team scores and zonesControlled values
-    const scoreSnaps = await getDocs(scoresCol);
-    for (const s of scoreSnaps.docs) {
-      await setDoc(
-        doc(db, 'scores', s.id),
-        { score: 0, zonesControlled: '—' },
-        { merge: true }
-      );
-    }
+    // 1️⃣ Reset all team scores
+    const scoreSnaps = await getDocs(collection(db, 'scores'));
+    scoreSnaps.forEach(snap => {
+      const id = snap.id;
+      batch.set(doc(db, 'scores', id), {
+        score: 0,
+        zonesControlled: '—',
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    });
 
-    // 2️⃣ Reset all zone ownership info
-    const zoneSnaps = await getDocs(zonesCol);
-    for (const z of zoneSnaps.docs) {
-      await setDoc(
-        doc(db, 'zones', z.id),
-        { status: 'Available', controllingTeam: null },
-        { merge: true }
-      );
-    }
+    // 2️⃣ Reset all zone ownerships
+    const zoneSnaps = await getDocs(collection(db, 'zones'));
+    zoneSnaps.forEach(zSnap => {
+      batch.set(doc(db, 'zones', zSnap.id), {
+        status: 'Available',
+        controllingTeam: null,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    });
 
-    console.log('✅ All scores and zones have been reset.');
-  } catch (error) {
-    console.error('❌ Failed to reset scores and zones:', error);
+    await batch.commit();
+    console.log('✅ All scores and zones successfully reset.');
+  } catch (err) {
+    console.error('❌ Failed to reset scores/zones:', err);
   }
 }
 
 /* ---------------------------------------------------------------------------
- * INITIALIZE PLAYER SCOREBOARD (LIVE VIEW)
+ * 🏆 INITIALIZE PLAYER SCOREBOARD (Live View)
  * ------------------------------------------------------------------------ */
 /**
- * Initializes the live scoreboard on the player page.
+ * Realtime scoreboard listener for player dashboard.
+ * Displays team names, scores, and sorts by score descending.
  */
 export function initializePlayerScoreboard() {
   const scoreboardBody = document.getElementById('player-scoreboard-tbody');
   if (!scoreboardBody) return;
 
-  const scoresCollection = collection(db, "scores");
+  const scoresCollection = collection(db, 'scores');
+
   onSnapshot(scoresCollection, (snapshot) => {
-    const scores = [];
+    const teams = [];
     snapshot.forEach(docSnap => {
-      scores.push({ name: docSnap.id, ...docSnap.data() });
+      const data = docSnap.data();
+      teams.push({
+        name: docSnap.id,
+        score: data.score || 0,
+        zonesControlled: data.zonesControlled || '—',
+      });
     });
 
-    // Sort teams by score (highest first)
-    scores.sort((a, b) => (b.score || 0) - (a.score || 0));
+    // Sort descending by score
+    teams.sort((a, b) => (b.score || 0) - (a.score || 0));
 
+    // Render table
     scoreboardBody.innerHTML = '';
-    scores.forEach(teamScore => {
+    teams.forEach(t => {
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td>${teamScore.name}</td>
-        <td>${teamScore.score || 0}</td>
+        <td>${t.name}</td>
+        <td>${t.score}</td>
       `;
       scoreboardBody.appendChild(row);
     });

@@ -1,7 +1,11 @@
 // ============================================================================
-// MODULE: gameStateManager.js (FULLY SYNCED + PLAYER TIMER FIX)
+// MODULE: gameStateManager.js (FULLY SYNCED + PLAYER TIMER FIX + STANDARDIZED)
 // Purpose: Centralized Firestore game state + pause/resume logic
+// Firestore structure:
+//   game/gameState → { status, zonesReleased, startTime, endTime, ... }
+//   teamStatus/{teamName} → { lastKnownLocation, timestamp, score, ... }
 // ============================================================================
+
 import { db } from './config.js';
 import {
   doc,
@@ -135,6 +139,7 @@ function handleGameStateUpdate({
   const statusEl = document.getElementById('game-status');
   if (statusEl) statusEl.textContent = status.toUpperCase();
 
+  // Global flag for zone unlocking
   window.zonesEnabled = status === 'active' && zonesReleased;
 
   switch (status) {
@@ -151,7 +156,6 @@ function handleGameStateUpdate({
         showFlashMessage?.('🏁 The Race is ON!', '#2e7d32');
       }
 
-      // ✅ Determine end timestamp accurately
       let endMs = null;
       if (endTime?.toMillis) {
         endMs = endTime.toMillis();
@@ -237,5 +241,23 @@ export async function resetGameState() {
     console.log("🧹 Game state reset.");
   } catch (err) {
     console.error("❌ Error resetting game state:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 🪐 Future Hook (optional per-team sync)
+// ---------------------------------------------------------------------------
+// In future, call this to mark per-team status in "teamStatus/{teamName}"
+// Example: await updateTeamState(teamName, { gameStatus: status });
+export async function updateTeamState(teamName, data = {}) {
+  if (!teamName) return;
+  try {
+    const ref = doc(db, "teamStatus", teamName);
+    await updateDoc(ref, {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    console.warn(`⚠️ Could not update teamState for ${teamName}:`, err);
   }
 }
