@@ -1,0 +1,791 @@
+
+// =============================
+// File: routeriot-vite-main/404.html
+// =============================
+// HTML structure:
+//   IDs: message
+
+// =============================
+// File: routeriot-vite-main/control.html
+// =============================
+// HTML structure:
+//   IDs: broadcast-container, game-challenges-container, game-controls-container, pause-btn, racer-management-container, resume-btn, roster-modal, roster-modal-body, scoreboard-container, team-links-container, zone-management-container
+//   Classes: container, manual-controls, modal-backdrop, modal-close-btn, modal-content
+
+// =============================
+// File: routeriot-vite-main/control.js
+// =============================
+// Functions and classes:
+//   - DEFAULT_DURATION_MIN()
+//   - GAME_STATE_REF()
+//   - batch()
+//   - clearAllScores()
+//   - clearBtn()
+//   - data()
+//   - el()
+//   - endBtn()
+//   - existing()
+//   - isPaused()
+//   - main()
+//   - pauseBtn()
+//   - releaseBtn()
+//   - renderAllSections()
+//   - resetBtn()
+//   - safeSetHTML()
+//   - safelyEndGameAndResetZones()
+//   - scoresSnap()
+//   - snap()
+//   - startBtn()
+//   - statusEl()
+//   - t()
+//   - teamStatusSnap()
+//   - update()
+//   - watchLiveGameStatus()
+//   - wireGameControls()
+//   - z()
+//   - zonesEl()
+//   - zonesSnap()
+
+// =============================
+// File: routeriot-vite-main/data.js
+// =============================
+// Functions and classes:
+//   - allTeams()
+
+// =============================
+// File: routeriot-vite-main/index.html
+// =============================
+// HTML structure:
+//   IDs: home-map
+//   Classes: button, container
+
+// =============================
+// File: routeriot-vite-main/player.html
+// =============================
+// HTML structure:
+//   IDs: challenge-answer-area, challenge-box, challenge-question, challenge-zone-name, commissioner-message, game-status, opponents-table, opponents-tbody, player-location, player-scoreboard-table, player-scoreboard-tbody, player-zones-table, player-zones-tbody, scoreboard-container, submit-answer-btn, team-chat-log, team-member-list, team-name, team-slogan, time-remaining
+//   Classes: broadcast-message-display, container, control-section, data-table, log-box, slogan, team-members
+
+// =============================
+// File: routeriot-vite-main/player.js
+// =============================
+// Functions and classes:
+//   - banner()
+//   - currentTeamName()
+//   - display()
+//   - gameData()
+//   - gameDoc()
+//   - h()
+//   - handleLiveGameState()
+//   - initializePlayerPage()
+//   - lastRemainingMs()
+//   - m()
+//   - now()
+//   - params()
+//   - pausePlayerTimer()
+//   - pausedAt()
+//   - playerTimerInterval()
+//   - remaining()
+//   - removeWaitingBanner()
+//   - resumeFrom()
+//   - s()
+//   - showWaitingBanner()
+//   - startPlayerTimer()
+//   - stopAndCalculateRemaining()
+//   - team()
+//   - totalSeconds()
+//   - updateTimerDisplay()
+
+// =============================
+// File: routeriot-vite-main/style.css
+// =============================
+// CSS selectors:
+#challenge-question, .back-link, .broadcast-message-display, .challenge-btn, .chat-input, .container, .control-section, .data-table, .email-link-btn, .liveTimer, .log-box, .message-cell, .mini-map, .modal-backdrop, .modal-close-btn, .modal-content, .nav-link, .send-btn, .slogan, .status-available, .status-taken, .team-roster-block
+
+// =============================
+// File: routeriot-vite-main/vite.config.js
+// =============================
+
+// =============================
+// File: routeriot-vite-main/components/Broadcast/Broadcast.js
+// =============================
+// Functions and classes:
+//   - BroadcastComponent()
+//   - broadcastBtn()
+//   - broadcastInput()
+//   - commsRef()
+//   - componentHtml()
+//   - gameState()
+//   - initializeBroadcastLogic()
+//   - message()
+
+// =============================
+// File: routeriot-vite-main/components/Broadcast/Broadcast.module.css
+// =============================
+// CSS selectors:
+.broadcastBox, .controlSection, .logBox
+
+// =============================
+// File: routeriot-vite-main/components/GameChallenges/GameChallenges.js
+// =============================
+// Functions and classes:
+//   - GameChallengesComponent()
+//   - cell()
+//   - challengeId()
+//   - challengeRef()
+//   - componentHtml()
+//   - field()
+//   - fields()
+//   - initializeGameChallengesLogic()
+//   - row()
+//   - table()
+//   - value()
+
+// =============================
+// File: routeriot-vite-main/components/GameChallenges/GameChallenges.module.css
+// =============================
+// CSS selectors:
+.controlSection, .flattireRow, .questionsTable, .speedbumpRow
+
+// =============================
+// File: routeriot-vite-main/components/GameControls/GameControls.js
+// =============================
+// Functions and classes:
+//   - GameControlsComponent()
+//   - activeTeams()
+//   - batch()
+//   - clearScoresBtn()
+//   - currentRules()
+//   - endBtn()
+//   - endTime()
+//   - i()
+//   - initializeGameControlsLogic()
+//   - isPaused()
+//   - j()
+//   - mins()
+//   - open()
+//   - pauseBtn()
+//   - r()
+//   - racers()
+//   - racersSnap()
+//   - randomizeBtn()
+//   - resetBtn()
+//   - rulesBtn()
+//   - rulesDocRef()
+//   - rulesSection()
+//   - rulesSnap()
+//   - rulesText()
+//   - saveRulesBtn()
+//   - sendBtn()
+//   - snap()
+//   - startBtn()
+//   - tIndex()
+//   - team()
+//   - teamNames()
+//   - teamSize()
+//   - teamsInPlay()
+
+// =============================
+// File: routeriot-vite-main/components/GameControls/GameControls.module.css
+// =============================
+// CSS selectors:
+#rules-text, .controlButton, .controlSection, .dataTable, .end, .flash, .gameControls, .liveTimer, .modal-backdrop, .modal-close-btn, .modal-content, .pause, .start, .teamSetup, .warning
+
+// =============================
+// File: routeriot-vite-main/components/RacerManagement/RacerManagement.js
+// =============================
+// Functions and classes:
+//   - RacerManagementComponent()
+//   - cell()
+//   - componentHtml()
+//   - field()
+//   - i()
+//   - initializeRacerManagementLogic()
+//   - racer()
+//   - racerId()
+//   - racerRef()
+//   - racers()
+//   - racersCollection()
+//   - row()
+//   - saveRacerData()
+//   - tableBody()
+//   - value()
+
+// =============================
+// File: routeriot-vite-main/components/RacerManagement/RacerManagement.module.css
+// =============================
+// CSS selectors:
+.controlSection, .dataTable
+
+// =============================
+// File: routeriot-vite-main/components/Scoreboard/Scoreboard.js
+// =============================
+// Functions and classes:
+//   - ScoreboardComponent()
+//   - activeSnap()
+//   - activeTeams()
+//   - attachHandlers()
+//   - delta()
+//   - initializeScoreboardListener()
+//   - loc()
+//   - newScore()
+//   - renderTable()
+//   - row()
+//   - score()
+//   - scoreInfo()
+//   - scoreboardBody()
+//   - scoresCollection()
+//   - scoresData()
+//   - statusData()
+//   - statusInfo()
+//   - team()
+//   - teamStatusCollection()
+//   - time()
+//   - zones()
+
+// =============================
+// File: routeriot-vite-main/components/Scoreboard/Scoreboard.module.css
+// =============================
+// CSS selectors:
+.adjustBtn, .controlSection, .dataTable, .scoreInput
+
+// =============================
+// File: routeriot-vite-main/components/TeamLinks/TeamLinks.js
+// =============================
+// Functions and classes:
+//   - TeamLinksComponent()
+//   - initializeTeamLinksLogic()
+//   - tableRowsHtml()
+//   - teamUrl()
+
+// =============================
+// File: routeriot-vite-main/components/TeamLinks/TeamLinks.module.css
+// =============================
+// CSS selectors:
+.controlSection, .dataTable
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/ZoneManagement.js
+// =============================
+// Functions and classes:
+//   - banner()
+//   - initializeZoneManagementLogic()
+//   - refreshBtn()
+//   - tableBody()
+//   - zonesCollection()
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/ZoneManagement.module.css
+// =============================
+// CSS selectors:
+.controlSection, .cooldownSetup, .dataTable, .mapPreviewRow, .miniMap, .visible
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/zoneFirestore.js
+// =============================
+// Functions and classes:
+//   - updateZoneField()
+//   - zonesCollection()
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/zoneHandlers.js
+// =============================
+// Functions and classes:
+//   - addBtn()
+//   - attachZoneHandlers()
+//   - btn()
+//   - cell()
+//   - colName()
+//   - columns()
+//   - detailsRow()
+//   - field()
+//   - ids()
+//   - newZone()
+//   - newZoneId()
+//   - nextNum()
+//   - onAddZone()
+//   - onEditableBlur()
+//   - onForceCapture()
+//   - onManageClick()
+//   - onResetClick()
+//   - qTable()
+//   - questionId()
+//   - refreshBtn()
+//   - row()
+//   - snapshot()
+//   - target()
+//   - team()
+//   - value()
+//   - visible()
+//   - zone()
+//   - zoneId()
+//   - zoneRow()
+//   - zonesCol()
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/zoneRender.js
+// =============================
+// Functions and classes:
+//   - calculateZoomFromDiameter()
+//   - controllingTeam()
+//   - dataRow()
+//   - detailsRow()
+//   - gpsRegex()
+//   - mapUrl()
+//   - miniMapHtml()
+//   - q()
+//   - qId()
+//   - questionsCount()
+//   - questionsSnap()
+//   - renderZones()
+//   - safe()
+//   - tr()
+//   - zoneData()
+//   - zoneDoc()
+//   - zoneDocs()
+//   - zoneId()
+//   - zonesCol()
+//   - zoom()
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/zoneUI.js
+// =============================
+// Functions and classes:
+//   - ZoneManagementComponent()
+//   - controlSection()
+//   - cooldownSetup()
+//   - dataTable()
+
+// =============================
+// File: routeriot-vite-main/components/ZoneQuestions/ZoneQuestions.js
+// =============================
+// Functions and classes:
+//   - ZoneQuestionsComponent()
+//   - componentHtml()
+
+// =============================
+// File: routeriot-vite-main/components/ZoneQuestions/ZoneQuestions.module.css
+// =============================
+// CSS selectors:
+.controlSection
+
+// =============================
+// File: routeriot-vite-main/modules/chatManager.js
+// =============================
+// Functions and classes:
+//   - activeSnap()
+//   - activeTeams()
+//   - allMessages()
+//   - broadcastQuery()
+//   - chatLog()
+//   - color()
+//   - controlAllQuery()
+//   - convoId()
+//   - data()
+//   - entry()
+//   - id()
+//   - input()
+//   - isMine()
+//   - listenForMyMessages()
+//   - listenToAllMessages()
+//   - logBox()
+//   - messageIds()
+//   - messageText()
+//   - messagesRef()
+//   - opponentsTbody()
+//   - playableTeams()
+//   - prefix()
+//   - privateMessagesQuery()
+//   - processSnapshot()
+//   - publicCommsQuery()
+//   - receivedQuery()
+//   - recipient()
+//   - renderLog()
+//   - row()
+//   - sendMessage()
+//   - senderDisplay()
+//   - sentQuery()
+//   - setupPlayerChat()
+//   - sortedNames()
+//   - time()
+//   - ts()
+
+// =============================
+// File: routeriot-vite-main/modules/config.js
+// =============================
+// Functions and classes:
+//   - GOOGLE_MAPS_API_KEY()
+//   - app()
+//   - db()
+//   - firebaseConfig()
+
+// =============================
+// File: routeriot-vite-main/modules/emailTeams.js
+// =============================
+// Functions and classes:
+//   - body()
+//   - composeLinks()
+//   - delay()
+//   - emailAllTeams()
+//   - emails()
+//   - gmailUrl()
+//   - openIndex()
+//   - playerUrl()
+//   - slogan()
+//   - subject()
+//   - teamObj()
+//   - teamsToSend()
+
+// =============================
+// File: routeriot-vite-main/modules/gameCountdown.js
+// =============================
+// Functions and classes:
+//   - banner()
+//   - existing()
+//   - i()
+//   - interval()
+//   - msg()
+//   - showCountdownBanner()
+//   - showFlashMessage()
+
+// =============================
+// File: routeriot-vite-main/modules/gameRulesManager.js
+// =============================
+// Functions and classes:
+//   - activeTeams()
+//   - batch()
+//   - currentRules()
+//   - emailTeams()
+//   - endGame()
+//   - endTime()
+//   - gameDocRef()
+//   - gameTimerInterval()
+//   - gs()
+//   - h()
+//   - i()
+//   - initializeGameTimer()
+//   - j()
+//   - lines()
+//   - loadRules()
+//   - m()
+//   - medals()
+//   - mins()
+//   - open()
+//   - pauseGame()
+//   - r()
+//   - racers()
+//   - racersSnap()
+//   - randomizeTeams()
+//   - remaining()
+//   - resetFullGame()
+//   - rulesDocRef()
+//   - rulesSnap()
+//   - s()
+//   - saveRules()
+//   - scores()
+//   - scoresSnap()
+//   - snap()
+//   - startGame()
+//   - tIndex()
+//   - team()
+//   - teamNames()
+//   - teamsInPlay()
+//   - toggleRules()
+//   - zones()
+
+// =============================
+// File: routeriot-vite-main/modules/gameStateManager.js
+// =============================
+// Functions and classes:
+//   - base()
+//   - countdownShown()
+//   - data()
+//   - defaultState()
+//   - gameStateRef()
+//   - handleGameStateUpdate()
+//   - listenForGameStatus()
+//   - newEndTime()
+//   - pauseGame()
+//   - releaseZones()
+//   - remainingMs()
+//   - resetGameState()
+//   - resumeGame()
+//   - setGameStatus()
+//   - snap()
+//   - state()
+//   - statusEl()
+
+// =============================
+// File: routeriot-vite-main/modules/gameTimer.js
+// =============================
+// Functions and classes:
+//   - clearElapsedTimer()
+//   - currentEndTime()
+//   - currentRemainingMs()
+//   - data()
+//   - display()
+//   - elapsed()
+//   - endMs()
+//   - formatTime()
+//   - gameRef()
+//   - h()
+//   - listenToGameTimer()
+//   - m()
+//   - newEndTime()
+//   - now()
+//   - pauseGameTimer()
+//   - remaining()
+//   - remainingMs()
+//   - resumeGameTimer()
+//   - s()
+//   - snap()
+//   - startCountdownTimer()
+//   - startElapsedTimer()
+//   - timerInterval()
+
+// =============================
+// File: routeriot-vite-main/modules/gameUI.js
+// =============================
+// Functions and classes:
+//   - banner()
+//   - clearElapsedTimer()
+//   - count()
+//   - elapsedSec()
+//   - end()
+//   - existing()
+//   - flash()
+//   - hrs()
+//   - interval()
+//   - mins()
+//   - remaining()
+//   - removeWaitingBanner()
+//   - secs()
+//   - showCountdownBanner()
+//   - showFlashMessage()
+//   - showWaitingBanner()
+//   - start()
+//   - startCountdownTimer()
+//   - startElapsedTimer()
+//   - tick()
+//   - timerEl()
+//   - timerInterval()
+
+// =============================
+// File: routeriot-vite-main/modules/googleMapsLoader.js
+// =============================
+// Functions and classes:
+//   - apiKey()
+//   - loadGoogleMapsApi()
+//   - mapsPromise()
+//   - msg()
+//   - script()
+//   - scriptUrl()
+
+// =============================
+// File: routeriot-vite-main/modules/homeMap.js
+// =============================
+// Functions and classes:
+//   - PAD()
+//   - R()
+//   - angDist()
+//   - averageCenter()
+//   - b()
+//   - base()
+//   - boundsOf()
+//   - brng()
+//   - buildStaticMapUrl()
+//   - center()
+//   - circlePathPoints()
+//   - computeZoom()
+//   - container()
+//   - deg()
+//   - diameterKm()
+//   - lat2()
+//   - latRad()
+//   - latSpan()
+//   - latZoom()
+//   - lng2()
+//   - lngRad()
+//   - lngSpan()
+//   - lngZoom()
+//   - markers()
+//   - minLat()
+//   - parseGPS()
+//   - parsed()
+//   - parts()
+//   - path()
+//   - points()
+//   - pts()
+//   - radiusMeters()
+//   - renderHomeMap()
+//   - snap()
+//   - sum()
+//   - url()
+//   - zonesRaw()
+//   - zoom()
+
+// =============================
+// File: routeriot-vite-main/modules/playerUI.js
+// =============================
+// Functions and classes:
+//   - canvas()
+//   - ctx()
+//   - data()
+//   - draw()
+//   - el()
+//   - ensureTimerDisplay()
+//   - flashPlayerLocation()
+//   - getTeamNameFromUrl()
+//   - hidePausedOverlay()
+//   - info()
+//   - initializePlayerUI()
+//   - li()
+//   - locationEl()
+//   - m()
+//   - memberList()
+//   - message()
+//   - msg()
+//   - overlay()
+//   - p()
+//   - params()
+//   - pieces()
+//   - q()
+//   - resolvedTeamName()
+//   - running()
+//   - setText()
+//   - showGameOverOverlay()
+//   - showPausedOverlay()
+//   - startConfetti()
+//   - stopConfetti()
+//   - styleTag()
+//   - team()
+//   - teamName()
+//   - teamNameFromUrl()
+//   - teamRef()
+//   - timeStr()
+//   - timerEl()
+//   - updatePlayerTimer()
+//   - zone()
+
+// =============================
+// File: routeriot-vite-main/modules/scoreboardManager.js
+// =============================
+// Functions and classes:
+//   - addPointsToTeam()
+//   - initializePlayerScoreboard()
+//   - resetScores()
+//   - row()
+//   - s()
+//   - scoreRef()
+//   - scoreSnaps()
+//   - scoreboardBody()
+//   - scores()
+//   - scoresCol()
+//   - scoresCollection()
+//   - updateControlledZones()
+//   - z()
+//   - zoneSnaps()
+//   - zonesCol()
+
+// =============================
+// File: routeriot-vite-main/modules/zones.js
+// =============================
+// Functions and classes:
+//   - currentTeamName()
+//   - data()
+//   - dist()
+//   - gameStarted()
+//   - initializeZones()
+//   - locked()
+//   - newLocked()
+//   - previouslyLocked()
+//   - row()
+//   - statusText()
+//   - tableBody()
+//   - targetRadiusKm()
+//   - zone()
+//   - zoneData()
+//   - zoneDoc()
+//   - zoneId()
+//   - zonesCollection()
+//   - zonesLocked()
+
+// =============================
+// File: routeriot-vite-main/modules/zonesChallenge.js
+// =============================
+// Functions and classes:
+//   - answerArea()
+//   - challengeBox()
+//   - challengeState()
+//   - currentTeamName()
+//   - displayZoneQuestions()
+//   - handleAnswerSubmit()
+//   - isCorrect()
+//   - playerAnswer()
+//   - points()
+//   - questionData()
+//   - questionDoc()
+//   - questionEl()
+//   - setTeamContext()
+//   - snapshot()
+//   - submitBtn()
+//   - zoneDoc()
+//   - zoneName()
+//   - zoneNameEl()
+
+// =============================
+// File: routeriot-vite-main/modules/zonesFirestore.js
+// =============================
+// Functions and classes:
+//   - broadcastChallenge()
+//   - broadcastEvent()
+//   - broadcastWin()
+//   - now()
+//   - updateTeamLocation()
+
+// =============================
+// File: routeriot-vite-main/modules/zonesMap.js
+// =============================
+// Functions and classes:
+//   - GLOBE_WIDTH()
+//   - R()
+//   - angle()
+//   - brng()
+//   - calculateZoomLevel()
+//   - d()
+//   - diameterKm()
+//   - encodeCircle()
+//   - generateMiniMap()
+//   - gpsRegex()
+//   - i()
+//   - lat2()
+//   - lng2()
+//   - mapUrl()
+//   - points()
+//   - radiusInMeters()
+//   - zoom()
+//   - zoomLevel()
+
+// =============================
+// File: routeriot-vite-main/modules/zonesUtils.js
+// =============================
+// Functions and classes:
+//   - R()
+//   - a()
+//   - banner()
+//   - cAns()
+//   - calculateDistance()
+//   - color()
+//   - dLat()
+//   - dLon()
+//   - el()
+//   - flashPlayerLocation()
+//   - found()
+//   - i()
+//   - observer()
+//   - pAns()
+//   - playRaceStartSequence()
+//   - showCountdownBanner()
+//   - steps()
+//   - validateAnswer()
+//   - waitForElement()
