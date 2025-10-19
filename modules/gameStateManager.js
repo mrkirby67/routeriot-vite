@@ -1,8 +1,7 @@
 // ============================================================================
-// GAME STATE MANAGER (Pause-Resumable + Centralized Timer)
-// Controls and syncs the global game lifecycle (start, release, pause, resume)
+// MODULE: gameStateManager.js
+// Purpose: Centralized Firestore game state (pause/resume + synced timer)
 // ============================================================================
-
 import { db } from './config.js';
 import {
   doc,
@@ -11,6 +10,7 @@ import {
   getDoc,
   onSnapshot,
   serverTimestamp,
+  Timestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import {
@@ -26,7 +26,7 @@ let countdownShown = false;
 // ---------------------------------------------------------------------------
 // 🔹 Set Game Status (start / finish / waiting)
 // ---------------------------------------------------------------------------
-export async function setGameStatus(status, zonesReleased = false) {
+export async function setGameStatus(status, zonesReleased = false, durationMinutes = 60) {
   try {
     const base = {
       status,
@@ -35,8 +35,12 @@ export async function setGameStatus(status, zonesReleased = false) {
     };
 
     if (status === 'active') {
-      base.startTime = serverTimestamp();
-      base.endTime = new Date(Date.now() + 60 * 60 * 1000); // default 1 hr
+      const startTimestamp = Timestamp.now();
+      const endTimestamp = Timestamp.fromMillis(Date.now() + durationMinutes * 60 * 1000);
+
+      base.startTime = startTimestamp;
+      base.endTime = endTimestamp;
+      base.durationMinutes = durationMinutes;
       base.remainingMs = null;
     }
 
@@ -62,7 +66,8 @@ export async function pauseGame() {
     const data = snap.data();
     if (!data.endTime) throw new Error("No end time set");
 
-    const remainingMs = data.endTime.toMillis() - Date.now();
+    const endTimeMs = data.endTime.toMillis?.() ?? data.endTime.getTime?.();
+    const remainingMs = endTimeMs - Date.now();
 
     await updateDoc(gameStateRef, {
       status: 'paused',
@@ -86,7 +91,7 @@ export async function resumeGame() {
     const data = snap.data();
     if (!data.remainingMs) throw new Error("No remaining time recorded");
 
-    const newEndTime = new Date(Date.now() + data.remainingMs);
+    const newEndTime = Timestamp.fromMillis(Date.now() + data.remainingMs);
 
     await updateDoc(gameStateRef, {
       status: 'active',
@@ -124,6 +129,7 @@ function handleGameStateUpdate({
   zonesReleased = false,
   startTime = null,
   endTime = null,
+  durationMinutes = null,
 }) {
   const statusEl = document.getElementById('game-status');
   if (statusEl) statusEl.textContent = status.toUpperCase();
@@ -141,9 +147,18 @@ function handleGameStateUpdate({
       if (!countdownShown) {
         countdownShown = true;
         showCountdownBanner?.({ parent: document.body });
-        showFlashMessage?.('The Race is ON!', '#2e7d32');
+        showFlashMessage?.('🏁 The Race is ON!', '#2e7d32');
       }
-      if (endTime?.toMillis) startCountdownTimer?.(endTime.toMillis());
+
+      if (endTime?.toMillis) {
+        // ✅ This ensures *both Control and Player* pages display timer correctly
+        const endMs = endTime.toMillis();
+        startCountdownTimer?.(endMs);
+      } else if (durationMinutes && startTime?.toMillis) {
+        const startMs = startTime.toMillis();
+        const endMs = startMs + durationMinutes * 60 * 1000;
+        startCountdownTimer?.(endMs);
+      }
       break;
 
     case 'paused':
@@ -163,7 +178,7 @@ function handleGameStateUpdate({
 }
 
 // ---------------------------------------------------------------------------
-// 🔹 Listen for Live Game State Changes
+// 🔹 Listen for Live Game State Changes (Players + Control)
 // ---------------------------------------------------------------------------
 export function listenForGameStatus(callback) {
   return onSnapshot(gameStateRef, (docSnap) => {
@@ -174,6 +189,7 @@ export function listenForGameStatus(callback) {
         zonesReleased: false,
         startTime: null,
         endTime: null,
+        durationMinutes: null,
       };
       handleGameStateUpdate(defaultState);
       callback?.(defaultState);
@@ -186,6 +202,7 @@ export function listenForGameStatus(callback) {
       zonesReleased: !!data.zonesReleased,
       startTime: data.startTime || null,
       endTime: data.endTime || null,
+      durationMinutes: data.durationMinutes || null,
       remainingMs: data.remainingMs || null,
     };
 
@@ -204,6 +221,7 @@ export async function resetGameState() {
       zonesReleased: false,
       startTime: null,
       endTime: null,
+      durationMinutes: null,
       remainingMs: null,
       updatedAt: serverTimestamp(),
     }, { merge: true });

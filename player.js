@@ -2,7 +2,6 @@
 // File: player.js
 // Purpose: Player-side entry point with true pause/resume + synced countdown
 // ============================================================================
-
 import { allTeams } from './data.js';
 import { db } from './modules/config.js';
 import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -78,14 +77,20 @@ export async function initializePlayerPage() {
 }
 
 // ============================================================================
-// 🕹️ HANDLE GAME STATE UPDATES
+// 🕹️ HANDLE GAME STATE UPDATES (Now includes duration + startTime sync)
 // ============================================================================
 let lastRemainingMs = null;
 let playerTimerInterval = null;
 let pausedAt = null;
 
 function handleLiveGameState(state) {
-  const { status, endTime, remainingMs } = state || {};
+  const {
+    status,
+    startTime,
+    endTime,
+    remainingMs,
+    durationMinutes
+  } = state || {};
 
   switch (status) {
     // 🟡 WAITING
@@ -101,21 +106,27 @@ function handleLiveGameState(state) {
       removeWaitingBanner();
       hidePausedOverlay();
 
-      let resumeFrom = null;
-      if (pausedAt && lastRemainingMs) {
-        // Resume from remainingMs (resume point)
-        resumeFrom = Date.now() + lastRemainingMs;
+      let endTimestamp = null;
+
+      if (endTime?.toMillis) {
+        // Use Firestore Timestamp end
+        endTimestamp = endTime.toMillis();
+      } else if (startTime?.toMillis && durationMinutes) {
+        // Compute from startTime + duration
+        endTimestamp = startTime.toMillis() + durationMinutes * 60 * 1000;
       } else if (remainingMs) {
-        // Resync from server if provided
-        resumeFrom = Date.now() + remainingMs;
-      } else if (endTime) {
-        // Fall back to fixed end time
-        resumeFrom = endTime.toMillis ? endTime.toMillis() : endTime;
+        // Fallback to remaining time
+        endTimestamp = Date.now() + remainingMs;
       }
 
-      if (resumeFrom) startPlayerTimer(resumeFrom);
+      if (endTimestamp) {
+        startPlayerTimer(endTimestamp);
+        showFlashMessage('🏁 Game in Progress!', '#2e7d32', 1500);
+      } else {
+        console.warn('⚠️ No valid end time found for timer sync.');
+      }
+
       pausedAt = null;
-      showFlashMessage('🏁 Game Resumed!', '#2e7d32', 2000);
       break;
     }
 
@@ -169,6 +180,7 @@ function removeWaitingBanner() {
 // ============================================================================
 function startPlayerTimer(endTimestamp) {
   clearInterval(playerTimerInterval);
+  window._currentEndTime = endTimestamp;
   updateTimerDisplay(endTimestamp);
 
   playerTimerInterval = setInterval(() => {
@@ -190,7 +202,6 @@ function stopAndCalculateRemaining() {
 }
 
 function updateTimerDisplay(endTimestamp) {
-  window._currentEndTime = endTimestamp;
   const now = Date.now();
   const remaining = endTimestamp - now;
 

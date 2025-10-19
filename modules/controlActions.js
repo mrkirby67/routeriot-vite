@@ -4,7 +4,14 @@
 // ============================================================================
 
 import {
-  doc, getDocs, updateDoc, addDoc, collection, writeBatch, serverTimestamp, setDoc
+  doc,
+  getDocs,
+  setDoc,
+  addDoc,
+  collection,
+  writeBatch,
+  serverTimestamp,
+  updateDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './config.js';
 import { showFlashMessage } from './gameUI.js';
@@ -16,22 +23,24 @@ const GAME_STATE_REF = doc(db, "game", "gameState");
 // ---------------------------------------------------------------------------
 export async function clearAllScores(autoTriggered = false, clearTable = true) {
   try {
-    // 🧹 Clear Firestore scores
+    // 🧹 1️⃣ Clear Firestore scores
     const scoresSnap = await getDocs(collection(db, "scores"));
     const batch = writeBatch(db);
     scoresSnap.forEach((s) => batch.delete(s.ref));
     await batch.commit();
 
-    // 🧭 Clear teamStatus (last known location)
+    // 🧭 2️⃣ Fully reset each teamStatus (no stale data!)
     const teamStatusSnap = await getDocs(collection(db, "teamStatus"));
     for (const t of teamStatusSnap.docs) {
-      await updateDoc(doc(db, "teamStatus", t.id), {
+      await setDoc(doc(db, "teamStatus", t.id), {
         lastKnownLocation: '',
+        controllingTeam: '',
+        activeZone: '',
         timestamp: serverTimestamp(),
-      });
+      }, { merge: false }); // ⬅️ Full overwrite — ensures perfect wipe
     }
 
-    // 📣 Broadcast system message
+    // 📣 3️⃣ Broadcast system message
     if (!autoTriggered) {
       await addDoc(collection(db, "communications"), {
         teamName: "Game Master",
@@ -41,7 +50,7 @@ export async function clearAllScores(autoTriggered = false, clearTable = true) {
       });
     }
 
-    // 🪄 Wipe visible scoreboard instantly on control screen
+    // 🪄 4️⃣ Wipe visible scoreboard instantly on control screen
     if (clearTable) {
       const tbody = document.getElementById('scoreboard-tbody');
       if (tbody) {
@@ -52,8 +61,9 @@ export async function clearAllScores(autoTriggered = false, clearTable = true) {
       }
     }
 
-    // 📢 Trigger global event for other live scoreboards
+    // 📢 5️⃣ Trigger global UI events for all live scoreboards
     window.dispatchEvent(new CustomEvent('scoreboardCleared'));
+    window.dispatchEvent(new CustomEvent('forceScoreboardRefresh'));
 
     console.log(`✅ Scoreboard cleared (${autoTriggered ? 'auto' : 'manual'}).`);
   } catch (e) {
@@ -72,6 +82,7 @@ export async function safelyEndGameAndResetZones() {
       updatedAt: serverTimestamp(),
     });
 
+    // ♻️ Reset all zones to Available
     const zonesSnap = await getDocs(collection(db, "zones"));
     for (const z of zonesSnap.docs) {
       await updateDoc(doc(db, "zones", z.id), {
@@ -81,16 +92,21 @@ export async function safelyEndGameAndResetZones() {
       });
     }
 
+    // 🧭 Reset all teamStatus docs
     const teamStatusSnap = await getDocs(collection(db, "teamStatus"));
     for (const t of teamStatusSnap.docs) {
-      await updateDoc(doc(db, "teamStatus", t.id), {
+      await setDoc(doc(db, "teamStatus", t.id), {
         lastKnownLocation: '',
+        controllingTeam: '',
+        activeZone: '',
         timestamp: serverTimestamp(),
-      });
+      }, { merge: false });
     }
 
+    // 🧮 Clear scoreboard too
     await clearAllScores(true);
 
+    // 📣 Broadcast end message
     await addDoc(collection(db, "communications"), {
       teamName: "Game Master",
       message: "🏁 The game has ended! All zones and scoreboard reset.",

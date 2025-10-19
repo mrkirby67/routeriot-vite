@@ -2,9 +2,8 @@
 // FILE: components/Scoreboard/Scoreboard.js
 // Purpose: Live scoreboard view (Control + Player) with sync to Firestore
 // ============================================================================
-
 import { db } from '../../modules/config.js';
-import { addPointsToTeam, updateControlledZones } from '../../modules/scoreboardManager.js';
+import { addPointsToTeam } from '../../modules/scoreboardManager.js';
 import {
   onSnapshot,
   collection,
@@ -20,7 +19,7 @@ import styles from './Scoreboard.module.css';
 export function ScoreboardComponent({ editable = true } = {}) {
   return `
     <div class="${styles.controlSection}">
-      <h2>${editable ? 'Scoreboard (Live & Editable)' : 'Team Standings (Live)'}</h2>
+      <h2 id="scoreboard-title">${editable ? 'Scoreboard (Live & Editable)' : 'Team Standings (Live)'}</h2>
       <table class="${styles.dataTable}" id="scoreboard-table">
         <thead>
           <tr>
@@ -44,6 +43,7 @@ export function ScoreboardComponent({ editable = true } = {}) {
  * ------------------------------------------------------------------------ */
 export function initializeScoreboardListener({ editable = true } = {}) {
   const scoreboardBody = document.getElementById('scoreboard-tbody');
+  const titleEl = document.getElementById('scoreboard-title');
   if (!scoreboardBody) return;
 
   const scoresCollection = collection(db, 'scores');
@@ -51,6 +51,9 @@ export function initializeScoreboardListener({ editable = true } = {}) {
   const scoresData = {};
   const statusData = {};
 
+  // --------------------------------------------------------------
+  // 🔁 RENDER TABLE
+  // --------------------------------------------------------------
   async function renderTable() {
     const activeSnap = await getDoc(doc(db, 'game', 'activeTeams'));
     const activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
@@ -111,6 +114,9 @@ export function initializeScoreboardListener({ editable = true } = {}) {
     if (editable) attachHandlers();
   }
 
+  // --------------------------------------------------------------
+  // 🧩 ATTACH EVENT HANDLERS
+  // --------------------------------------------------------------
   function attachHandlers() {
     document.querySelectorAll(`.${styles.adjustBtn}`).forEach(button => {
       button.onclick = async (e) => {
@@ -129,7 +135,9 @@ export function initializeScoreboardListener({ editable = true } = {}) {
     });
   }
 
-  // --- Firestore Live Listeners ---
+  // --------------------------------------------------------------
+  // 🔥 FIRESTORE LIVE LISTENERS
+  // --------------------------------------------------------------
   onSnapshot(scoresCollection, (snapshot) => {
     snapshot.forEach(docSnap => {
       scoresData[docSnap.id] = docSnap.data();
@@ -144,14 +152,29 @@ export function initializeScoreboardListener({ editable = true } = {}) {
     renderTable();
   });
 
-  /* -----------------------------------------------------------------------
-   *  🧭 NEW: Instant Sync Listener for "Scoreboard Cleared" Event
-   * --------------------------------------------------------------------- */
+  // --------------------------------------------------------------
+  // 🧹 INSTANT SYNC EVENTS (Clear + Refresh)
+  // --------------------------------------------------------------
+
+  // Triggered when Control wipes scores + locations
   window.addEventListener('scoreboardCleared', () => {
     console.log('🧹 Received scoreboardCleared event — wiping table view.');
+    titleEl.textContent = 'Scoreboard Cleared — Waiting...';
     scoreboardBody.innerHTML = `
       <tr><td colspan="5" style="text-align:center;color:#888;">
         Scoreboard cleared by Control.
       </td></tr>`;
+  });
+
+  // Triggered after data is wiped — re-render fresh once Firestore syncs
+  window.addEventListener('forceScoreboardRefresh', async () => {
+    console.log('🔄 Received forceScoreboardRefresh event — refreshing...');
+    titleEl.textContent = 'Scoreboard (Syncing...)';
+    scoreboardBody.innerHTML = `
+      <tr><td colspan="5" style="text-align:center;color:#aaa;">
+        Refreshing data from Firestore...
+      </td></tr>`;
+    await renderTable();
+    titleEl.textContent = 'Scoreboard (Live & Editable)';
   });
 }
