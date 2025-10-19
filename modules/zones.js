@@ -115,7 +115,7 @@ function showCountdownBanner(message, color = '#222') {
   banner.style.background = color;
   banner.textContent = message;
   banner.style.display = 'block';
-  setTimeout(() => banner.style.display = 'none', 2000);
+  setTimeout(() => (banner.style.display = 'none'), 2000);
 }
 
 async function playRaceStartSequence() {
@@ -126,7 +126,7 @@ async function playRaceStartSequence() {
   for (let i = 0; i < steps.length; i++) {
     const color = steps[i] === 'GO!' ? '#2E7D32' : '#C62828';
     showCountdownBanner(steps[i], color);
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 1000));
   }
 
   showCountdownBanner('🏁 The Race is ON! 🏁', '#1565C0');
@@ -156,18 +156,18 @@ function validateAnswer(playerAnswer, correctAnswer, type) {
     case 'NO': case 'N': case 'FALSE':
       return pAns === cAns;
     case 'CSV':
-      return cAns.split(',').map(s => s.trim()).includes(pAns);
+      return cAns.split(',').map((s) => s.trim()).includes(pAns);
     default:
       return pAns.length > 0;
   }
 }
 
 /* ---------------------------------------------------------------------------
- * MAP HELPERS (Safe Geometry Handling)
- * --------------------------------------------------------------------------- */
+ * MAP HELPERS
+ * ------------------------------------------------------------------------ */
 function calculateZoomLevel(diameterKm, imageWidthPixels = 150) {
   const GLOBE_WIDTH = 256;
-  const angle = diameterKm / 6371 * (180 / Math.PI) * 2;
+  const angle = (diameterKm / 6371) * (180 / Math.PI) * 2;
   const zoom = Math.floor(Math.log2(imageWidthPixels * 360 / angle / GLOBE_WIDTH));
   return Math.max(8, Math.min(18, zoom));
 }
@@ -193,7 +193,7 @@ function encodeCircle(centerStr, radius) {
       points.push([lat2 * 180 / Math.PI, lng2 * 180 / Math.PI]);
     }
     return google.maps.geometry.encoding.encodePath(
-      points.map(p => new google.maps.LatLng(p[0], p[1]))
+      points.map((p) => new google.maps.LatLng(p[0], p[1]))
     );
   } catch (e) {
     console.warn("Could not encode circle:", e);
@@ -211,12 +211,12 @@ function generateMiniMap(zoneData) {
     return `<img src="https://placehold.co/150x150/1e1e1e/555?text=Invalid+GPS" class="mini-map">`;
   }
 
-  const [lat, lng] = zoneData.gps.split(',').map(n => parseFloat(n.trim()));
+  const [lat, lng] = zoneData.gps.split(',').map((n) => parseFloat(n.trim()));
   if (isNaN(lat) || isNaN(lng)) {
     return `<img src="https://placehold.co/150x150/1e1e1e/555?text=Invalid+GPS" class="mini-map">`;
   }
 
-  const statusClass = (zoneData.status === 'Taken') ? 'status-taken' : 'status-available';
+  const statusClass = zoneData.status === 'Taken' ? 'status-taken' : 'status-available';
   const diameterKm = parseFloat(zoneData.diameter) || 0.05;
   const zoomLevel = calculateZoomLevel(diameterKm);
   const radiusInMeters = (diameterKm / 2) * 1000;
@@ -241,7 +241,7 @@ function generateMiniMap(zoneData) {
 
 /* ---------------------------------------------------------------------------
  * MAIN EXPORT — Initialize Zones (Player Page)
- * --------------------------------------------------------------------------- */
+ * ------------------------------------------------------------------------ */
 export async function initializeZones(teamName) {
   currentTeamName = teamName;
   const tableBody = await waitForElement('player-zones-tbody');
@@ -260,8 +260,7 @@ export async function initializeZones(teamName) {
   // 🔹 Listen for zone updates
   onSnapshot(zonesCollection, (snapshot) => {
     tableBody.innerHTML = '';
-
-    snapshot.forEach(docSnap => {
+    snapshot.forEach((docSnap) => {
       const zone = docSnap.data();
       const zoneId = docSnap.id;
       const statusText =
@@ -269,7 +268,7 @@ export async function initializeZones(teamName) {
           ? `Controlled by ${zone.controllingTeam}`
           : 'Available';
 
-      const locked = zonesLocked ? 'disabled' : '';
+    const locked = zonesLocked ? 'disabled' : '';
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${zone.name || zoneId}</td>
@@ -283,7 +282,6 @@ export async function initializeZones(teamName) {
     });
   });
 
-  // 🔹 Attach a single delegated click listener
   if (!tableBody._listenerAttached) {
     tableBody.addEventListener('click', (e) => {
       if (e.target.classList.contains('challenge-btn') && !zonesLocked) {
@@ -318,7 +316,7 @@ async function displayZoneQuestions(zoneId, zoneName) {
   }
 
   let questionData;
-  snapshot.forEach(docSnap => {
+  snapshot.forEach((docSnap) => {
     if (docSnap.id.startsWith('unique')) {
       questionData = docSnap.data();
       challengeState.questionId = docSnap.id;
@@ -351,7 +349,7 @@ async function handleChallengeClick(event) {
   const targetRadiusKm = (parseFloat(zoneData.diameter) || 0.05) / 2;
 
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
+    async (pos) => {
       const playerLat = pos.coords.latitude;
       const playerLng = pos.coords.longitude;
       const accuracyKm = pos.coords.accuracy / 1000;
@@ -359,10 +357,24 @@ async function handleChallengeClick(event) {
 
       if (dist <= targetRadiusKm + accuracyKm) {
         alert("You're in the zone! Time to answer.");
-        // ✅ Update last known location immediately
-        updateTeamLocation(currentTeamName, zoneData.name);
-        // ✅ Broadcast challenge with the team included
-        broadcastChallenge(currentTeamName, zoneData.name);
+
+        // ✅ Update last known location immediately using server time
+        try {
+          await setDoc(
+            doc(db, "teamStatus", currentTeamName),
+            { lastKnownLocation: zoneData.name, timestamp: serverTimestamp() },
+            { merge: true }
+          );
+          const now = new Date();
+          flashPlayerLocation(`📍 ${zoneData.name} (updated ${now.toLocaleTimeString()})`);
+        } catch (e) {
+          console.error("⚠️ Error updating lastKnownLocation:", e);
+        }
+
+        // ✅ Broadcast challenge event
+        await broadcastChallenge(currentTeamName, zoneData.name);
+
+        // ✅ Show questions
         displayZoneQuestions(zoneId, zoneData.name);
       } else {
         alert(`Getting warmer... ${Math.max(0, dist - targetRadiusKm).toFixed(3)} km to enter the zone.`);
@@ -414,4 +426,3 @@ async function handleAnswerSubmit() {
     }
   }
 }
-

@@ -1,4 +1,9 @@
-// --- IMPORTS ---
+// ============================================================================
+// File: player.js
+// Purpose: Main entry point for each player page.
+// Uses the unified ?teamName= parameter system
+// ============================================================================
+
 import { allTeams } from './data.js';
 import { db } from './modules/config.js';
 import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -8,15 +13,17 @@ import { initializeZones } from './modules/zones.js';
 import { initializePlayerUI } from './modules/playerUI.js';
 import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 
-// --- MAIN INITIALIZATION ---
+// ============================================================================
+// MAIN INITIALIZATION
+// ============================================================================
 export async function initializePlayerPage() {
   console.log('🚀 Initializing player page...');
 
-  // 1️⃣ Identify the team from URL or cache
+  // 1️⃣ Identify the team from URL (standardized ?teamName=) or localStorage
   const params = new URLSearchParams(window.location.search);
   const currentTeamName =
-    params.get('team')?.trim() ||
-    params.get('teamName')?.trim() || // Legacy link compatibility
+    params.get('teamName')?.trim() || // ✅ Standard unified param
+    params.get('team')?.trim() ||     // Legacy fallback
     localStorage.getItem('teamName') ||
     null;
 
@@ -25,9 +32,11 @@ export async function initializePlayerPage() {
     console.error('❌ Missing team name in URL or localStorage.');
     return;
   }
+
+  // Always store the latest for reload persistence
   localStorage.setItem('teamName', currentTeamName);
 
-  // 2️⃣ Validate the team exists in data.js
+  // 2️⃣ Validate team exists in data.js
   const team = allTeams.find(t => t.name === currentTeamName);
   if (!team) {
     alert(`Team "${currentTeamName}" not found in data.js`);
@@ -35,7 +44,7 @@ export async function initializePlayerPage() {
     return;
   }
 
-  // 3️⃣ Fetch the initial game state to show a "waiting" banner immediately
+  // 3️⃣ Show "Waiting for game" banner if needed
   try {
     const gameDoc = await getDoc(doc(db, 'game', 'gameState'));
     const gameData = gameDoc.exists() ? gameDoc.data() : {};
@@ -54,14 +63,15 @@ export async function initializePlayerPage() {
     console.error('⚠️ Could not fetch initial game state:', err);
   }
 
-  // 5️⃣ Initialize all other UI and logic modules
+  // 4️⃣ Initialize all player modules
   try {
+    // Unified: playerUI auto-detects teamName via URL, but we pass it anyway for clarity
     initializePlayerUI(team, currentTeamName);
     setupPlayerChat(currentTeamName);
     initializeZones(currentTeamName);
     initializePlayerScoreboard();
-    
-    // Start the real-time listener, which will remove the banner when the game starts
+
+    // Live listener removes waiting banner when game starts
     listenForGameStatus((state) => {
       if (state.status === 'active' && document.getElementById('waiting-banner')) {
         document.getElementById('waiting-banner')?.remove();
@@ -72,6 +82,10 @@ export async function initializePlayerPage() {
     alert('Error initializing player. Check console for details.');
   }
 
-  console.log('✅ Player initialization complete.');
+  console.log('✅ Player initialization complete for team:', currentTeamName);
 }
 
+// ---------------------------------------------------------------------------
+// Auto-init on DOM load
+// ---------------------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', initializePlayerPage);

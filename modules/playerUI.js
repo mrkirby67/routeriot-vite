@@ -1,6 +1,6 @@
 // ============================================================================
 // File: modules/playerUI.js
-// Purpose: Displays team info, roster, and last location.
+// Purpose: Displays team info, roster, and last known location.
 // ============================================================================
 
 import { db } from './config.js';
@@ -9,46 +9,51 @@ import { onSnapshot, collection, query, where, doc }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ---------------------------------------------------------------------------
-// Simple DOM helpers
+// DOM helpers
 // ---------------------------------------------------------------------------
 function $(id) { return document.getElementById(id); }
 function setText(id, value) {
   const el = $(id);
   if (el) el.textContent = value;
 }
-
 function flashPlayerLocation(text) {
-    const el = document.getElementById('player-location');
-    if (!el) return;
-    el.textContent = text;
-    el.classList.add('flash');
-    setTimeout(() => el.classList.remove('flash'), 800);
+  const el = document.getElementById('player-location');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 800);
+}
+
+// ---------------------------------------------------------------------------
+// Get teamName from URL (?teamName=)
+// ---------------------------------------------------------------------------
+function getTeamNameFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const teamName = params.get('teamName');
+  return teamName ? decodeURIComponent(teamName) : null;
 }
 
 // ---------------------------------------------------------------------------
 // Initialize Player UI
 // ---------------------------------------------------------------------------
 export function initializePlayerUI(teamInput) {
-  console.log('🎨 Initializing Player UI with:', teamInput);
+  const teamNameFromUrl = getTeamNameFromUrl();
+  const resolvedTeamName =
+    teamNameFromUrl ||
+    (typeof teamInput === 'string' ? teamInput : teamInput?.name || 'Unknown Team');
 
-  const teamName =
-    typeof teamInput === 'string'
-      ? teamInput
-      : teamInput?.name || 'Unknown Team';
+  console.log('🎨 Initializing Player UI for:', resolvedTeamName);
 
-  const team = allTeams.find(t => t.name === teamName);
-  const displayName = team?.name || teamName;
-  const displaySlogan = team?.slogan || 'Ready to race!';
-
-  // 🏷️ Team name + slogan
-  setText('team-name', displayName);
-  setText('team-slogan', displaySlogan);
-  console.log(`✅ Team info set: ${displayName} — "${displaySlogan}"`);
+  // 🏷️ Set static team info
+  const team = allTeams.find(t => t.name === resolvedTeamName);
+  setText('team-name', team?.name || resolvedTeamName);
+  setText('team-slogan', team?.slogan || 'Ready to race!');
+  console.log(`✅ Loaded team: ${team?.name || resolvedTeamName}`);
 
   // 👥 Real-time roster listener
   const memberList = $('team-member-list');
   if (memberList) {
-    const q = query(collection(db, "racers"), where("team", "==", teamName));
+    const q = query(collection(db, "racers"), where("team", "==", resolvedTeamName));
     onSnapshot(q, (snapshot) => {
       memberList.innerHTML = '';
       if (snapshot.empty) {
@@ -56,32 +61,50 @@ export function initializePlayerUI(teamInput) {
         return;
       }
       snapshot.forEach(docSnap => {
-        const member = docSnap.data();
+        const m = docSnap.data();
         const li = document.createElement('li');
-        let info = `<strong>${member.name || 'Unnamed Racer'}</strong>`;
-        if (member.cell) info += ` - 📱 ${member.cell}`;
-        if (member.email) info += ` - ✉️ ${member.email}`;
+        let info = `<strong>${m.name || 'Unnamed Racer'}</strong>`;
+        if (m.cell) info += ` - 📱 ${m.cell}`;
+        if (m.email) info += ` - ✉️ ${m.email}`;
         li.innerHTML = info;
         memberList.appendChild(li);
       });
-    }, (err) => console.error("❌ Error loading racers:", err));
+    }, err => console.error("❌ Error loading racers:", err));
   }
 
-  // 📍 Real-time location listener
+  // 📍 Real-time last known location listener
   const locationEl = $('player-location');
   if (locationEl) {
-    const teamRef = doc(db, "teamStatus", teamName);
+    const teamRef = doc(db, "teamStatus", resolvedTeamName);
     onSnapshot(teamRef, (docSnap) => {
       if (!docSnap.exists()) {
         locationEl.textContent = '📍 No location yet.';
         return;
       }
-      const data = docSnap.data();
+      const data = docSnap.data() || {};
       const zone = data.lastKnownLocation || 'Unknown zone';
-      const ts = data.timestamp;
-      const timeStr = ts ? new Date(ts.seconds ? ts.seconds * 1000 : ts).toLocaleTimeString() : '';
+
+      // Convert Firestore or Date object timestamps to readable format
+      let timeStr = '';
+      if (data.timestamp) {
+        if (data.timestamp.seconds) {
+          timeStr = new Date(data.timestamp.seconds * 1000).toLocaleTimeString();
+        } else if (typeof data.timestamp === 'number') {
+          timeStr = new Date(data.timestamp).toLocaleTimeString();
+        } else if (data.timestamp.toDate) {
+          timeStr = data.timestamp.toDate().toLocaleTimeString();
+        }
+      }
+
       flashPlayerLocation(`📍 ${zone}${timeStr ? ` (updated ${timeStr})` : ''}`);
-    }, (err) => console.error("❌ Error reading teamStatus:", err));
+    }, err => console.error("❌ Error reading teamStatus:", err));
   }
 }
 
+// ---------------------------------------------------------------------------
+// Auto-init if player.html directly loads this script
+// ---------------------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  const teamName = getTeamNameFromUrl();
+  if (teamName) initializePlayerUI(teamName);
+});
