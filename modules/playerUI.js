@@ -115,13 +115,12 @@ export function initializePlayerUI(teamInput) {
 // ⏱️ INLINE TIMER DISPLAY (always shows in "Time Remaining:" section)
 // ---------------------------------------------------------------------------
 export function initializeInlineTimer() {
-  // Ensure there's a visible inline timer in the HTML
   let inline = document.getElementById('time-remaining');
   if (!inline) {
     const gameInfo = document.querySelector('#game-info') || document.body;
     const timerLine = document.createElement('div');
     timerLine.innerHTML = `<strong>Time Remaining:</strong> <span id="time-remaining">--:--:--</span>`;
-    gameInfo.prepend(timerLine);
+    gameInfo.append(timerLine);   // ✅ append, not prepend
     inline = document.getElementById('time-remaining');
   }
   inline.textContent = '--:--:--';
