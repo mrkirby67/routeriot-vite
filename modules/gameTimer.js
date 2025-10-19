@@ -1,7 +1,8 @@
 // ============================================================================
-// MODULE: gameTimer.js (FINAL SYNCED + PAUSE/RESUME ENABLED)
-// Purpose: Centralized countdown display for Control screen (fully synced)
+// MODULE: gameTimer.js (FULLY SYNCED + STABLE PAUSE/RESUME)
+// Purpose: Keeps control + player timers synchronized in real-time via Firestore
 // ============================================================================
+
 import { db } from './config.js';
 import {
   onSnapshot,
@@ -17,7 +18,7 @@ let currentEndTime = null;
 let currentRemainingMs = null;
 
 // ---------------------------------------------------------------------------
-// 🔹 Format milliseconds into HH:MM:SS
+// 🧭 Format milliseconds into HH:MM:SS
 // ---------------------------------------------------------------------------
 function formatTime(ms) {
   if (ms == null || isNaN(ms)) return '--:--:--';
@@ -28,9 +29,9 @@ function formatTime(ms) {
 }
 
 // ---------------------------------------------------------------------------
-// 🔹 Start countdown timer until a fixed end time (ms epoch)
+// 🕒 Draw the remaining time continuously
 // ---------------------------------------------------------------------------
-export function startCountdownTimer(endMs) {
+function startCountdownTimer(endMs) {
   const display = document.getElementById('timer-display');
   if (!display || !endMs) return;
 
@@ -49,12 +50,12 @@ export function startCountdownTimer(endMs) {
     display.textContent = formatTime(remaining);
   };
 
-  update(); // immediate draw
+  update();
   timerInterval = setInterval(update, 1000);
 }
 
 // ---------------------------------------------------------------------------
-// 🔹 Clear timer
+// 🔹 Clear interval safely
 // ---------------------------------------------------------------------------
 export function clearElapsedTimer() {
   if (timerInterval) {
@@ -64,94 +65,99 @@ export function clearElapsedTimer() {
 }
 
 // ---------------------------------------------------------------------------
-// 🔹 Pause timer manually (Control-side)
+// ⏸️ Pause (control-side): saves remainingMs, removes endTime
 // ---------------------------------------------------------------------------
 export async function pauseGameTimer() {
   try {
-    const gameRef = doc(db, 'game', 'gameState');
-    const snap = await getDoc(gameRef);
-    if (!snap.exists()) throw new Error("No game state document found.");
+    const ref = doc(db, 'game', 'gameState');
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error("No gameState doc.");
 
     const data = snap.data();
     const now = Date.now();
     const endTimeMs = data.endTime?.toMillis?.() ?? data.endTime?.getTime?.();
-    const remainingMs = endTimeMs ? endTimeMs - now : currentRemainingMs ?? 0;
+    const remainingMs = endTimeMs
+      ? Math.max(endTimeMs - now, 0)
+      : currentRemainingMs ?? 0;
 
-    await updateDoc(gameRef, {
+    await updateDoc(ref, {
       status: 'paused',
-      remainingMs: Math.max(remainingMs, 0),
+      remainingMs,
       endTime: null,
       updatedAt: serverTimestamp(),
     });
 
     clearElapsedTimer();
-    console.log(`⏸️ Game paused — ${Math.floor(remainingMs / 1000)}s remaining.`);
+    console.log(`⏸️ Paused with ${Math.floor(remainingMs / 1000)}s left`);
   } catch (err) {
     console.error('❌ pauseGameTimer error:', err);
   }
 }
 
 // ---------------------------------------------------------------------------
-// 🔹 Resume timer (Control-side)
+// ▶️ Resume (control-side): restores endTime and restarts
 // ---------------------------------------------------------------------------
 export async function resumeGameTimer() {
   try {
-    const gameRef = doc(db, 'game', 'gameState');
-    const snap = await getDoc(gameRef);
-    if (!snap.exists()) throw new Error("No game state document found.");
+    const ref = doc(db, 'game', 'gameState');
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error("No gameState doc.");
 
     const data = snap.data();
     const now = Date.now();
     const remainingMs = data.remainingMs ?? currentRemainingMs ?? 0;
     const newEndTime = Timestamp.fromMillis(now + remainingMs);
 
-    await updateDoc(gameRef, {
+    await updateDoc(ref, {
       status: 'active',
       endTime: newEndTime,
       remainingMs: null,
       updatedAt: serverTimestamp(),
     });
 
-    console.log(`▶️ Game resumed — new endTime: ${newEndTime.toDate().toLocaleTimeString()}`);
+    console.log(`▶️ Resumed — new endTime = ${newEndTime.toDate().toLocaleTimeString()}`);
   } catch (err) {
     console.error('❌ resumeGameTimer error:', err);
   }
 }
 
 // ---------------------------------------------------------------------------
-// 🔹 Live listener - Reacts to Firestore updates and updates Control timer
+// 📡 Live sync for all clients (control + player)
 // ---------------------------------------------------------------------------
 export function listenToGameTimer() {
   const display = document.getElementById('timer-display');
   if (!display) return;
 
-  const gameRef = doc(db, 'game', 'gameState');
+  const ref = doc(db, 'game', 'gameState');
 
-  onSnapshot(gameRef, (docSnap) => {
-    const data = docSnap.data();
+  onSnapshot(ref, (snap) => {
+    const data = snap.data();
     if (!data) return;
 
     const { status, endTime, startTime, durationMinutes, remainingMs } = data;
-    if (!status) return;
+    let endMs = null;
+
+    // Resolve a reliable end timestamp
+    if (endTime?.toMillis) {
+      endMs = endTime.toMillis();
+    } else if (startTime?.toMillis && durationMinutes) {
+      endMs = startTime.toMillis() + durationMinutes * 60_000;
+    } else if (remainingMs) {
+      endMs = Date.now() + remainingMs;
+    }
 
     switch (status) {
-      case 'active': {
-        let endMs = null;
-        if (endTime?.toMillis) endMs = endTime.toMillis();
-        else if (startTime?.toMillis && durationMinutes)
-          endMs = startTime.toMillis() + durationMinutes * 60 * 1000;
-        else if (remainingMs) endMs = Date.now() + remainingMs;
-
+      case 'active':
         if (endMs) startCountdownTimer(endMs);
-        else display.textContent = '--:--:--';
+        else {
+          clearElapsedTimer();
+          display.textContent = '--:--:--';
+        }
         break;
-      }
 
       case 'paused':
         clearElapsedTimer();
-        display.textContent = remainingMs
-          ? formatTime(remainingMs)
-          : '--:--:--';
+        display.textContent = remainingMs ? formatTime(remainingMs) : '--:--:--';
         break;
 
       case 'waiting':
@@ -168,7 +174,6 @@ export function listenToGameTimer() {
       default:
         clearElapsedTimer();
         display.textContent = '--:--:--';
-        break;
     }
   });
 }

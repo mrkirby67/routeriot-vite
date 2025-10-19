@@ -1,6 +1,6 @@
 // ============================================================================
-// FILE: components/Scoreboard/Scoreboard.js
-// Purpose: Live scoreboard view (Control + Player) with sync to Firestore
+// FILE: components/Scoreboard/Scoreboard.js (SYNC + RESET SAFE)
+// Purpose: Live scoreboard view (Control + Player) with cache safety + refresh
 // ============================================================================
 import { db } from '../../modules/config.js';
 import { addPointsToTeam } from '../../modules/scoreboardManager.js';
@@ -9,17 +9,19 @@ import {
   collection,
   doc,
   getDoc,
-  setDoc
+  setDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './Scoreboard.module.css';
 
 /* ---------------------------------------------------------------------------
- *  SCOREBOARD COMPONENT (Unified for Control & Player)
+ *  SCOREBOARD COMPONENT (Unified Control + Player)
  * ------------------------------------------------------------------------ */
 export function ScoreboardComponent({ editable = true } = {}) {
   return `
     <div class="${styles.controlSection}">
-      <h2 id="scoreboard-title">${editable ? 'Scoreboard (Live & Editable)' : 'Team Standings (Live)'}</h2>
+      <h2 id="scoreboard-title">
+        ${editable ? 'Scoreboard (Live & Editable)' : 'Team Standings (Live)'}
+      </h2>
       <table class="${styles.dataTable}" id="scoreboard-table">
         <thead>
           <tr>
@@ -48,17 +50,20 @@ export function initializeScoreboardListener({ editable = true } = {}) {
 
   const scoresCollection = collection(db, 'scores');
   const teamStatusCollection = collection(db, 'teamStatus');
-  const scoresData = {};
-  const statusData = {};
+
+  // local caches
+  let scoresData = {};
+  let statusData = {};
+  let activeTeams = [];
 
   // --------------------------------------------------------------
-  // 🔁 RENDER TABLE
+  // 🔁 Render the scoreboard table
   // --------------------------------------------------------------
   async function renderTable() {
     const activeSnap = await getDoc(doc(db, 'game', 'activeTeams'));
-    const activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
+    activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
 
-    if (activeTeams.length === 0) {
+    if (!activeTeams || activeTeams.length === 0) {
       scoreboardBody.innerHTML = `
         <tr><td colspan="5" style="text-align:center;color:#aaa;">
           Waiting for game to start — no active teams yet.
@@ -71,8 +76,8 @@ export function initializeScoreboardListener({ editable = true } = {}) {
     activeTeams.forEach(teamName => {
       const scoreInfo = scoresData[teamName] || {};
       const statusInfo = statusData[teamName] || {};
-      const score = scoreInfo.score || 0;
-      const zones = scoreInfo.zonesControlled || '—';
+      const score = scoreInfo.score ?? 0;
+      const zones = scoreInfo.zonesControlled ?? '—';
       const loc = statusInfo.lastKnownLocation || '—';
       const time = statusInfo.timestamp
         ? new Date(statusInfo.timestamp.seconds * 1000).toLocaleTimeString()
@@ -81,7 +86,6 @@ export function initializeScoreboardListener({ editable = true } = {}) {
       const row = document.createElement('tr');
 
       if (editable) {
-        // Editable version (Control page)
         row.innerHTML = `
           <td>${teamName}</td>
           <td>
@@ -95,17 +99,14 @@ export function initializeScoreboardListener({ editable = true } = {}) {
           <td>
             <button class="${styles.adjustBtn}" data-team="${teamName}" data-change="+1">+1</button>
             <button class="${styles.adjustBtn}" data-team="${teamName}" data-change="-1">-1</button>
-          </td>
-        `;
+          </td>`;
       } else {
-        // Read-only version (Player page)
         row.innerHTML = `
           <td>${teamName}</td>
           <td>${score}</td>
           <td>${zones}</td>
           <td>${loc}</td>
-          <td>${time}</td>
-        `;
+          <td>${time}</td>`;
       }
 
       scoreboardBody.appendChild(row);
@@ -115,11 +116,11 @@ export function initializeScoreboardListener({ editable = true } = {}) {
   }
 
   // --------------------------------------------------------------
-  // 🧩 ATTACH EVENT HANDLERS
+  // 🧩 Attach editing controls
   // --------------------------------------------------------------
   function attachHandlers() {
-    document.querySelectorAll(`.${styles.adjustBtn}`).forEach(button => {
-      button.onclick = async (e) => {
+    document.querySelectorAll(`.${styles.adjustBtn}`).forEach(btn => {
+      btn.onclick = async (e) => {
         const team = e.target.dataset.team;
         const delta = parseInt(e.target.dataset.change);
         await addPointsToTeam(team, delta);
@@ -136,29 +137,30 @@ export function initializeScoreboardListener({ editable = true } = {}) {
   }
 
   // --------------------------------------------------------------
-  // 🔥 FIRESTORE LIVE LISTENERS
+  // 🔥 Firestore live listeners (scores + teamStatus)
   // --------------------------------------------------------------
   onSnapshot(scoresCollection, (snapshot) => {
-    snapshot.forEach(docSnap => {
-      scoresData[docSnap.id] = docSnap.data();
-    });
+    // replace, not merge, to purge removed docs
+    const fresh = {};
+    snapshot.forEach(docSnap => (fresh[docSnap.id] = docSnap.data()));
+    scoresData = fresh;
     renderTable();
   });
 
   onSnapshot(teamStatusCollection, (snapshot) => {
-    snapshot.forEach(docSnap => {
-      statusData[docSnap.id] = docSnap.data();
-    });
+    const fresh = {};
+    snapshot.forEach(docSnap => (fresh[docSnap.id] = docSnap.data()));
+    statusData = fresh;
     renderTable();
   });
 
   // --------------------------------------------------------------
-  // 🧹 INSTANT SYNC EVENTS (Clear + Refresh)
+  // 🧹 Event-driven clears and reloads
   // --------------------------------------------------------------
-
-  // Triggered when Control wipes scores + locations
   window.addEventListener('scoreboardCleared', () => {
-    console.log('🧹 Received scoreboardCleared event — wiping table view.');
+    console.log('🧹 scoreboardCleared → wipe local caches + DOM');
+    scoresData = {};
+    statusData = {};
     titleEl.textContent = 'Scoreboard Cleared — Waiting...';
     scoreboardBody.innerHTML = `
       <tr><td colspan="5" style="text-align:center;color:#888;">
@@ -166,15 +168,18 @@ export function initializeScoreboardListener({ editable = true } = {}) {
       </td></tr>`;
   });
 
-  // Triggered after data is wiped — re-render fresh once Firestore syncs
   window.addEventListener('forceScoreboardRefresh', async () => {
-    console.log('🔄 Received forceScoreboardRefresh event — refreshing...');
+    console.log('🔄 forceScoreboardRefresh → re-fetch Firestore');
     titleEl.textContent = 'Scoreboard (Syncing...)';
     scoreboardBody.innerHTML = `
       <tr><td colspan="5" style="text-align:center;color:#aaa;">
         Refreshing data from Firestore...
       </td></tr>`;
+    scoresData = {};
+    statusData = {};
     await renderTable();
-    titleEl.textContent = 'Scoreboard (Live & Editable)';
+    titleEl.textContent = editable
+      ? 'Scoreboard (Live & Editable)'
+      : 'Team Standings (Live)';
   });
 }
