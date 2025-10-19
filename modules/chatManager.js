@@ -1,7 +1,7 @@
 // ============================================================================
 // File: modules/chatManager.js
 // Purpose: Handles all chat and communication between teams & control
-// Author: Route Riot Control - 2025 (teamName broadcast fix)
+// Author: Route Riot Control - 2025 (teamName broadcast fix + Live Locations)
 // ============================================================================
 
 import { db } from './config.js';
@@ -49,7 +49,6 @@ export async function listenToAllMessages() {
           msg.sender && msg.sender !== 'Game Master'
             ? `<strong style="color:#FFD700;">${msg.sender}</strong>`
             : `<strong style="color:#fdd835;">GAME MASTER</strong>`;
-
         entry.innerHTML = `
           <span style="color:#888;">[${time}]</span>
           ${senderDisplay}: ${msg.text || msg.message || '(no message)'}
@@ -121,7 +120,7 @@ export async function listenToAllMessages() {
 }
 
 // ============================================================================
-// 🗣️ PLAYER PAGE: Chat UI + Message Handling
+// 🗣️ PLAYER PAGE: Chat UI + Opponent Status + Message Handling
 // ============================================================================
 export async function setupPlayerChat(currentTeamName) {
   const opponentsTbody = document.getElementById('opponents-tbody');
@@ -141,9 +140,10 @@ export async function setupPlayerChat(currentTeamName) {
   // Render opponent chat rows
   playableTeams.forEach(teamName => {
     const row = document.createElement('tr');
+    row.dataset.team = teamName;
     row.innerHTML = `
       <td>${teamName}</td>
-      <td>--</td>
+      <td class="last-location">--</td>
       <td class="message-cell">
         <input type="text" class="chat-input" data-recipient-input="${teamName}"
                placeholder="Message ${teamName}...">
@@ -152,6 +152,21 @@ export async function setupPlayerChat(currentTeamName) {
     `;
     opponentsTbody.appendChild(row);
   });
+
+  // 🛰️ Live Last Known Location Listener
+  const teamStatusCol = collection(db, 'teamStatus');
+  onSnapshot(teamStatusCol, (snapshot) => {
+    snapshot.forEach((docSnap) => {
+      const team = docSnap.id;
+      const data = docSnap.data();
+      const location = data.lastKnownLocation || '--';
+      const row = opponentsTbody.querySelector(`[data-team="${team}"]`);
+      if (row) {
+        const cell = row.querySelector('.last-location');
+        if (cell) cell.textContent = location;
+      }
+    });
+  }, (err) => console.error("❌ teamStatus snapshot error:", err));
 
   // Hook up send buttons
   opponentsTbody.querySelectorAll('.send-btn').forEach(button => {
@@ -216,7 +231,6 @@ function listenForMyMessages(myTeamName, logBox) {
           msg.sender && msg.sender !== 'Game Master'
             ? `<strong style="color:#FFD700;">${msg.sender}</strong>`
             : `<strong style="color:#fdd835;">GAME MASTER</strong>`;
-
         entry.style.backgroundColor = '#3a3a24';
         entry.style.padding = '8px';
         entry.style.borderRadius = '5px';
