@@ -20,7 +20,7 @@ export function wireGameControls() {
   const releaseBtn = document.getElementById('release-zones-btn');
   const endBtn     = document.getElementById('end-btn');
   const resetBtn   = document.getElementById('reset-game-btn');
-  const clearBtn   = document.getElementById('clear-scores-btn');
+  const clearBtn   = document.getElementById('clear-scores-btn'); // now represents "Clear Scoreboard"
 
   // 🏁 START GAME
   if (startBtn) {
@@ -42,13 +42,13 @@ export function wireGameControls() {
         await updateDoc(GAME_STATE_REF, update);
         await addDoc(collection(db, "communications"), {
           teamName: "Game Master",
-          message: "🏁 A new game has begun! Scores cleared and zones live.",
+          message: "🏁 A new game has begun! Scoreboard cleared and zones live.",
           isBroadcast: true,
           timestamp: serverTimestamp(),
         });
 
         showCountdownBanner({ parent: document.body });
-        showFlashMessage('✅ Game Started! Scores cleared.', '#2e7d32', 3000);
+        showFlashMessage('✅ Game Started! Scoreboard cleared.', '#2e7d32', 3000);
       } catch (e) {
         console.error('Error starting game:', e);
         showFlashMessage('Start failed.', '#c62828', 2500);
@@ -110,7 +110,7 @@ export function wireGameControls() {
   // 🔄 RESET GAME STATE
   if (resetBtn) {
     resetBtn.addEventListener('click', async () => {
-      if (confirm('Reset game state to WAITING and clear all scores/locations?')) {
+      if (confirm('Reset game state to WAITING and clear all scoreboard data (scores + locations)?')) {
         await resetFullGameState();
         pauseBtn.textContent = 'Pause Game';
         showFlashMessage('🔄 Game fully reset.', '#757575', 3000);
@@ -118,12 +118,12 @@ export function wireGameControls() {
     });
   }
 
-  // 🧹 CLEAR SCORES
+  // 🧹 CLEAR SCOREBOARD
   if (clearBtn) {
     clearBtn.addEventListener('click', async () => {
-      if (confirm('Clear all team scores and locations manually?')) {
-        await clearAllScores(false);
-        showFlashMessage('🧹 Scores and locations cleared.', '#1565c0', 3000);
+      if (confirm('Clear the entire scoreboard (scores + locations)?')) {
+        await clearAllScores(false, true);
+        showFlashMessage('🧹 Scoreboard cleared.', '#1565c0', 3000);
       }
     });
   }

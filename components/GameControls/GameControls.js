@@ -43,7 +43,7 @@ export function GameControlsComponent() {
         <button id="pause-btn" class="${styles.controlButton} ${styles.pause}">⏸️ Pause Game</button>
         <button id="end-btn" class="${styles.controlButton} ${styles.end}">🏁 End Game</button>
         <button id="reset-game-btn" class="${styles.controlButton} ${styles.pause}">🔄 Reset Game Data</button>
-        <button id="clear-scores-btn" class="${styles.controlButton} ${styles.warning}">🧹 Clear Scores</button>
+        <button id="clear-scores-btn" class="${styles.controlButton} ${styles.warning}">🧹 Clear Scoreboard</button>
       </div>
 
       <div class="${styles.teamSetup}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">

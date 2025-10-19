@@ -1,6 +1,6 @@
 // ============================================================================
 // MODULE: controlActions.js
-// Purpose: Core admin game control logic (scores, resets, end game)
+// Purpose: Core admin game control logic (scoreboard clears, resets, end game)
 // ============================================================================
 
 import {
@@ -12,11 +12,11 @@ import { showFlashMessage } from './gameUI.js';
 const GAME_STATE_REF = doc(db, "game", "gameState");
 
 // ---------------------------------------------------------------------------
-// 🧮 CLEAR ALL SCORES + LOCATIONS
+// 🧮 CLEAR SCOREBOARD (scores + locations + live table)
 // ---------------------------------------------------------------------------
-export async function clearAllScores(autoTriggered = false) {
+export async function clearAllScores(autoTriggered = false, clearTable = true) {
   try {
-    // 🧹 Clear scores
+    // 🧹 Clear Firestore scores
     const scoresSnap = await getDocs(collection(db, "scores"));
     const batch = writeBatch(db);
     scoresSnap.forEach((s) => batch.delete(s.ref));
@@ -31,20 +31,34 @@ export async function clearAllScores(autoTriggered = false) {
       });
     }
 
-    // 📣 Notify
+    // 📣 Broadcast system message
     if (!autoTriggered) {
       await addDoc(collection(db, "communications"), {
         teamName: "Game Master",
-        message: "🧹 Scores and team locations cleared by Control.",
+        message: "🧹 Scoreboard has been cleared (scores + locations).",
         isBroadcast: true,
         timestamp: serverTimestamp(),
       });
     }
 
-    console.log(`✅ Scores + locations cleared (${autoTriggered ? 'auto' : 'manual'}).`);
+    // 🪄 Wipe visible scoreboard instantly on control screen
+    if (clearTable) {
+      const tbody = document.getElementById('scoreboard-tbody');
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr><td colspan="5" style="text-align:center;color:#888;">
+            Scoreboard cleared — waiting for new data...
+          </td></tr>`;
+      }
+    }
+
+    // 📢 Trigger global event for other live scoreboards
+    window.dispatchEvent(new CustomEvent('scoreboardCleared'));
+
+    console.log(`✅ Scoreboard cleared (${autoTriggered ? 'auto' : 'manual'}).`);
   } catch (e) {
-    console.error("❌ Error clearing scores/locations:", e);
-    showFlashMessage('Score/location clearing failed.', '#c62828', 3000);
+    console.error("❌ Error clearing scoreboard:", e);
+    showFlashMessage('Scoreboard clearing failed.', '#c62828', 3000);
   }
 }
 
@@ -79,7 +93,7 @@ export async function safelyEndGameAndResetZones() {
 
     await addDoc(collection(db, "communications"), {
       teamName: "Game Master",
-      message: "🏁 The game has ended! All zones and scores reset.",
+      message: "🏁 The game has ended! All zones and scoreboard reset.",
       isBroadcast: true,
       timestamp: serverTimestamp(),
     });
@@ -92,7 +106,7 @@ export async function safelyEndGameAndResetZones() {
 }
 
 // ---------------------------------------------------------------------------
-// 🔄 RESET GAME STATE (Clears scores + locations)
+// 🔄 RESET GAME STATE (Clears scoreboard + locations)
 // ---------------------------------------------------------------------------
 export async function resetFullGameState() {
   try {

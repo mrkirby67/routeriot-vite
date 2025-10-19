@@ -1,4 +1,8 @@
-// File: components/Scoreboard/Scoreboard.js
+// ============================================================================
+// FILE: components/Scoreboard/Scoreboard.js
+// Purpose: Live scoreboard view (Control + Player) with sync to Firestore
+// ============================================================================
+
 import { db } from '../../modules/config.js';
 import { addPointsToTeam, updateControlledZones } from '../../modules/scoreboardManager.js';
 import {
@@ -125,7 +129,7 @@ export function initializeScoreboardListener({ editable = true } = {}) {
     });
   }
 
-  // --- Live Listeners ---
+  // --- Firestore Live Listeners ---
   onSnapshot(scoresCollection, (snapshot) => {
     snapshot.forEach(docSnap => {
       scoresData[docSnap.id] = docSnap.data();
@@ -138,5 +142,16 @@ export function initializeScoreboardListener({ editable = true } = {}) {
       statusData[docSnap.id] = docSnap.data();
     });
     renderTable();
+  });
+
+  /* -----------------------------------------------------------------------
+   *  🧭 NEW: Instant Sync Listener for "Scoreboard Cleared" Event
+   * --------------------------------------------------------------------- */
+  window.addEventListener('scoreboardCleared', () => {
+    console.log('🧹 Received scoreboardCleared event — wiping table view.');
+    scoreboardBody.innerHTML = `
+      <tr><td colspan="5" style="text-align:center;color:#888;">
+        Scoreboard cleared by Control.
+      </td></tr>`;
   });
 }
