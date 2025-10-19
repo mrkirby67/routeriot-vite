@@ -1,6 +1,6 @@
 // ============================================================================
 // File: player.js
-// Purpose: Player-side entry point with true pause/resume + synced countdown
+// Purpose: Player-side entry point with synced countdown + pause/resume logic
 // ============================================================================
 import { allTeams } from './data.js';
 import { db } from './modules/config.js';
@@ -24,7 +24,7 @@ import { showFlashMessage } from './modules/gameUI.js';
 export async function initializePlayerPage() {
   console.log('🚀 Initializing player page...');
 
-  // 1️⃣ Identify the team
+  // 1️⃣ Identify team
   const params = new URLSearchParams(window.location.search);
   const currentTeamName =
     params.get('teamName')?.trim() ||
@@ -40,7 +40,7 @@ export async function initializePlayerPage() {
 
   localStorage.setItem('teamName', currentTeamName);
 
-  // 2️⃣ Validate team exists
+  // 2️⃣ Validate team
   const team = allTeams.find(t => t.name === currentTeamName);
   if (!team) {
     alert(`Team "${currentTeamName}" not found in data.js`);
@@ -48,23 +48,23 @@ export async function initializePlayerPage() {
     return;
   }
 
-  // 3️⃣ Initialize core UI + modules
+  // 3️⃣ Initialize UI + core modules
   try {
     initializePlayerUI(team, currentTeamName);
     setupPlayerChat(currentTeamName);
     initializeZones(currentTeamName);
     initializePlayerScoreboard();
   } catch (err) {
-    console.error('🔥 Error during module initialization:', err);
-    alert('Error initializing player modules. Check console.');
+    console.error('🔥 Error initializing player modules:', err);
+    alert('Error initializing player. Check console.');
     return;
   }
 
-  // 4️⃣ First paint: show waiting (we’ll override below if active)
+  // 4️⃣ Initial display
   showWaitingBanner();
-  setInlineTimer('--:--:--'); // make sure inline timer shows something
+  setInlineTimer('--:--:--');
 
-  // 5️⃣ If game is active NOW, start the timer immediately (don’t wait for snapshot)
+  // 5️⃣ If game already active, start timer immediately
   try {
     const gameDoc = await getDoc(doc(db, 'game', 'gameState'));
     const gameData = gameDoc.exists() ? gameDoc.data() : null;
@@ -75,111 +75,68 @@ export async function initializePlayerPage() {
       if (endTimestamp) {
         startPlayerTimer(endTimestamp);
         showFlashMessage('🏁 Game in Progress!', '#2e7d32', 1200);
-      } else {
-        console.warn('⚠️ Active game but no valid end time yet.', gameData);
       }
     }
   } catch (err) {
     console.error('⚠️ Could not fetch initial game state:', err);
   }
 
-  // 6️⃣ Live game state (pause/resume/finish + future resyncs)
+  // 6️⃣ Live game state sync (pause/resume/end)
   listenForGameStatus((state) => handleLiveGameState(state));
 
   console.log('✅ Player initialized for team:', currentTeamName);
 }
 
 // ============================================================================
-// 🧠 Helper: get end timestamp (ms) from a gameState object
+// 🧠 Compute end timestamp (supports Firestore Timestamp/object/number)
 // ============================================================================
 function getEndTimestampMs(data) {
   if (!data) return null;
 
-  // endTime (handle Timestamp, object, or number)
-  if (data.endTime) {
-    const endTime = data.endTime;
-    if (typeof endTime.toMillis === 'function') {
-      return endTime.toMillis();
-    } else if (endTime.seconds) {
-      return endTime.seconds * 1000 + Math.floor((endTime.nanoseconds || 0) / 1e6);
-    } else if (typeof endTime === 'number') {
-      return endTime;
-    }
+  const et = data.endTime;
+  if (et) {
+    if (typeof et.toMillis === 'function') return et.toMillis();
+    if (et.seconds) return et.seconds * 1000 + (et.nanoseconds || 0) / 1e6;
+    if (typeof et === 'number') return et;
   }
 
-  // startTime + durationMinutes
-  if (data.startTime && data.durationMinutes) {
-    const st = data.startTime;
-    if (typeof st.toMillis === 'function') {
-      return st.toMillis() + data.durationMinutes * 60 * 1000;
-    } else if (st.seconds) {
-      return st.seconds * 1000 + data.durationMinutes * 60 * 1000;
-    }
+  const st = data.startTime;
+  if (st && data.durationMinutes) {
+    if (typeof st.toMillis === 'function') return st.toMillis() + data.durationMinutes * 60 * 1000;
+    if (st.seconds) return st.seconds * 1000 + data.durationMinutes * 60 * 1000;
   }
 
-  // remainingMs (resume)
-  if (typeof data.remainingMs === 'number') {
-    return Date.now() + data.remainingMs;
-  }
-
+  if (typeof data.remainingMs === 'number') return Date.now() + data.remainingMs;
   return null;
 }
 
 // ============================================================================
-// 🕹️ HANDLE GAME STATE UPDATES
+// 🕹️ Handle game state updates
 // ============================================================================
-let lastRemainingMs = null;
 let playerTimerInterval = null;
 let pausedAt = null;
+let lastRemainingMs = null;
 
 function handleLiveGameState(state) {
-  const { status } = state || {};
+  const { status, endTime, startTime, durationMinutes, remainingMs } = state || {};
 
   switch (status) {
-    // 🟡 WAITING
-    case 'waiting': {
+    case 'waiting':
       showWaitingBanner();
       hidePausedOverlay();
-      setInlineTimer('--:--:--');
       pausePlayerTimer();
+      setInlineTimer('--:--:--');
       break;
-    }
 
-    // 🟢 ACTIVE
     case 'active': {
       removeWaitingBanner();
       hidePausedOverlay();
 
-      console.log("🧭 RAW gameState:", state);
-
-      let endTimestamp = null;
-      const { endTime, startTime, durationMinutes, remainingMs } = state;
-
-      // 🔍 Robust handling for all timestamp shapes
-      if (endTime) {
-        if (typeof endTime.toMillis === 'function') {
-          endTimestamp = endTime.toMillis();
-        } else if (endTime.seconds) {
-          endTimestamp = endTime.seconds * 1000 + Math.floor((endTime.nanoseconds || 0) / 1e6);
-        } else if (typeof endTime === 'number') {
-          endTimestamp = endTime;
-        }
-      }
-
-      // ⏰ Fallbacks
-      if (!endTimestamp && startTime?.seconds && durationMinutes) {
-        endTimestamp = startTime.seconds * 1000 + durationMinutes * 60 * 1000;
-      } else if (!endTimestamp && typeof remainingMs === 'number') {
-        endTimestamp = Date.now() + remainingMs;
-      }
-
-      console.log("⏱️ Calculated endTimestamp:", endTimestamp);
-
-      if (endTimestamp && !isNaN(endTimestamp)) {
+      let endTimestamp = getEndTimestampMs({ endTime, startTime, durationMinutes, remainingMs });
+      if (endTimestamp) {
         startPlayerTimer(endTimestamp);
         showFlashMessage('🏁 Game in Progress!', '#2e7d32', 1200);
       } else {
-        console.warn('⚠️ No valid end time found for timer sync (active).', state);
         setInlineTimer('--:--:--');
       }
 
@@ -187,8 +144,7 @@ function handleLiveGameState(state) {
       break;
     }
 
-    // ⏸️ PAUSED
-    case 'paused': {
+    case 'paused':
       pausedAt = Date.now();
       lastRemainingMs = stopAndCalculateRemaining();
       showPausedOverlay();
@@ -197,70 +153,77 @@ function handleLiveGameState(state) {
         setInlineTimer(formatHMS(lastRemainingMs));
       }
       break;
-    }
 
-    // 🏁 FINISHED / ENDED
     case 'finished':
-    case 'ended': {
+    case 'ended':
       pausePlayerTimer();
       setInlineTimer('00:00:00');
       hidePausedOverlay();
       showGameOverOverlay();
       showFlashMessage('🏁 Game Over! Return to base.', '#c62828', 3000);
       break;
-    }
 
     default:
-      console.warn('⚠️ Unknown status:', status);
       break;
   }
 }
 
 // ============================================================================
-// 🧭 UI HELPERS
+// 🧭 UI Helpers
 // ============================================================================
 function showWaitingBanner() {
   if (document.getElementById('waiting-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'waiting-banner';
   banner.textContent = '⏳ Waiting for the game to start...';
-  banner.style.cssText = `
-    position: fixed; top: 0; left: 0; width: 100%;
-    background: #333; color: white; text-align: center;
-    padding: 12px; font-weight: bold; z-index: 2000;
-  `;
+  Object.assign(banner.style, {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: '100%',
+    background: '#333',
+    color: 'white',
+    textAlign: 'center',
+    padding: '12px',
+    fontWeight: 'bold',
+    zIndex: '2000',
+  });
   document.body.appendChild(banner);
 }
+
 function removeWaitingBanner() {
   document.getElementById('waiting-banner')?.remove();
 }
+
 function setInlineTimer(text) {
   const el = document.getElementById('time-remaining');
   if (el) el.textContent = text;
+  // Only update inline spot (not floating)
   updatePlayerTimer(text);
 }
 
 // ============================================================================
-// ⏱️ TIMER HANDLERS
+// ⏱️ Timer Handlers
 // ============================================================================
 function startPlayerTimer(endTimestamp) {
   clearInterval(playerTimerInterval);
   window._currentEndTime = endTimestamp;
   updateTimerDisplay(endTimestamp);
-  playerTimerInterval = setInterval(() => {
-    updateTimerDisplay(endTimestamp);
-  }, 1000);
+  playerTimerInterval = setInterval(() => updateTimerDisplay(endTimestamp), 1000);
 }
+
 function pausePlayerTimer() {
   clearInterval(playerTimerInterval);
   playerTimerInterval = null;
 }
+
 function stopAndCalculateRemaining() {
   if (!window._currentEndTime) return null;
   const remaining = window._currentEndTime - Date.now();
   pausePlayerTimer();
   return remaining > 0 ? remaining : 0;
 }
+
 function formatHMS(ms) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(totalSeconds / 3600);
@@ -268,6 +231,7 @@ function formatHMS(ms) {
   const s = totalSeconds % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
+
 function updateTimerDisplay(endTimestamp) {
   const remaining = endTimestamp - Date.now();
   if (remaining <= 0) {

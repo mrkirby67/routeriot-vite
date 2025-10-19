@@ -1,12 +1,17 @@
 // ============================================================================
 // File: modules/playerUI.js
-// Purpose: Displays team info, roster, location, live timer, pause + game-over UI.
+// Purpose: Displays team info, roster, location, inline live timer, pause + game-over UI
 // ============================================================================
 
 import { db } from './config.js';
 import { allTeams } from '../data.js';
-import { onSnapshot, collection, query, where, doc }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  onSnapshot,
+  collection,
+  query,
+  where,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ---------------------------------------------------------------------------
 // DOM Helpers
@@ -49,9 +54,7 @@ export function initializePlayerUI(teamInput) {
   setText('team-name', team?.name || resolvedTeamName);
   setText('team-slogan', team?.slogan || 'Ready to race!');
 
-  ensureTimerDisplay(); // ensures timer overlay exists
-
-  // 👥 Team Roster
+  // 👥 Team Roster (live)
   const memberList = $('team-member-list');
   if (memberList) {
     const q = query(collection(db, "racers"), where("team", "==", resolvedTeamName));
@@ -73,7 +76,7 @@ export function initializePlayerUI(teamInput) {
     });
   }
 
-  // 📍 Location Tracking (updates live)
+  // 📍 Live Location Tracking
   const locationEl = $('player-location');
   if (locationEl) {
     const teamRef = doc(db, "teamStatus", resolvedTeamName);
@@ -84,7 +87,6 @@ export function initializePlayerUI(teamInput) {
       }
       const data = docSnap.data() || {};
 
-      // Handle blank/cleared location properly
       const zone = (data.lastKnownLocation && data.lastKnownLocation.trim() !== '')
         ? data.lastKnownLocation
         : 'No location yet';
@@ -99,7 +101,6 @@ export function initializePlayerUI(teamInput) {
           timeStr = data.timestamp.toDate().toLocaleTimeString();
       }
 
-      // Animate only when there's a meaningful update
       const display = zone === 'No location yet'
         ? '📍 No location yet.'
         : `📍 ${zone}${timeStr ? ` (updated ${timeStr})` : ''}`;
@@ -110,41 +111,11 @@ export function initializePlayerUI(teamInput) {
 }
 
 // ---------------------------------------------------------------------------
-// ⏱️ TIMER DISPLAY (supports inline + overlay fallback)
+// ⏱️ INLINE TIMER DISPLAY (no floating timer anymore)
 // ---------------------------------------------------------------------------
-function ensureTimerDisplay() {
-  // if #time-remaining exists in HTML, no floating timer needed
-  if ($('time-remaining') || $('player-timer')) return;
-
-  // Otherwise create floating fallback
-  const timerEl = document.createElement('div');
-  timerEl.id = 'player-timer';
-  timerEl.textContent = '--:--:--';
-  timerEl.style.cssText = `
-    position: fixed;
-    bottom: 12px;
-    right: 12px;
-    background: rgba(0,0,0,0.75);
-    color: #00ff90;
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-family: 'Courier New', monospace;
-    font-size: 1.4em;
-    letter-spacing: 1px;
-    z-index: 2500;
-    box-shadow: 0 0 6px rgba(0,255,144,0.5);
-    transition: opacity 0.4s ease;
-  `;
-  document.body.appendChild(timerEl);
-}
-
-// Update timer across both inline (#time-remaining) and overlay (#player-timer)
 export function updatePlayerTimer(text) {
   const inlineTimer = $('time-remaining');
   if (inlineTimer) inlineTimer.textContent = text;
-
-  if (!$('player-timer')) ensureTimerDisplay();
-  $('player-timer').textContent = text;
 }
 
 // ---------------------------------------------------------------------------
