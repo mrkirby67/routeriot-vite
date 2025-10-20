@@ -8,14 +8,31 @@
 import {
   GameControlsComponent, initializeGameControlsLogic
 } from './components/GameControls/GameControls.js';
-import { BugStrikeControlComponent, initializeBugStrikeControl } 
-  from './components/BugStrikeControl/BugStrikeControl.js';
-import { RacerManagementComponent, initializeRacerManagementLogic } from './components/RacerManagement/RacerManagement.js';
-import { ZoneManagementComponent, initializeZoneManagementLogic } from './components/ZoneManagement/ZoneManagement.js';
-import { ScoreboardComponent, initializeScoreboardListener } from './components/Scoreboard/Scoreboard.js';
-import { GameChallengesComponent, initializeGameChallengesLogic } from './components/GameChallenges/GameChallenges.js';
-import { BroadcastComponent, initializeBroadcastLogic } from './components/Broadcast/Broadcast.js';
+import {
+  BugStrikeControlComponent, initializeBugStrikeControl
+} from './components/BugStrikeControl/BugStrikeControl.js';
+import {
+  RacerManagementComponent, initializeRacerManagementLogic
+} from './components/RacerManagement/RacerManagement.js';
+import {
+  ZoneManagementComponent, initializeZoneManagementLogic
+} from './components/ZoneManagement/ZoneManagement.js';
+import {
+  ScoreboardComponent, initializeScoreboardListener
+} from './components/Scoreboard/Scoreboard.js';
+import {
+  GameChallengesComponent, initializeGameChallengesLogic
+} from './components/GameChallenges/GameChallenges.js';
+import {
+  BroadcastComponent, initializeBroadcastLogic
+} from './components/Broadcast/Broadcast.js';
 import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
+
+// 🧩 NEW: Zone Questions (Modular System)
+import {
+  ZoneQuestionsComponent,
+  initializeZoneQuestionsUI
+} from './components/ZoneQuestions/ZoneQuestions.js';
 
 import { listenToAllMessages } from './modules/chatManager.js';
 import { loadGoogleMapsApi } from './modules/googleMapsLoader.js';
@@ -39,7 +56,7 @@ async function main() {
   initializeRacerManagementLogic();
   initializeGameChallengesLogic();
   initializeBroadcastLogic();
-  initializeBugStrikeControl(); // ✅ Added Bug Strike Control initialization
+  initializeBugStrikeControl();
   listenToAllMessages();
 
   try {
@@ -50,13 +67,22 @@ async function main() {
     showFlashMessage('Map failed to load. Check API key.', '#c62828', 3000);
   }
 
+  // 🧩 Initialize the Zone Questions module after Firestore is ready
+  try {
+    await initializeZoneQuestionsUI();
+    console.log('✅ Zone Questions initialized.');
+  } catch (err) {
+    console.error('⚠️ Zone Questions init failed:', err);
+    showFlashMessage('⚠️ Failed to load Zone Questions.', '#ff9800', 3000);
+  }
+
   // 🔌 Wire control buttons
   wireGameControls();
 
   // 🧭 Watch status updates (standard UI elements)
   watchLiveGameStatus();
 
-  // ⏱️ NEW: Synced countdown display
+  // ⏱️ Synced countdown display
   listenForGameStatus((state) => handleControlTimer(state));
 }
 
@@ -131,12 +157,15 @@ function renderAllSections() {
   // Core control panels
   safeSetHTML('game-controls-container', GameControlsComponent());
   safeSetHTML('scoreboard-container', ScoreboardComponent());
-  safeSetHTML('bugstrike-control-container', BugStrikeControlComponent()); // ✅ Added render
+  safeSetHTML('bugstrike-control-container', BugStrikeControlComponent());
   safeSetHTML('team-links-container', TeamLinksComponent());
   safeSetHTML('racer-management-container', RacerManagementComponent());
   safeSetHTML('zone-management-container', ZoneManagementComponent());
   safeSetHTML('game-challenges-container', GameChallengesComponent());
   safeSetHTML('broadcast-container', BroadcastComponent());
+
+  // 🧩 Zone Questions UI panel
+  safeSetHTML('zone-questions-container', ZoneQuestionsComponent());
 }
 
 // ---------------------------------------------------------------------------
@@ -160,7 +189,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (status === 'active') {
       console.log('⚠️ Active game detected. Skipping cleanup.');
-      showFlashMessage('⚠️ Active game detected — skipping auto-clean to preserve data.', '#ff9800', 4000);
+      showFlashMessage(
+        '⚠️ Active game detected — skipping auto-clean to preserve data.',
+        '#ff9800',
+        4000
+      );
     } else {
       console.log('🧹 Performing initial cleanup before control panel loads...');
       await clearAllChatAndScores();

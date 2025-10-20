@@ -12,30 +12,44 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="manifest" href="/site.webmanifest" />
 </head>
+
 <body>
   <div class="container">
-    <!-- GAME CONTROLS RENDERED DYNAMICALLY -->
+    <!-- 🎮 Core Game Controls -->
     <div id="game-controls-container"></div>
 
-    <!-- BUG STRIKE CONTROL PANEL 🪰 -->
+    <!-- 🧮 Scoreboard -->
+    <div id="scoreboard-container"></div>
+
+    <!-- 🔗 Team Links -->
+    <div id="team-links-container"></div>
+
+    <!-- 🏁 Racer Management -->
+    <div id="racer-management-container"></div>
+
+    <!-- 🗺️ Zone Management -->
+    <div id="zone-management-container"></div>
+
+    <!-- ❓ Zone Questions (new) -->
+    <div id="zone-questions-container"></div>
+
+    <!-- 🪰 Bug Strike Control -->
     <div id="bugstrike-control-container"></div>
 
-    <!-- OTHER COMPONENT SECTIONS -->
-    <div id="scoreboard-container"></div>
-    <div id="team-links-container"></div>
-    <div id="racer-management-container"></div>
-    <div id="zone-management-container"></div>
+    <!-- 🧩 Game Challenges -->
     <div id="game-challenges-container"></div>
+
+    <!-- 📢 Broadcasts -->
     <div id="broadcast-container"></div>
 
-    <!-- Optional Manual Control Buttons -->
+    <!-- ⏯ Manual Controls -->
     <div class="manual-controls" style="text-align:center; margin-top:20px;">
       <button id="pause-btn">⏸️ Pause Game</button>
       <button id="resume-btn">▶️ Resume Game</button>
     </div>
   </div>
 
-  <!-- Modal for Team URL Distribution -->
+  <!-- 🧾 Modal -->
   <div id="roster-modal" class="modal-backdrop" style="display: none;">
     <div class="modal-content">
       <span class="modal-close-btn">&times;</span>
@@ -45,74 +59,70 @@
     </div>
   </div>
 
-  <!-- Main Control Script (inline orchestrator, matches your original flow) -->
+  <!-- 💡 Control Orchestrator -->
+  <script type="module" src="./control.js"></script>
+
+  <!-- Inline fallback (for dev mode / isolated testing) -->
+  <!--
   <script type="module">
     import {
-      GameControlsComponent,
-      initializeGameControlsLogic
+      GameControlsComponent, initializeGameControlsLogic
     } from './components/GameControls/GameControls.js';
-
     import {
-      BugStrikeControlComponent,
-      initializeBugStrikeControl
+      BugStrikeControlComponent, initializeBugStrikeControl
     } from './components/BugStrikeControl/BugStrikeControl.js';
-
     import {
-      RacerManagementComponent,
-      initializeRacerManagementLogic
+      RacerManagementComponent, initializeRacerManagementLogic
     } from './components/RacerManagement/RacerManagement.js';
-
     import {
-      ZoneManagementComponent,
-      initializeZoneManagementLogic
+      ZoneManagementComponent, initializeZoneManagementLogic
     } from './components/ZoneManagement/ZoneManagement.js';
-
     import {
-      ScoreboardComponent,
-      initializeScoreboardListener
+      ZoneQuestionsComponent, initializeZoneQuestionsUI
+    } from './components/ZoneQuestions/ZoneQuestions.js';
+    import {
+      ScoreboardComponent, initializeScoreboardListener
     } from './components/Scoreboard/Scoreboard.js';
-
     import {
-      GameChallengesComponent,
-      initializeGameChallengesLogic
+      GameChallengesComponent, initializeGameChallengesLogic
     } from './components/GameChallenges/GameChallenges.js';
-
-    import { BroadcastComponent, initializeBroadcastLogic } from './components/Broadcast/Broadcast.js';
+    import {
+      BroadcastComponent, initializeBroadcastLogic
+    } from './components/Broadcast/Broadcast.js';
     import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
-
     import { listenToAllMessages } from './modules/chatManager.js';
     import { loadGoogleMapsApi } from './modules/googleMapsLoader.js';
 
     async function main() {
-      // 1️⃣ Render components (DOM containers already exist above)
       document.getElementById('game-controls-container').innerHTML   = GameControlsComponent();
       document.getElementById('bugstrike-control-container').innerHTML = BugStrikeControlComponent();
-      document.getElementById('scoreboard-container').innerHTML      = ScoreboardComponent({ editable: true });
+      document.getElementById('scoreboard-container').innerHTML      = ScoreboardComponent();
       document.getElementById('team-links-container').innerHTML      = TeamLinksComponent();
       document.getElementById('racer-management-container').innerHTML= RacerManagementComponent();
       document.getElementById('zone-management-container').innerHTML = ZoneManagementComponent();
+      document.getElementById('zone-questions-container').innerHTML  = ZoneQuestionsComponent();
       document.getElementById('game-challenges-container').innerHTML = GameChallengesComponent();
       document.getElementById('broadcast-container').innerHTML       = BroadcastComponent();
 
-      // 2️⃣ Initialize logic
-      initializeScoreboardListener({ editable: true });
+      initializeScoreboardListener();
       initializeGameControlsLogic();
-      initializeBugStrikeControl();        // 🪰 wire up Bug Strike control panel
+      initializeBugStrikeControl();
       initializeRacerManagementLogic();
       initializeGameChallengesLogic();
       initializeBroadcastLogic();
       listenToAllMessages();
 
-      // 3️⃣ Load Google Maps & Zones
       try {
         await loadGoogleMapsApi();
         initializeZoneManagementLogic(true);
+        await initializeZoneQuestionsUI();
       } catch (err) {
-        console.error('❌ Failed to load Google Maps API', err);
+        console.error('❌ Failed to load Maps or Questions:', err);
       }
     }
 
     document.addEventListener('DOMContentLoaded', main);
   </script>
+  -->
 </body>
 </html>
