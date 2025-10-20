@@ -5,7 +5,13 @@
 // ============================================================================
 
 import { db } from './config.js';
-import { collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ---------------------------------------------------------------------------
 // ⚙️ State
@@ -13,6 +19,8 @@ import { collection, onSnapshot, query, where } from "https://www.gstatic.com/fi
 let bugStrikeActive = false;
 let bugStrikeTimer = null;
 let timeRemaining = 0;
+let lastProcessedTime = 0;
+let lastBugStrikeTime = 0; // ⏱️ Cooldown between Bug Strikes (ms)
 
 // ---------------------------------------------------------------------------
 // 🎯 Start listening for Bug Strike messages (for this team only)
@@ -24,15 +32,34 @@ export function initializeBugStrikeListener(teamName) {
   }
 
   const commRef = collection(db, 'communications');
-  const q = query(commRef, where('to', '==', teamName), where('type', '==', 'bugStrike'));
+  const q = query(
+    commRef,
+    where('to', '==', teamName),
+    where('type', '==', 'bugStrike'),
+    orderBy('timestamp', 'desc')
+  );
 
   onSnapshot(q, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
-      if (change.type === 'added') {
-        const data = change.doc.data();
-        console.log(`🪰 Bug Strike received for ${teamName}!`);
-        triggerBugStrikeEffect(data.from);
+      if (change.type !== 'added') return;
+
+      const data = change.doc.data();
+      const ts = data.timestamp?.seconds || 0;
+
+      // Ignore old strikes and cooldown overlap
+      if (ts <= lastProcessedTime) return;
+
+      const now = Date.now();
+      if (now - lastBugStrikeTime < 5000) {
+        console.log('🛑 Ignored overlapping Bug Strike (5s cooldown)');
+        return;
       }
+
+      lastProcessedTime = ts;
+      lastBugStrikeTime = now;
+
+      console.log(`🪰 Bug Strike received for ${teamName}!`);
+      triggerBugStrikeEffect(data.from);
     });
   });
 
@@ -43,7 +70,10 @@ export function initializeBugStrikeListener(teamName) {
 // 💥 Trigger the full Bug Strike sequence
 // ---------------------------------------------------------------------------
 function triggerBugStrikeEffect(fromTeam) {
-  if (bugStrikeActive) return; // already active — ignore spam
+  if (bugStrikeActive) {
+    console.log('🛑 Ignoring Bug Strike — one already active.');
+    return;
+  }
   bugStrikeActive = true;
 
   timeRemaining = 120; // seconds

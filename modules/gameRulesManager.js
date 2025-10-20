@@ -8,12 +8,15 @@ import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/
 export async function loadRules(rulesTextArea) {
   const rulesDocRef = doc(db, 'settings', 'rules');
   const snap = await getDoc(rulesDocRef);
-  rulesTextArea.value = snap.exists() ? (snap.data().content || '') : 'Enter your Route Riot rules here...';
+  rulesTextArea.value = snap.exists()
+    ? (snap.data().content || '')
+    : 'Enter your Route Riot rules here...';
 }
 
 export async function saveRules(rulesTextArea) {
   const rulesDocRef = doc(db, 'settings', 'rules');
   await setDoc(rulesDocRef, { content: rulesTextArea.value.trim() }, { merge: true });
+  // Replace blocking alert with inline UI feedback if preferred
   alert('✅ Rules saved!');
 }
 
@@ -36,9 +39,12 @@ export function initializeGameTimer(timerDisplay) {
   onSnapshot(gameDocRef, (docSnap) => {
     if (gameTimerInterval) clearInterval(gameTimerInterval);
     const gs = docSnap.data();
+
     if (gs && gs.status === 'active' && gs.endTime) {
+      const endMs = gs.endTime?.toMillis ? gs.endTime.toMillis() : gs.endTime;
+
       gameTimerInterval = setInterval(() => {
-        const remaining = gs.endTime - Date.now();
+        const remaining = endMs - Date.now();
         if (remaining <= 0) {
           timerDisplay.textContent = '00:00:00';
           clearInterval(gameTimerInterval);
@@ -46,7 +52,7 @@ export function initializeGameTimer(timerDisplay) {
           const h = Math.floor((remaining / 3_600_000) % 24);
           const m = Math.floor((remaining / 60_000) % 60);
           const s = Math.floor((remaining / 1_000) % 60);
-          timerDisplay.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+          timerDisplay.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
       }, 1000);
     } else {
@@ -62,26 +68,40 @@ export function initializeGameTimer(timerDisplay) {
 import { allTeams } from '../data.js';
 import { emailAllTeams } from './emailTeams.js';
 import { db } from './config.js';
-import { getDocs, collection, writeBatch, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getDocs,
+  collection,
+  writeBatch,
+  doc,
+  setDoc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-export async function randomizeTeams(teamSize) {
+export async function randomizeTeams(teamSize = 2) {
   const snap = await getDocs(collection(db, 'racers'));
   const racers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.name);
 
+  if (racers.length === 0) {
+    alert('⚠️ No racers found in Firestore.');
+    return;
+  }
+
+  // Shuffle racers
   for (let i = racers.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [racers[i], racers[j]] = [racers[j], racers[i]];
   }
 
+  // Assign teams
   const batch = writeBatch(db);
   racers.forEach((r, i) => {
     const tIndex = Math.floor(i / teamSize);
     const team = allTeams[tIndex % allTeams.length];
-    batch.update(doc(db, 'racers', r.id), { team: team.name });
+    batch.set(doc(db, 'racers', r.id), { team: team.name }, { merge: true });
   });
 
   await batch.commit();
-  alert('🎲 Teams randomized!');
+  alert(`🎲 ${Math.ceil(racers.length / teamSize)} teams randomized!`);
 }
 
 export async function emailTeams(rulesDocRef) {
@@ -118,11 +138,19 @@ export async function emailTeams(rulesDocRef) {
 // MODULE 4: gameStateManager.js
 // Purpose: Handles start, pause, and end states of the game.
 // ============================================================================
-import { collection, doc, getDocs, setDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  addDoc,
+  Timestamp,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-export async function startGame(gameDuration) {
+export async function startGame(gameDuration = 120) {
   const mins = Number(gameDuration) || 120;
-  const endTime = Date.now() + mins * 60 * 1000;
+  const endTime = Timestamp.fromMillis(Date.now() + mins * 60 * 1000);
 
   const racersSnap = await getDocs(collection(db, 'racers'));
   const teamsInPlay = new Set();
@@ -134,6 +162,7 @@ export async function startGame(gameDuration) {
   await setDoc(doc(db, 'game', 'activeTeams'), { list: Array.from(teamsInPlay) }, { merge: true });
   await setDoc(doc(db, 'game', 'gameState'), {
     status: 'active',
+    startTime: serverTimestamp(),
     endTime,
     zonesReleased: true,
     dataVersion: Date.now()
@@ -193,11 +222,18 @@ export async function endGame() {
 // MODULE 5: gameMaintenance.js
 // Purpose: Handles resets, wipes, and maintenance tasks.
 // ============================================================================
-import { writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  writeBatch,
+  getDocs,
+  doc,
+  collection
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from './config.js';
 
 export async function resetFullGame() {
   if (!confirm('ARE YOU SURE?\nThis will permanently delete all game data.')) return;
   alert('Resetting game data...');
+
   try {
     const batch = writeBatch(db);
     batch.set(doc(db, 'game', 'gameState'), {
@@ -208,12 +244,10 @@ export async function resetFullGame() {
     batch.delete(doc(db, 'game', 'activeTeams'));
 
     const racers = await getDocs(collection(db, 'racers'));
-    racers.forEach(r => batch.update(r.ref, { team: '-' }));
+    racers.forEach(r => batch.set(r.ref, { team: '-' }, { merge: true }));
 
     const zones = await getDocs(collection(db, 'zones'));
-    zones.forEach(z => batch.update(z.ref, {
-      status: 'Available', controllingTeam: ''
-    }));
+    zones.forEach(z => batch.set(z.ref, { status: 'Available', controllingTeam: '' }, { merge: true }));
 
     const scores = await getDocs(collection(db, 'scores'));
     scores.forEach(s => batch.delete(s.ref));

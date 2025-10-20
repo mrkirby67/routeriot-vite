@@ -2,7 +2,6 @@
 // MODULE: gameTimer.js (FULLY SYNCED + STABLE PAUSE/RESUME)
 // Purpose: Keeps control + player timers synchronized in real-time via Firestore
 // ============================================================================
-
 import { db } from './config.js';
 import {
   onSnapshot,
@@ -10,7 +9,7 @@ import {
   serverTimestamp,
   updateDoc,
   getDoc,
-  Timestamp,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 let timerInterval = null;
@@ -65,26 +64,30 @@ export function clearElapsedTimer() {
 }
 
 // ---------------------------------------------------------------------------
-// ⏸️ Pause (control-side): saves remainingMs, removes endTime
+// ⏸️ Pause Game Timer (Control-side)
 // ---------------------------------------------------------------------------
 export async function pauseGameTimer() {
   try {
     const ref = doc(db, 'game', 'gameState');
     const snap = await getDoc(ref);
-    if (!snap.exists()) throw new Error("No gameState doc.");
+    if (!snap.exists()) throw new Error("No gameState document found.");
 
     const data = snap.data();
     const now = Date.now();
-    const endTimeMs = data.endTime?.toMillis?.() ?? data.endTime?.getTime?.();
-    const remainingMs = endTimeMs
-      ? Math.max(endTimeMs - now, 0)
-      : currentRemainingMs ?? 0;
+
+    // Safely compute remaining time
+    let remainingMs = 0;
+    if (data.endTime?.toMillis) {
+      remainingMs = Math.max(data.endTime.toMillis() - now, 0);
+    } else if (currentRemainingMs != null) {
+      remainingMs = Math.max(currentRemainingMs, 0);
+    }
 
     await updateDoc(ref, {
       status: 'paused',
       remainingMs,
       endTime: null,
-      updatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     });
 
     clearElapsedTimer();
@@ -95,13 +98,13 @@ export async function pauseGameTimer() {
 }
 
 // ---------------------------------------------------------------------------
-// ▶️ Resume (control-side): restores endTime and restarts
+// ▶️ Resume Game Timer (Control-side)
 // ---------------------------------------------------------------------------
 export async function resumeGameTimer() {
   try {
     const ref = doc(db, 'game', 'gameState');
     const snap = await getDoc(ref);
-    if (!snap.exists()) throw new Error("No gameState doc.");
+    if (!snap.exists()) throw new Error("No gameState document found.");
 
     const data = snap.data();
     const now = Date.now();
@@ -112,7 +115,7 @@ export async function resumeGameTimer() {
       status: 'active',
       endTime: newEndTime,
       remainingMs: null,
-      updatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     });
 
     console.log(`▶️ Resumed — new endTime = ${newEndTime.toDate().toLocaleTimeString()}`);
@@ -122,11 +125,14 @@ export async function resumeGameTimer() {
 }
 
 // ---------------------------------------------------------------------------
-// 📡 Live sync for all clients (control + player)
+// 📡 Live Sync for All Clients (Control + Player)
 // ---------------------------------------------------------------------------
 export function listenToGameTimer() {
   const display = document.getElementById('timer-display');
-  if (!display) return;
+  if (!display) {
+    console.warn('⏱️ Timer display not found — skipping listener init.');
+    return;
+  }
 
   const ref = doc(db, 'game', 'gameState');
 
@@ -137,7 +143,7 @@ export function listenToGameTimer() {
     const { status, endTime, startTime, durationMinutes, remainingMs } = data;
     let endMs = null;
 
-    // Resolve a reliable end timestamp
+    // Compute valid end timestamp
     if (endTime?.toMillis) {
       endMs = endTime.toMillis();
     } else if (startTime?.toMillis && durationMinutes) {

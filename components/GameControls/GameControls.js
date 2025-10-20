@@ -1,13 +1,12 @@
 // ============================================================================
 // FILE: components/GameControls/GameControls.js
 // PURPOSE: Main control dashboard for starting, pausing, ending, and resetting games.
-// UPDATED: Animated Top 3 broadcast + emoji confetti + distinct Clear Chat / Clear All
+// UPDATED: Integrated gameMaintenance.js (resetFullGame / clearChatsAndScores)
 // ============================================================================
 
 import { db } from '../../modules/config.js';
 import { allTeams } from '../../data.js';
 import { emailAllTeams } from '../../modules/emailTeams.js';
-import { clearAllChatAndScores, clearChatOnly } from '../../modules/controlStatus.js';
 import {
   doc,
   setDoc,
@@ -21,6 +20,11 @@ import {
 
 import { listenToGameTimer, clearElapsedTimer } from '../../modules/gameTimer.js';
 import { pauseGame, resumeGame } from '../../modules/gameStateManager.js';
+import {
+  resetFullGame,
+  clearChatsAndScores
+} from '../../modules/gameMaintenance.js'; // 🧹 new imports
+
 import styles from './GameControls.module.css';
 
 // ============================================================================
@@ -271,8 +275,8 @@ export function initializeGameControlsLogic() {
 
   // 💬 CLEAR CHAT ONLY
   clearChatBtn.addEventListener('click', async () => {
-    if (confirm('Clear all chat?')) {
-      await clearChatOnly();
+    if (confirm('Clear all chat messages?')) {
+      await clearChatsAndScores(); // uses maintenance.js function
       await addDoc(collection(db, 'communications'), {
         teamName: 'Game Master',
         message: '💬 All chats cleared by Control.',
@@ -283,25 +287,27 @@ export function initializeGameControlsLogic() {
     }
   });
 
-  // 🔄 RESET GAME
+  // 🔄 RESET GAME (full reset)
   resetBtn.addEventListener('click', async () => {
-    if (!confirm('Reset all game data?')) return;
-    const batch = writeBatch(db);
-    batch.set(doc(db, 'game', 'gameState'), { status: 'waiting', zonesReleased: false, updatedAt: serverTimestamp() });
-    batch.delete(doc(db, 'game', 'activeTeams'));
-    await batch.commit();
+    await resetFullGame();
+    await addDoc(collection(db, 'communications'), {
+      teamName: 'Game Master',
+      message: '🔄 Game has been fully reset.',
+      isBroadcast: true,
+      timestamp: new Date()
+    });
     showAnimatedBanner('🔄 Game Reset', '#ffa000');
   });
 
-  // 🧹 CLEAR ALL
+  // 🧹 CLEAR ALL (chat + scores)
   clearScoresBtn.addEventListener('click', async () => {
-    if (!confirm('⚠️ Clear ALL chat, scores, zones, and locations?')) return;
-    await clearAllChatAndScores();
+    if (!confirm('⚠️ Clear ALL chat, scores, zones, and team status?')) return;
+    await clearChatsAndScores();
     const teamSnap = await getDocs(collection(db, 'teamStatus'));
     for (const t of teamSnap.docs) await deleteDoc(t.ref);
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',
-      message: '🧹 All chat, scores, zones & locations cleared by Control.',
+      message: '🧹 All chat, scores, zones & team data cleared by Control.',
       isBroadcast: true,
       timestamp: new Date()
     });

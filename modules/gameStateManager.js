@@ -32,26 +32,24 @@ let countdownShown = false;
 // ---------------------------------------------------------------------------
 export async function setGameStatus(status, zonesReleased = false, durationMinutes = 60) {
   try {
-    const base = {
+    const now = Date.now();
+    const payload = {
       status,
       zonesReleased,
       updatedAt: serverTimestamp(),
     };
 
     if (status === 'active') {
-      const now = Date.now();
-      base.startTime = Timestamp.fromMillis(now);
-      base.endTime = Timestamp.fromMillis(now + durationMinutes * 60 * 1000);
-      base.durationMinutes = durationMinutes;
-      base.remainingMs = null;
+      payload.startTime = Timestamp.fromMillis(now);
+      payload.endTime = Timestamp.fromMillis(now + durationMinutes * 60 * 1000);
+      payload.durationMinutes = durationMinutes;
+      payload.remainingMs = null;
+    } else if (status === 'finished' || status === 'ended') {
+      payload.endTime = serverTimestamp();
+      payload.remainingMs = null;
     }
 
-    if (status === 'finished' || status === 'ended') {
-      base.endTime = serverTimestamp();
-      base.remainingMs = null;
-    }
-
-    await setDoc(gameStateRef, base, { merge: true });
+    await setDoc(gameStateRef, payload, { merge: true });
     console.log(`✅ Game state set to "${status}"`);
   } catch (err) {
     console.error("❌ Error setting game status:", err);
@@ -66,10 +64,12 @@ export async function pauseGame() {
     const snap = await getDoc(gameStateRef);
     if (!snap.exists()) throw new Error("Game state not found");
     const data = snap.data();
-    if (!data.endTime) throw new Error("No end time set");
 
-    const endTimeMs = data.endTime.toMillis?.() ?? data.endTime.getTime?.();
-    const remainingMs = Math.max(endTimeMs - Date.now(), 0);
+    let endTimeMs = null;
+    if (data.endTime?.toMillis) endTimeMs = data.endTime.toMillis();
+    else if (data.endTime?.getTime) endTimeMs = data.endTime.getTime();
+
+    const remainingMs = endTimeMs ? Math.max(endTimeMs - Date.now(), 0) : data.remainingMs ?? 0;
 
     await updateDoc(gameStateRef, {
       status: 'paused',
@@ -78,7 +78,7 @@ export async function pauseGame() {
       updatedAt: serverTimestamp(),
     });
 
-    console.log(`⏸️ Game paused with ${Math.floor(remainingMs / 1000)}s remaining`);
+    console.log(`⏸️ Game paused (${Math.floor(remainingMs / 1000)}s remaining)`);
   } catch (err) {
     console.error("❌ Error pausing game:", err);
   }
@@ -92,10 +92,9 @@ export async function resumeGame() {
     const snap = await getDoc(gameStateRef);
     if (!snap.exists()) throw new Error("Game state not found");
     const data = snap.data();
-    if (!data.remainingMs) throw new Error("No remaining time recorded");
 
-    const now = Date.now();
-    const newEndTime = Timestamp.fromMillis(now + data.remainingMs);
+    const remainingMs = data.remainingMs ?? 0;
+    const newEndTime = Timestamp.fromMillis(Date.now() + remainingMs);
 
     await updateDoc(gameStateRef, {
       status: 'active',
@@ -104,7 +103,7 @@ export async function resumeGame() {
       updatedAt: serverTimestamp(),
     });
 
-    console.log("▶️ Game resumed!");
+    console.log(`▶️ Game resumed (ends at ${newEndTime.toDate().toLocaleTimeString()})`);
   } catch (err) {
     console.error("❌ Error resuming game:", err);
   }
@@ -139,7 +138,6 @@ function handleGameStateUpdate({
   const statusEl = document.getElementById('game-status');
   if (statusEl) statusEl.textContent = status.toUpperCase();
 
-  // Global flag for zone unlocking
   window.zonesEnabled = status === 'active' && zonesReleased;
 
   switch (status) {
@@ -168,7 +166,7 @@ function handleGameStateUpdate({
       if (endMs) startCountdownTimer?.(endMs);
       else {
         clearElapsedTimer?.();
-        console.warn("⚠️ No endMs found for timer display.");
+        console.warn("⚠️ No valid end time for countdown.");
       }
       break;
     }
@@ -185,7 +183,8 @@ function handleGameStateUpdate({
       break;
 
     default:
-      console.warn(`⚠️ Unknown status: ${status}`);
+      console.warn(`⚠️ Unknown status "${status}"`);
+      clearElapsedTimer?.();
   }
 }
 
@@ -224,7 +223,7 @@ export function listenForGameStatus(callback) {
 }
 
 // ---------------------------------------------------------------------------
-// 🔁 Reset Game State (admin only)
+// 🔁 Reset Game State (Admin only)
 // ---------------------------------------------------------------------------
 export async function resetGameState() {
   try {
@@ -245,10 +244,8 @@ export async function resetGameState() {
 }
 
 // ---------------------------------------------------------------------------
-// 🪐 Future Hook (optional per-team sync)
+// 🪐 Per-Team Sync Hook (future use)
 // ---------------------------------------------------------------------------
-// In future, call this to mark per-team status in "teamStatus/{teamName}"
-// Example: await updateTeamState(teamName, { gameStatus: status });
 export async function updateTeamState(teamName, data = {}) {
   if (!teamName) return;
   try {
