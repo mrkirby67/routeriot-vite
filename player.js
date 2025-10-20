@@ -1,6 +1,7 @@
 // ============================================================================
 // File: player.js
 // Purpose: Player-side entry point with synced countdown + pause/resume logic
+// Updated: Added 🪰 Bug Strike listener for chaos overlay
 // ============================================================================
 import { allTeams } from './data.js';
 import { db } from './modules/config.js';
@@ -16,6 +17,7 @@ import {
 } from './modules/playerUI.js';
 import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
+import { initializeBugStrikeListener } from './modules/playerBugStrikeUI.js'; // 🪰 NEW
 
 // ============================================================================
 // MAIN INITIALIZATION
@@ -53,6 +55,9 @@ export async function initializePlayerPage() {
     setupPlayerChat(currentTeamName);
     initializeZones(currentTeamName);
     initializePlayerScoreboard();
+
+    // 🪰 Initialize Bug Strike listener
+    initializeBugStrikeListener(currentTeamName);
   } catch (err) {
     console.error('🔥 Error initializing player modules:', err);
     alert('Error initializing player. Check console.');
@@ -195,8 +200,7 @@ function removeWaitingBanner() {
 }
 
 function setInlineTimer(text) {
-  // ✅ Write ONLY to the Game Info spot
-  const el = document.getElementById('timer-display'); // << matches your HTML
+  const el = document.getElementById('timer-display');
   if (el) el.textContent = text;
 }
 

@@ -17,6 +17,9 @@
     <!-- GAME CONTROLS RENDERED DYNAMICALLY -->
     <div id="game-controls-container"></div>
 
+    <!-- BUG STRIKE CONTROL PANEL 🪰 -->
+    <div id="bugstrike-control-container"></div>
+
     <!-- OTHER COMPONENT SECTIONS -->
     <div id="scoreboard-container"></div>
     <div id="team-links-container"></div>
@@ -36,37 +39,65 @@
   <div id="roster-modal" class="modal-backdrop" style="display: none;">
     <div class="modal-content">
       <span class="modal-close-btn">&times;</span>
-      <h2>Team Rosters & Links</h2>
+      <h2>Team Rosters &amp; Links</h2>
       <p>Email the unique player URL to each team captain.</p>
       <div id="roster-modal-body"></div>
     </div>
   </div>
 
-  <!-- Main Control Script -->
+  <!-- Main Control Script (inline orchestrator, matches your original flow) -->
   <script type="module">
-    import { GameControlsComponent, initializeGameControlsLogic } from './components/GameControls/GameControls.js';
-    import { RacerManagementComponent, initializeRacerManagementLogic } from './components/RacerManagement/RacerManagement.js';
-    import { ZoneManagementComponent, initializeZoneManagementLogic } from './components/ZoneManagement/ZoneManagement.js';
-    import { ScoreboardComponent, initializeScoreboardListener } from './components/Scoreboard/Scoreboard.js';
-    import { GameChallengesComponent, initializeGameChallengesLogic } from './components/GameChallenges/GameChallenges.js';
+    import {
+      GameControlsComponent,
+      initializeGameControlsLogic
+    } from './components/GameControls/GameControls.js';
+
+    import {
+      BugStrikeControlComponent,
+      initializeBugStrikeControl
+    } from './components/BugStrikeControl/BugStrikeControl.js';
+
+    import {
+      RacerManagementComponent,
+      initializeRacerManagementLogic
+    } from './components/RacerManagement/RacerManagement.js';
+
+    import {
+      ZoneManagementComponent,
+      initializeZoneManagementLogic
+    } from './components/ZoneManagement/ZoneManagement.js';
+
+    import {
+      ScoreboardComponent,
+      initializeScoreboardListener
+    } from './components/Scoreboard/Scoreboard.js';
+
+    import {
+      GameChallengesComponent,
+      initializeGameChallengesLogic
+    } from './components/GameChallenges/GameChallenges.js';
+
     import { BroadcastComponent, initializeBroadcastLogic } from './components/Broadcast/Broadcast.js';
     import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
+
     import { listenToAllMessages } from './modules/chatManager.js';
     import { loadGoogleMapsApi } from './modules/googleMapsLoader.js';
 
     async function main() {
-      // 1️⃣ Render components
-      document.getElementById('game-controls-container').innerHTML = GameControlsComponent();
-      document.getElementById('scoreboard-container').innerHTML = ScoreboardComponent({ editable: true });
-      document.getElementById('team-links-container').innerHTML = TeamLinksComponent();
-      document.getElementById('racer-management-container').innerHTML = RacerManagementComponent();
+      // 1️⃣ Render components (DOM containers already exist above)
+      document.getElementById('game-controls-container').innerHTML   = GameControlsComponent();
+      document.getElementById('bugstrike-control-container').innerHTML = BugStrikeControlComponent();
+      document.getElementById('scoreboard-container').innerHTML      = ScoreboardComponent({ editable: true });
+      document.getElementById('team-links-container').innerHTML      = TeamLinksComponent();
+      document.getElementById('racer-management-container').innerHTML= RacerManagementComponent();
       document.getElementById('zone-management-container').innerHTML = ZoneManagementComponent();
       document.getElementById('game-challenges-container').innerHTML = GameChallengesComponent();
-      document.getElementById('broadcast-container').innerHTML = BroadcastComponent();
+      document.getElementById('broadcast-container').innerHTML       = BroadcastComponent();
 
       // 2️⃣ Initialize logic
       initializeScoreboardListener({ editable: true });
       initializeGameControlsLogic();
+      initializeBugStrikeControl();        // 🪰 wire up Bug Strike control panel
       initializeRacerManagementLogic();
       initializeGameChallengesLogic();
       initializeBroadcastLogic();

@@ -1,0 +1,64 @@
+/* ============================================================================
+   FILE: BugStrikeControl.module.css
+   PURPOSE: Styling for Bug Strike control panel on Control dashboard
+   ============================================================================ */
+
+.controlSection {
+  background: #1e1e1e;
+  color: #fff;
+  padding: 16px;
+  margin-top: 12px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+}
+
+.controlSection h2 {
+  margin-bottom: 12px;
+  color: #76ff03;
+  text-shadow: 0 0 4px rgba(118, 255, 3, 0.4);
+}
+
+.settingsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+.settingsRow label {
+  font-weight: bold;
+  min-width: 160px;
+}
+
+.numberInput {
+  width: 70px;
+  padding: 5px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #111;
+  color: #0f0;
+  text-align: center;
+}
+
+.launchButton {
+  background: linear-gradient(145deg, #00e676, #007e33);
+  color: #000;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s ease-in;
+}
+
+.launchButton:hover {
+  transform: scale(1.05);
+  background: linear-gradient(145deg, #76ff03, #43a047);
+}
+
+.cooldownNotice {
+  font-size: 0.9rem;
+  color: #ffb74d;
+  margin-top: 4px;
+}

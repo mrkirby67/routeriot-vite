@@ -8,6 +8,8 @@
 import {
   GameControlsComponent, initializeGameControlsLogic
 } from './components/GameControls/GameControls.js';
+import { BugStrikeControlComponent, initializeBugStrikeControl } 
+  from './components/BugStrikeControl/BugStrikeControl.js';
 import { RacerManagementComponent, initializeRacerManagementLogic } from './components/RacerManagement/RacerManagement.js';
 import { ZoneManagementComponent, initializeZoneManagementLogic } from './components/ZoneManagement/ZoneManagement.js';
 import { ScoreboardComponent, initializeScoreboardListener } from './components/Scoreboard/Scoreboard.js';
@@ -18,7 +20,7 @@ import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
 import { listenToAllMessages } from './modules/chatManager.js';
 import { loadGoogleMapsApi } from './modules/googleMapsLoader.js';
 import { wireGameControls } from './modules/controlUI.js';
-import { watchLiveGameStatus, clearAllChatAndScores } from './modules/controlStatus.js'; // ✅ Added clearAllChatAndScores
+import { watchLiveGameStatus, clearAllChatAndScores } from './modules/controlStatus.js';
 import { listenForGameStatus } from './modules/gameStateManager.js';
 import { showFlashMessage, startCountdownTimer, clearElapsedTimer } from './modules/gameUI.js';
 import { db } from './modules/config.js';
@@ -31,11 +33,13 @@ const GAME_STATE_REF = doc(db, "game", "gameState");
 // ---------------------------------------------------------------------------
 async function main() {
   renderAllSections();
+
   initializeScoreboardListener();
   initializeGameControlsLogic();
   initializeRacerManagementLogic();
   initializeGameChallengesLogic();
   initializeBroadcastLogic();
+  initializeBugStrikeControl(); // ✅ Added Bug Strike Control initialization
   listenToAllMessages();
 
   try {
@@ -124,8 +128,10 @@ function renderAllSections() {
     document.body.prepend(timerDiv);
   }
 
+  // Core control panels
   safeSetHTML('game-controls-container', GameControlsComponent());
   safeSetHTML('scoreboard-container', ScoreboardComponent());
+  safeSetHTML('bugstrike-control-container', BugStrikeControlComponent()); // ✅ Added render
   safeSetHTML('team-links-container', TeamLinksComponent());
   safeSetHTML('racer-management-container', RacerManagementComponent());
   safeSetHTML('zone-management-container', ZoneManagementComponent());
