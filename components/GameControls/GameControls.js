@@ -1,13 +1,13 @@
 // ============================================================================
 // FILE: components/GameControls/GameControls.js
 // PURPOSE: Main control dashboard for starting, pausing, ending, and resetting games.
-// UPDATED: Adds animated Top 3 broadcast + emoji confetti + full "🧹 Clear All"
+// UPDATED: Animated Top 3 broadcast + emoji confetti + distinct Clear Chat / Clear All
 // ============================================================================
 
 import { db } from '../../modules/config.js';
 import { allTeams } from '../../data.js';
 import { emailAllTeams } from '../../modules/emailTeams.js';
-import { clearAllChatAndScores } from '../../modules/controlStatus.js';
+import { clearAllChatAndScores, clearChatOnly } from '../../modules/controlStatus.js';
 import {
   doc,
   setDoc,
@@ -15,7 +15,6 @@ import {
   getDocs,
   collection,
   addDoc,
-  getDoc,
   deleteDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -25,31 +24,31 @@ import { pauseGame, resumeGame } from '../../modules/gameStateManager.js';
 import styles from './GameControls.module.css';
 
 // ============================================================================
-// 🎉  Animated Broadcast Banner
+// 🎉 Animated Broadcast Banner
 // ============================================================================
 function showAnimatedBanner(message, color = '#7b1fa2') {
   let banner = document.getElementById('top3-banner');
   if (!banner) {
     banner = document.createElement('div');
     banner.id = 'top3-banner';
-    banner.style.cssText = `
-      position: fixed;
-      top: 25%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: ${color};
-      color: white;
-      padding: 25px 40px;
-      border-radius: 10px;
-      font-size: 2rem;
-      font-weight: bold;
-      text-align: center;
-      opacity: 0;
-      z-index: 9999;
-      transition: opacity 1s ease-in-out;
-      box-shadow: 0 0 25px rgba(0,0,0,0.5);
-      white-space: pre-line;
-    `;
+    banner.style.cssText = [
+      'position: fixed;',
+      'top: 25%;',
+      'left: 50%;',
+      'transform: translateX(-50%);',
+      `background: ${color};`,
+      'color: white;',
+      'padding: 25px 40px;',
+      'border-radius: 10px;',
+      'font-size: 2rem;',
+      'font-weight: bold;',
+      'text-align: center;',
+      'opacity: 0;',
+      'z-index: 9999;',
+      'transition: opacity 1s ease-in-out;',
+      'box-shadow: 0 0 25px rgba(0,0,0,0.5);',
+      'white-space: pre-line;'
+    ].join(' ');
     document.body.appendChild(banner);
   }
   banner.style.background = color;
@@ -59,23 +58,24 @@ function showAnimatedBanner(message, color = '#7b1fa2') {
 }
 
 // ============================================================================
-// 🎊  Confetti Burst (emoji only, lightweight)
+// 🎊 Confetti Burst (emoji only)
 // ============================================================================
 function launchConfetti() {
-  const emojis = ['🎉','✨','🎊','🥳','🏁','🎇','🏆'];
+  const emojis = ['🎉', '✨', '🎊', '🥳', '🏁', '🎇', '🏆'];
   const count = 30;
-
   for (let i = 0; i < count; i++) {
     const el = document.createElement('div');
     el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-    el.style.position = 'fixed';
-    el.style.left = Math.random() * 100 + 'vw';
-    el.style.top = '-5vh';
-    el.style.fontSize = Math.random() * 24 + 16 + 'px';
-    el.style.opacity = '0.9';
-    el.style.transform = `rotate(${Math.random() * 360}deg)`;
-    el.style.transition = 'transform 3s ease-in, top 3s ease-in, opacity 3s ease-out';
-    el.style.zIndex = '9999';
+    el.style.cssText = [
+      'position: fixed;',
+      `left: ${Math.random() * 100}vw;`,
+      'top: -5vh;',
+      `font-size: ${Math.random() * 24 + 16}px;`,
+      'opacity: 0.9;',
+      `transform: rotate(${Math.random() * 360}deg);`,
+      'transition: transform 3s ease-in, top 3s ease-in, opacity 3s ease-out;',
+      'z-index: 9999;'
+    ].join(' ');
     document.body.appendChild(el);
 
     setTimeout(() => {
@@ -83,13 +83,12 @@ function launchConfetti() {
       el.style.transform = `rotate(${Math.random() * 720}deg)`;
       el.style.opacity = '0';
     }, 50);
-
     setTimeout(() => el.remove(), 3500 + Math.random() * 500);
   }
 }
 
 // ============================================================================
-// 🏆  Announce Top 3 Finishers
+// 🏆 Announce Top 3 Finishers
 // ============================================================================
 async function announceTopThree() {
   const scoresSnap = await getDocs(collection(db, 'scores'));
@@ -119,8 +118,8 @@ async function announceTopThree() {
     message += '🤝 It’s a 3-way tie for first place!\n';
     podium.forEach(t => (message += `🏅 ${t.name} — ${t.score} pts\n`));
   } else {
-    const medals = ['🥇','🥈','🥉'];
-    podium.forEach((t,i) => (message += `${medals[i]||'🏅'} ${t.name} — ${t.score} pts\n`));
+    const medals = ['🥇', '🥈', '🥉'];
+    podium.forEach((t, i) => (message += `${medals[i] || '🏅'} ${t.name} — ${t.score} pts\n`));
   }
 
   showAnimatedBanner(message, '#6a1b9a');
@@ -129,6 +128,7 @@ async function announceTopThree() {
   await addDoc(collection(db, 'communications'), {
     teamName: 'Game Master',
     message,
+    isBroadcast: true,
     timestamp: new Date()
   });
 }
@@ -191,8 +191,6 @@ export function initializeGameControlsLogic() {
   const clearChatBtn = document.getElementById('clear-chat-btn');
   const resetBtn = document.getElementById('reset-game-btn');
   const clearScoresBtn = document.getElementById('clear-scores-btn');
-  const randomizeBtn = document.getElementById('randomize-btn');
-  const sendBtn = document.getElementById('send-links-btn');
 
   const rulesBtn = document.getElementById('toggle-rules-btn');
   const rulesSection = document.getElementById('rules-section');
@@ -221,7 +219,10 @@ export function initializeGameControlsLogic() {
     const endTime = new Date(Date.now() + mins * 60 * 1000);
     const racersSnap = await getDocs(collection(db, 'racers'));
     const teams = new Set();
-    racersSnap.forEach(d => { const r = d.data(); if (r.team && r.team !== '-') teams.add(r.team); });
+    racersSnap.forEach(d => {
+      const r = d.data();
+      if (r.team && r.team !== '-') teams.add(r.team);
+    });
 
     await setDoc(doc(db, 'game', 'activeTeams'), { list: Array.from(teams) }, { merge: true });
     await setDoc(doc(db, 'game', 'gameState'), {
@@ -235,6 +236,7 @@ export function initializeGameControlsLogic() {
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',
       message: '🏁 The race has begun! Zones are active — good luck racers!',
+      isBroadcast: true,
       timestamp: new Date()
     });
 
@@ -269,11 +271,12 @@ export function initializeGameControlsLogic() {
 
   // 💬 CLEAR CHAT ONLY
   clearChatBtn.addEventListener('click', async () => {
-    if (confirm('Clear all chat (no scores)?')) {
-      await clearAllChatAndScores(true);
+    if (confirm('Clear all chat?')) {
+      await clearChatOnly();
       await addDoc(collection(db, 'communications'), {
         teamName: 'Game Master',
         message: '💬 All chats cleared by Control.',
+        isBroadcast: true,
         timestamp: new Date()
       });
       showAnimatedBanner('💬 Chats Cleared!', '#2196f3');
@@ -284,7 +287,7 @@ export function initializeGameControlsLogic() {
   resetBtn.addEventListener('click', async () => {
     if (!confirm('Reset all game data?')) return;
     const batch = writeBatch(db);
-    batch.set(doc(db, 'game', 'gameState'), { status:'waiting', zonesReleased:false, updatedAt:serverTimestamp() });
+    batch.set(doc(db, 'game', 'gameState'), { status: 'waiting', zonesReleased: false, updatedAt: serverTimestamp() });
     batch.delete(doc(db, 'game', 'activeTeams'));
     await batch.commit();
     showAnimatedBanner('🔄 Game Reset', '#ffa000');
@@ -299,6 +302,7 @@ export function initializeGameControlsLogic() {
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',
       message: '🧹 All chat, scores, zones & locations cleared by Control.',
+      isBroadcast: true,
       timestamp: new Date()
     });
     showAnimatedBanner('🧹 All Data Cleared!', '#c62828');
