@@ -9,7 +9,8 @@ import {
   getDocs,
   doc,
   setDoc,
-  addDoc
+  addDoc,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { updateControlledZones } from '../../modules/scoreboardManager.js';
@@ -21,11 +22,11 @@ import { allTeams } from '../../data.js';
 async function onManageClick(zoneId) {
   const detailsRow = document.getElementById(`details-${zoneId}`);
   if (!detailsRow) return;
-  const visible = detailsRow.style.display !== 'none';
-  detailsRow.style.display = visible ? 'none' : 'table-row';
+  const isVisible = detailsRow.style.display === 'table-row';
+  detailsRow.style.display = isVisible ? 'none' : 'table-row';
 
   const btn = document.querySelector(`.manage-zone-btn[data-zone-id="${zoneId}"]`);
-  if (btn) btn.textContent = visible ? 'Manage' : 'Close';
+  if (btn) btn.textContent = isVisible ? 'Manage' : 'Close';
 }
 
 /* ---------------------------------------------------------------------------
@@ -33,18 +34,25 @@ async function onManageClick(zoneId) {
  * ------------------------------------------------------------------------ */
 async function onResetClick(zoneId, renderZones, tableBody, googleMapsApiLoaded) {
   if (!confirm(`Reset ${zoneId} to Available?`)) return;
-  await setDoc(doc(db, 'zones', zoneId), {
-    status: 'Available',
-    controllingTeam: '',
-    updatedAt: new Date()
-  }, { merge: true });
+
+  await setDoc(
+    doc(db, 'zones', zoneId),
+    {
+      status: 'Available',
+      controllingTeam: '',
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
 
   console.log(`🧹 Zone ${zoneId} reset to Available.`);
+
   const row = document.querySelector(`[data-zone-id="${zoneId}"]`);
   if (row) {
     row.style.background = '#2e7d32';
     setTimeout(() => (row.style.background = ''), 600);
   }
+
   await renderZones({ tableBody, googleMapsApiLoaded });
 }
 
@@ -52,31 +60,36 @@ async function onResetClick(zoneId, renderZones, tableBody, googleMapsApiLoaded)
  * ⚡ FORCE CAPTURE (Admin manually assigns a team)
  * ------------------------------------------------------------------------ */
 async function onForceCapture(zoneId, renderZones, tableBody, googleMapsApiLoaded) {
-  let team = prompt('Enter team name to force capture:');
-  if (!team) return;
+  const teamInput = prompt('Enter team name to force capture:');
+  if (!teamInput) return;
 
-  // Standardize team name
-  const teamObj = allTeams.find(t => t.name.toLowerCase() === team.toLowerCase());
-  const cleanName = teamObj ? teamObj.name : team.trim();
+  // Normalize and match team name
+  const teamObj = allTeams.find(t => t.name.toLowerCase() === teamInput.toLowerCase());
+  const cleanName = teamObj ? teamObj.name : teamInput.trim();
 
-  // Update zone ownership
-  await setDoc(doc(db, 'zones', zoneId), {
-    status: 'Taken',
-    controllingTeam: cleanName,
-    updatedAt: new Date()
-  }, { merge: true });
+  // Update Firestore zone ownership
+  await setDoc(
+    doc(db, 'zones', zoneId),
+    {
+      status: 'Taken',
+      controllingTeam: cleanName,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
 
-  // Update scoreboard (stay in sync)
+  // Update scoreboard
   await updateControlledZones(cleanName, zoneId);
 
   // Notify communications log
   await addDoc(collection(db, 'communications'), {
     teamName: 'Game Master',
     message: `⚡ Admin forced ${cleanName} to capture ${zoneId}.`,
-    timestamp: new Date()
+    timestamp: serverTimestamp(),
   });
 
   console.log(`⚡️ ${cleanName} manually captured ${zoneId}`);
+
   const row = document.querySelector(`[data-zone-id="${zoneId}"]`);
   if (row) {
     row.style.background = '#1565c0';
@@ -94,15 +107,19 @@ async function onEditableBlur(e) {
   if (!cell.isContentEditable) return;
 
   const zoneRow = cell.closest('tr');
-  if (!zoneRow) return;
-  const zoneId = zoneRow.dataset.zoneId;
+  const zoneId = zoneRow?.dataset?.zoneId;
   if (!zoneId) return;
 
   // --- Zone Main Fields ---
   const field = cell.dataset.field;
   if (field) {
     const value = cell.textContent.trim();
-    await setDoc(doc(db, 'zones', zoneId), { [field]: value, updatedAt: new Date() }, { merge: true });
+    await setDoc(
+      doc(db, 'zones', zoneId),
+      { [field]: value, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+
     cell.style.background = '#1b5e20';
     setTimeout(() => (cell.style.background = ''), 400);
     return;
@@ -120,10 +137,11 @@ async function onEditableBlur(e) {
     const colName = columns[cell.cellIndex] || 'question';
     const value = cell.textContent.trim();
 
-    await setDoc(doc(db, 'zones', zone, 'questions', questionId), {
-      [colName]: value,
-      updatedAt: new Date()
-    }, { merge: true });
+    await setDoc(
+      doc(db, 'zones', zone, 'questions', questionId),
+      { [colName]: value, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
 
     cell.style.background = '#1b5e20';
     setTimeout(() => (cell.style.background = ''), 400);
@@ -137,7 +155,10 @@ async function onAddZone(renderZones, tableBody, googleMapsApiLoaded) {
   const zonesCol = collection(db, 'zones');
   const snapshot = await getDocs(zonesCol);
   const ids = snapshot.docs.map(d => d.id);
-  const nextNum = Math.max(...ids.map(id => parseInt(id.replace('zone', ''), 10) || 0), 0) + 1;
+  const nextNum = Math.max(
+    ...ids.map(id => parseInt(id.replace(/[^\d]/g, ''), 10) || 0),
+    0
+  ) + 1;
 
   const newZoneId = `zone${nextNum}`;
   const newZone = {
@@ -146,8 +167,8 @@ async function onAddZone(renderZones, tableBody, googleMapsApiLoaded) {
     diameter: '0.05',
     status: 'Available',
     controllingTeam: '',
-    createdAt: new Date(),
-    updatedAt: new Date()
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
 
   await setDoc(doc(db, 'zones', newZoneId), newZone);
@@ -165,7 +186,6 @@ export function attachZoneHandlers({ tableBody, renderZones, googleMapsApiLoaded
   tableBody.addEventListener('click', async (e) => {
     const target = e.target;
     const zoneId = target?.dataset?.zoneId;
-    if (!zoneId && !target.classList.contains('manage-zone-btn')) return;
 
     if (target.classList.contains('manage-zone-btn')) {
       await onManageClick(zoneId);

@@ -29,7 +29,7 @@ export function waitForElement(id, timeout = 4000) {
     observer.observe(document.body, { childList: true, subtree: true });
     setTimeout(() => {
       observer.disconnect();
-      reject(`Timeout waiting for element #${id}`);
+      reject(new Error(`Timeout waiting for element #${id}`));
     }, timeout);
   });
 }
@@ -44,7 +44,7 @@ export function flashPlayerLocation(text) {
 
   el.textContent = text;
   el.classList.add('flash');
-  setTimeout(() => el.classList.remove('flash'), 800);
+  setTimeout(() => el.classList.remove('flash'), 1000);
 }
 
 /* ---------------------------------------------------------------------------
@@ -61,22 +61,22 @@ export function showCountdownBanner(message, color = '#222') {
   if (!banner) {
     banner = document.createElement('div');
     banner.id = 'game-banner';
-    banner.style.cssText = `
-      position: fixed;
-      top: 30%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: ${color};
-      color: white;
-      padding: 30px 50px;
-      border-radius: 12px;
-      font-size: 3em;
-      font-weight: bold;
-      text-align: center;
-      z-index: 9999;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-      transition: opacity 0.4s ease;
-    `;
+    Object.assign(banner.style, {
+      position: 'fixed',
+      top: '30%',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: color,
+      color: 'white',
+      padding: '30px 50px',
+      borderRadius: '12px',
+      fontSize: '3em',
+      fontWeight: 'bold',
+      textAlign: 'center',
+      zIndex: '9999',
+      boxShadow: '0 0 20px rgba(0,0,0,0.5)',
+      transition: 'opacity 0.4s ease',
+    });
     document.body.appendChild(banner);
   }
 
@@ -119,9 +119,7 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.asin(Math.sqrt(a));
 }
 
@@ -131,42 +129,58 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
 
 /**
  * Validates a player's submitted answer against the correct one.
- * @param {string} playerAnswer - Player input.
- * @param {string} correctAnswer - Correct answer from Firestore.
- * @param {string} type - Type of validation ('OPEN', 'CSV', 'YES/NO', etc.).
+ * @param {string|number|Array} playerAnswer - Player input.
+ * @param {string|number|Array} correctAnswer - Correct answer from Firestore.
+ * @param {string} type - Type of validation ('YES_NO', 'OPEN', 'NUMBER', etc.).
  * @returns {boolean} True if the answer matches.
  */
-export function validateAnswer(playerAnswer, correctAnswer, type) {
-  const pAns = (playerAnswer || '').trim().toLowerCase();
-  const cAns = (correctAnswer || '').trim().toLowerCase();
+export function validateAnswer(playerAnswer, correctAnswer, type = 'OPEN') {
+  if (playerAnswer === undefined || correctAnswer === undefined) return false;
+
+  const pAns = String(playerAnswer).trim().toLowerCase();
+  const cAns = String(correctAnswer).trim().toLowerCase();
 
   if (!pAns || !cAns) return false;
 
-  switch ((type || 'OPEN').toUpperCase()) {
-    case 'YES':
-    case 'Y':
-    case 'TRUE':
-    case 'NO':
-    case 'N':
-    case 'FALSE':
-      // Accepts synonyms like "yes"/"y" or "true"
+  switch (type.toUpperCase()) {
+    case 'YES_NO':
+    case 'TRUE_FALSE':
+    case 'UP_DOWN': {
+      const truthy = ['yes', 'y', 'true', 'up'];
+      const falsy = ['no', 'n', 'false', 'down'];
       return (
-        pAns === cAns ||
-        (['yes', 'y', 'true'].includes(pAns) && ['yes', 'y', 'true'].includes(cAns)) ||
-        (['no', 'n', 'false'].includes(pAns) && ['no', 'n', 'false'].includes(cAns))
+        (truthy.includes(pAns) && truthy.includes(cAns)) ||
+        (falsy.includes(pAns) && falsy.includes(cAns))
       );
+    }
 
-    case 'CSV':
-      return cAns
-        .split(',')
-        .map(s => s.trim())
-        .includes(pAns);
+    case 'NUMBER': {
+      const pNum = parseFloat(pAns);
+      const cNum = parseFloat(cAns);
+      if (isNaN(pNum) || isNaN(cNum)) return false;
+      // Tolerance can be stored in questionData.numberTolerance if needed
+      return Math.abs(pNum - cNum) < 0.0001;
+    }
 
-    case 'EXACT':
+    case 'MULTIPLE_CHOICE': {
       return pAns === cAns;
+    }
 
-    default: // OPEN
-      // Loose match (for riddles or descriptive questions)
-      return pAns.length > 0 && cAns.includes(pAns.substring(0, Math.min(3, pAns.length)));
+    case 'CSV': {
+      const list = cAns.split(',').map(s => s.trim());
+      return list.includes(pAns);
+    }
+
+    case 'COMPLETE':
+    case 'OPEN': {
+      // Flexible partial match — good for riddles or long phrases
+      if (Array.isArray(correctAnswer)) {
+        return correctAnswer.some(a => pAns.includes(String(a).trim().toLowerCase()));
+      }
+      return cAns.includes(pAns) || pAns.includes(cAns);
+    }
+
+    default:
+      return pAns === cAns;
   }
 }

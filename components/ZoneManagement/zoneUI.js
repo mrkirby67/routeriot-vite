@@ -20,25 +20,22 @@ export function ZoneManagementComponent() {
         align-items: center;
         flex-wrap: wrap;
         gap: 10px;
-        margin-bottom: 12px;
+        margin-bottom: 16px;
       ">
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button id="add-zone-btn"
-            style="background:#00897B;color:white;padding:8px 16px;
-                   border:none;border-radius:6px;font-weight:bold;cursor:pointer;">
+          <button id="add-zone-btn" title="Add a new zone">
             ➕ Add Zone
           </button>
 
-          <button id="refresh-zones-btn"
-            style="background:#3949AB;color:white;padding:8px 16px;
-                   border:none;border-radius:6px;font-weight:bold;cursor:pointer;">
+          <button id="refresh-zones-btn" title="Reload zone list">
             🔄 Refresh Zones
           </button>
         </div>
 
-        <div class="${cooldownSetup}" style="display:flex;align-items:center;gap:6px;">
-          <label for="cooldown-time" style="font-weight:bold;color:#ddd;">Cooldown:</label>
-          <select id="cooldown-time" style="padding:4px;border-radius:4px;">
+        <!-- Cooldown selector -->
+        <div class="${cooldownSetup}" style="display:flex;align-items:center;gap:8px;">
+          <label for="cooldown-time" style="font-weight:600;color:#ddd;">Cooldown:</label>
+          <select id="cooldown-time" style="padding:4px 8px;border-radius:4px;">
             <option value="15">15 min</option>
             <option value="20">20 min</option>
             <option value="25">25 min</option>
@@ -48,14 +45,15 @@ export function ZoneManagementComponent() {
         </div>
       </div>
 
-      <!-- Banner -->
+      <!-- Status Banner -->
       <div id="zone-status-banner"
         style="padding:10px;margin-bottom:10px;border-radius:6px;
                text-align:center;background:#333;color:#bbb;
                font-weight:bold;display:none;">
+        <!-- updated dynamically -->
       </div>
 
-      <!-- Table -->
+      <!-- Zones Table -->
       <table class="${dataTable}" id="zones-table" style="width:100%;border-collapse:collapse;">
         <thead>
           <tr style="background:#212121;color:#fff;text-align:left;">

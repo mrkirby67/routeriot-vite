@@ -11,7 +11,7 @@ import {
   doc,
   updateDoc,
   setDoc,
-  serverTimestamp
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../../modules/config.js';
 import { allTeams } from '../../data.js';
@@ -25,7 +25,10 @@ export { ZoneManagementComponent };
 export async function initializeZoneManagementLogic(googleMapsApiLoaded) {
   const tableBody = document.getElementById('zones-table-body');
   const banner = document.getElementById('zone-status-banner');
-  if (!tableBody || !banner) return;
+  if (!tableBody || !banner) {
+    console.warn('⚠️ ZoneManagement initialization skipped — missing DOM elements.');
+    return;
+  }
 
   const zonesCollection = collection(db, 'zones');
 
@@ -36,12 +39,11 @@ export async function initializeZoneManagementLogic(googleMapsApiLoaded) {
     if (!teamName || !zoneName) return;
 
     const standardizedTeam =
-      allTeams.find(t => t.name === teamName)?.name || teamName;
+      allTeams.find(t => t.name === teamName)?.name || teamName.trim();
 
     try {
-      const ref = doc(db, 'teamStatus', standardizedTeam);
       await setDoc(
-        ref,
+        doc(db, 'teamStatus', standardizedTeam),
         {
           lastKnownLocation: zoneName,
           timestamp: serverTimestamp(),
@@ -59,35 +61,46 @@ export async function initializeZoneManagementLogic(googleMapsApiLoaded) {
   // ---------------------------------------------------------------------------
   async function clearTeamLocation(teamName) {
     if (!teamName) return;
+
     const standardizedTeam =
-      allTeams.find(t => t.name === teamName)?.name || teamName;
+      allTeams.find(t => t.name === teamName)?.name || teamName.trim();
 
     try {
-      const ref = doc(db, 'teamStatus', standardizedTeam);
-      await updateDoc(ref, {
+      await updateDoc(doc(db, 'teamStatus', standardizedTeam), {
         lastKnownLocation: '',
         timestamp: serverTimestamp(),
       });
       console.log(`♻️ Cleared location for ${standardizedTeam}`);
     } catch (err) {
-      console.warn(`⚠️ Could not reset location for ${standardizedTeam}:`, err);
+      // Fallback to create the doc if it doesn't exist yet
+      if (err.code === 'not-found') {
+        await setDoc(doc(db, 'teamStatus', standardizedTeam), {
+          lastKnownLocation: '',
+          timestamp: serverTimestamp(),
+        });
+        console.log(`🆕 Created new teamStatus doc for ${standardizedTeam}`);
+      } else {
+        console.warn(`⚠️ Could not reset location for ${standardizedTeam}:`, err);
+      }
     }
   }
 
   // ---------------------------------------------------------------------------
-  // 🌐 Hook Handlers
+  // 🌐 Hook Handlers (passes callbacks to zoneHandlers)
   // ---------------------------------------------------------------------------
   attachZoneHandlers({
     tableBody,
     renderZones,
     googleMapsApiLoaded,
-    onZoneCaptured: async (teamName, zoneName) =>
-      await updateTeamLocation(teamName, zoneName),
-
-    onZoneManuallySet: async (teamName, zoneName) =>
-      await updateTeamLocation(teamName, zoneName),
-
-    onZoneReset: async (teamName) => await clearTeamLocation(teamName),
+    onZoneCaptured: async (teamName, zoneName) => {
+      await updateTeamLocation(teamName, zoneName);
+    },
+    onZoneManuallySet: async (teamName, zoneName) => {
+      await updateTeamLocation(teamName, zoneName);
+    },
+    onZoneReset: async (teamName) => {
+      await clearTeamLocation(teamName);
+    },
   });
 
   // ---------------------------------------------------------------------------
@@ -102,7 +115,10 @@ export async function initializeZoneManagementLogic(googleMapsApiLoaded) {
   // ---------------------------------------------------------------------------
   // 🧭 Initial Render
   // ---------------------------------------------------------------------------
-  await renderZones({ tableBody, googleMapsApiLoaded });
-
-  console.log('✅ Zone Management initialized with teamStatus sync.');
+  try {
+    await renderZones({ tableBody, googleMapsApiLoaded });
+    console.log('✅ Zone Management initialized with teamStatus sync.');
+  } catch (err) {
+    console.error('❌ Failed to render zones on init:', err);
+  }
 }

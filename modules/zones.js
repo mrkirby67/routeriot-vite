@@ -1,7 +1,8 @@
 // ============================================================================
 // FILE: /modules/zones.js
-// PURPOSE: Orchestrates zone rendering, listeners, and challenge flow
+// PURPOSE: Orchestrates zone rendering, listeners, and challenge flow (Player View)
 // ============================================================================
+
 import { db } from './config.js';
 import {
   doc,
@@ -14,12 +15,10 @@ import {
   limit
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { waitForElement, flashPlayerLocation } from './zonesUtils.js';
+import { waitForElement, flashPlayerLocation, playRaceStartSequence, calculateDistance } from './zonesUtils.js';
 import { generateMiniMap } from './zonesMap.js';
-import { playRaceStartSequence } from './zonesUtils.js';
 import { displayZoneQuestions, setTeamContext } from './zonesChallenge.js';
 import { broadcastChallenge } from './zonesFirestore.js';
-import { calculateDistance } from './zonesUtils.js';
 import { updateControlledZones } from './scoreboardManager.js';
 import { startConfetti, stopConfetti } from './playerUI.js';
 import { allTeams } from '../data.js';
@@ -28,10 +27,10 @@ let zonesLocked = true;
 let currentTeamName = null;
 
 /* ---------------------------------------------------------------------------
- * INITIALIZE ZONES (Player View)
+ * 🧭 INITIALIZE ZONES (Player View)
  * ------------------------------------------------------------------------ */
 export async function initializeZones(teamName) {
-  // Standardize the team name
+  // Normalize team name
   const teamObj = allTeams.find(t => t.name === teamName);
   currentTeamName = teamObj ? teamObj.name : teamName;
   setTeamContext(currentTeamName);
@@ -55,15 +54,15 @@ export async function initializeZones(teamName) {
     }
 
     // 🏆 Detect Game End → Show Top 3 Winners overlay
-    if (data.status === 'finished' || data.status === 'ended') {
-      showFinalStandings(); // ✅ call directly here
+    if (['finished', 'ended'].includes(data.status)) {
+      showFinalStandings();
     }
 
     zonesLocked = shouldLock;
   });
 
   /* -------------------------------------------------------------------------
-   * 🗺️ LISTEN TO ALL ZONES (re-render zone table)
+   * 🗺️ LISTEN TO ALL ZONES (re-render player zone table)
    * ---------------------------------------------------------------------- */
   onSnapshot(zonesCollection, (snapshot) => {
     tableBody.innerHTML = '';
@@ -86,7 +85,7 @@ export async function initializeZones(teamName) {
         <td>${statusText}</td>
         <td>
           <button class="challenge-btn" data-zone-id="${zoneId}" ${lockedAttr}>
-            ${zonesLocked ? 'Locked' : 'Challenge'}
+            ${zonesLocked ? '🔒 Locked' : '🎯 Challenge'}
           </button>
         </td>
       `;
@@ -102,86 +101,100 @@ export async function initializeZones(teamName) {
       if (!e.target.classList.contains('challenge-btn') || zonesLocked) return;
 
       const zoneId = e.target.dataset.zoneId;
-      const zoneDoc = await getDoc(doc(db, 'zones', zoneId));
-      if (!zoneDoc.exists()) return alert('Zone data not found.');
+      try {
+        const zoneDoc = await getDoc(doc(db, 'zones', zoneId));
+        if (!zoneDoc.exists()) {
+          alert('⚠️ Zone data not found.');
+          return;
+        }
 
-      const zoneData = zoneDoc.data();
-      const [targetLat, targetLng] = zoneData.gps.split(',').map(Number);
-      const targetRadiusKm = (parseFloat(zoneData.diameter) || 0.05) / 2;
+        const zoneData = zoneDoc.data();
+        if (!zoneData?.gps) {
+          alert('⚠️ Zone missing GPS coordinates.');
+          return;
+        }
 
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const dist = calculateDistance(
-            pos.coords.latitude,
-            pos.coords.longitude,
-            targetLat,
-            targetLng
-          );
+        const [targetLat, targetLng] = zoneData.gps.split(',').map(Number);
+        const targetRadiusKm = (parseFloat(zoneData.diameter) || 0.05) / 2;
 
-          if (dist <= targetRadiusKm + pos.coords.accuracy / 1000) {
-            console.log(`✅ ${currentTeamName} reached ${zoneData.name} zone.`);
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const dist = calculateDistance(
+              pos.coords.latitude,
+              pos.coords.longitude,
+              targetLat,
+              targetLng
+            );
 
-            await broadcastChallenge(currentTeamName, zoneData.name);
-            displayZoneQuestions(zoneId, zoneData.name);
+            if (dist <= targetRadiusKm + pos.coords.accuracy / 1000) {
+              console.log(`✅ ${currentTeamName} reached ${zoneData.name} zone.`);
 
-            await updateControlledZones(currentTeamName, zoneData.name);
-            console.log(`🏆 Zone updated → ${currentTeamName} now controls ${zoneData.name}`);
-          } else {
-            const kmAway = Math.max(0, dist - targetRadiusKm).toFixed(3);
-            alert(`Getting warmer... ${kmAway} km away.`);
-          }
-        },
-        () => alert('Could not get your location. Enable location services.')
-      );
+              await broadcastChallenge(currentTeamName, zoneData.name);
+              displayZoneQuestions(zoneId, zoneData.name);
+
+              await updateControlledZones(currentTeamName, zoneData.name);
+              console.log(`🏆 Zone updated → ${currentTeamName} now controls ${zoneData.name}`);
+            } else {
+              const kmAway = Math.max(0, dist - targetRadiusKm).toFixed(3);
+              alert(`📍 Getting warmer... ${kmAway} km away.`);
+            }
+          },
+          () => alert('⚠️ Could not get your location. Please enable GPS.'),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } catch (err) {
+        console.error('❌ Challenge error:', err);
+        alert('Error attempting challenge. Please try again.');
+      }
     });
 
     tableBody._listenerAttached = true;
   }
 }
 
-// ============================================================================
-// 🏁 GAME OVER HANDLER (Player View)
-// Displays final standings with confetti + 20s timer
-// ============================================================================
+/* ---------------------------------------------------------------------------
+ * 🏁 GAME OVER HANDLER (Player View)
+ * Displays final standings overlay with confetti + 20s timer
+ * ------------------------------------------------------------------------ */
 async function showFinalStandings() {
   try {
     const topTeamsSnap = await getDocs(
       query(collection(db, "scores"), orderBy("score", "desc"), limit(3))
     );
 
-    const winners = [];
-    topTeamsSnap.forEach((docSnap) => {
-      winners.push({ name: docSnap.id, ...docSnap.data() });
-    });
+    const winners = topTeamsSnap.docs.map(docSnap => ({
+      name: docSnap.id,
+      ...docSnap.data()
+    }));
 
     const title = "🏁 GAME OVER 🏁";
     let message = `
       <h2 style='color:gold; font-size:2em; margin-bottom:0;'>🏆 Final Standings 🏆</h2>
       <ol style='list-style:none; padding:0; margin:10px 0;'>
+        ${winners.map((team, i) => {
+          const medal = ["🥇", "🥈", "🥉"][i] || "🎖️";
+          return `<li style="font-size:1.4em; margin:6px 0;">${medal} <strong>${team.name}</strong> — ${team.score} pts</li>`;
+        }).join('')}
+      </ol>
     `;
-    winners.forEach((team, i) => {
-      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉";
-      message += `<li style="font-size:1.4em; margin:6px 0;">${medal} <strong>${team.name}</strong> — ${team.score} pts</li>`;
-    });
-    message += "</ol>";
 
     const overlay = document.createElement("div");
     overlay.id = "game-over-overlay";
     overlay.style.cssText = `
-      position:fixed;
-      top:0; left:0;
-      width:100%; height:100%;
-      background:rgba(0,0,0,0.92);
-      color:white;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      z-index:99999;
-      font-family:system-ui, sans-serif;
-      opacity:0;
-      transition:opacity 0.6s ease;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.92);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      z-index: 99999;
+      font-family: system-ui, sans-serif;
+      opacity: 0;
+      transition: opacity 0.6s ease;
     `;
     overlay.innerHTML = `
       <div>${title}</div>
@@ -189,9 +202,9 @@ async function showFinalStandings() {
       <div id="countdown" style="margin-top:20px;font-size:1.3em;">Closing in 20s...</div>
     `;
     document.body.appendChild(overlay);
-    requestAnimationFrame(() => (overlay.style.opacity = "1")); // smooth fade in
+    requestAnimationFrame(() => (overlay.style.opacity = "1"));
 
-    // --- Confetti celebration
+    // 🎉 Confetti celebration
     startConfetti();
     let remaining = 20;
     const countdownEl = overlay.querySelector("#countdown");
@@ -209,6 +222,6 @@ async function showFinalStandings() {
       }
     }, 1000);
   } catch (err) {
-    console.error("Error showing final standings:", err);
+    console.error("❌ Error showing final standings:", err);
   }
 }

@@ -11,6 +11,7 @@ import {
   doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { allTeams } from '../../data.js';
+import { allowedQuestionTypes, questionTypeLabels } from '../ZoneQuestions/ZoneQuestionsTypes.js';
 
 /* ---------------------------------------------------------------------------
  * 🔍 Helper: Dynamic Zoom from Diameter
@@ -31,6 +32,7 @@ function miniMapHtml(zoneData, googleMapsApiLoaded) {
               ❌ Missing Google Maps API Key
             </div>`;
   }
+
   if (!googleMapsApiLoaded) {
     return `<div style="width:600px;height:200px;background:#222;display:flex;
               align-items:center;justify-content:center;border-radius:8px;">
@@ -70,13 +72,15 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
     const zoneId = zoneDoc.id;
     const zoneData = zoneDoc.data();
 
-    // 🔢 Preload questions count
+    // 🔢 Load questions for this zone
     const questionsSnap = await getDocs(collection(db, 'zones', zoneId, 'questions'));
     const questionsCount = questionsSnap.size;
 
     // 🧭 Normalize controlling team
-    const controllingTeam = allTeams.find(t => t.name === zoneData.controllingTeam)?.name ||
-                            zoneData.controllingTeam || '—';
+    const controllingTeam =
+      allTeams.find(t => t.name === zoneData.controllingTeam)?.name ||
+      zoneData.controllingTeam ||
+      '—';
 
     // 🕓 Format timestamp
     const lastUpdated = zoneData.updatedAt?.toDate
@@ -108,7 +112,7 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
       </td>
     `;
 
-    // 🧩 Hidden details row
+    // 🧩 Details row (hidden by default)
     const detailsRow = document.createElement('tr');
     detailsRow.id = `details-${zoneId}`;
     detailsRow.style.display = 'none';
@@ -122,18 +126,28 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
               <tr><th>Question</th><th>Answer</th><th>Type</th></tr>
             </thead>
             <tbody>
-              ${[1,2,3,4,5,6,7].map(qNum => `
-                <tr data-question-id="unique${qNum}">
-                  <td contenteditable="true"></td>
-                  <td contenteditable="true"></td>
-                  <td contenteditable="true"></td>
-                </tr>`).join('')}
+              ${Array.from({ length: 7 }, (_, i) => {
+                const qNum = i + 1;
+                return `
+                  <tr data-question-id="unique${qNum}">
+                    <td contenteditable="true" data-col="question"></td>
+                    <td contenteditable="true" data-col="answer"></td>
+                    <td data-col="type">
+                      <select class="question-type-select" data-zone-id="${zoneId}" data-question-id="unique${qNum}">
+                        ${allowedQuestionTypes
+                          .map(t => `<option value="${t}">${questionTypeLabels[t] || t}</option>`)
+                          .join('')}
+                      </select>
+                    </td>
+                  </tr>`;
+              }).join('')}
             </tbody>
           </table>
         </div>
       </td>
     `;
 
+    // 🧩 Insert into table
     tableBody.appendChild(dataRow);
     tableBody.appendChild(detailsRow);
 
@@ -143,9 +157,12 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
       const q = qDoc.data();
       const tr = detailsRow.querySelector(`tr[data-question-id="${qId}"]`);
       if (tr) {
-        tr.children[0].textContent = q.question || '';
-        tr.children[1].textContent = q.answer || '';
-        tr.children[2].textContent = q.type || '';
+        tr.querySelector('[data-col="question"]').textContent = q.question || '';
+        tr.querySelector('[data-col="answer"]').textContent = q.answer || '';
+        const select = tr.querySelector('select.question-type-select');
+        if (select && allowedQuestionTypes.includes(q.type)) {
+          select.value = q.type;
+        }
       }
     });
   }

@@ -1,7 +1,8 @@
 // ============================================================================
-// File: /modules/zonesFirestore.js
-// Purpose: Firebase read/write + broadcast helpers for zones
+// FILE: /modules/zonesFirestore.js
+// PURPOSE: Firebase read/write + broadcast helpers for zones
 // ============================================================================
+
 import { db } from './config.js';
 import {
   doc,
@@ -15,31 +16,33 @@ import { flashPlayerLocation } from './zonesUtils.js';
 // ---------------------------------------------------------------------------
 // 🛰️ GENERIC BROADCAST EVENT
 // ---------------------------------------------------------------------------
-export async function broadcastEvent(teamName = "Game Master", message, isBroadcast = true) {
+export async function broadcastEvent(teamName = "Game Master", message = "", isBroadcast = true) {
   try {
-    const sender = teamName || "Game Master";
+    const sender = teamName?.trim() || "Game Master";
     let formattedMsg = message;
 
-    // 🔹 Add inline HTML color styling for visual clarity in the control broadcast window
-    if (message.includes("challenging")) {
-      formattedMsg = `<span style="color:#FF5722; font-weight:bold;">${message}</span>`; // orange/red for challenges
-    } else if (message.includes("captured")) {
-      formattedMsg = `<span style="color:#FFD700; font-weight:bold;">${message}</span>`; // gold for wins
+    // 🔹 Add HTML color styling for control dashboard readability
+    if (message.toLowerCase().includes("challenging")) {
+      formattedMsg = `<span style="color:#ff7043; font-weight:bold;">${message}</span>`; // orange
+    } else if (message.toLowerCase().includes("captured")) {
+      formattedMsg = `<span style="color:#ffd700; font-weight:bold;">${message}</span>`; // gold
+    } else if (message.toLowerCase().includes("finished") || message.toLowerCase().includes("completed")) {
+      formattedMsg = `<span style="color:#00e676; font-weight:bold;">${message}</span>`; // green
     } else {
-      formattedMsg = `<span style="color:#FFFFFF;">${message}</span>`; // default white
+      formattedMsg = `<span style="color:#ffffff;">${message}</span>`; // default white
     }
 
     await addDoc(collection(db, "communications"), {
       teamName: sender,
-      senderDisplay: sender, // 🔧 ensures correct team name appears in broadcast window
+      senderDisplay: sender,
       message: formattedMsg,
       isBroadcast,
       timestamp: serverTimestamp()
     });
 
     console.log(`📣 Broadcasted from ${sender}: ${message}`);
-  } catch (e) {
-    console.error("Broadcast error:", e);
+  } catch (err) {
+    console.error("❌ Broadcast error:", err);
   }
 }
 
@@ -57,6 +60,11 @@ export const broadcastWin = (teamName, zoneName) =>
 // ---------------------------------------------------------------------------
 export async function updateTeamLocation(teamName, zoneName) {
   try {
+    if (!teamName || !zoneName) {
+      console.warn("⚠️ updateTeamLocation called with missing parameters:", { teamName, zoneName });
+      return;
+    }
+
     await setDoc(
       doc(db, "teamStatus", teamName),
       {
@@ -65,9 +73,11 @@ export async function updateTeamLocation(teamName, zoneName) {
       },
       { merge: true }
     );
+
     const now = new Date();
     flashPlayerLocation(`📍 ${zoneName} (updated ${now.toLocaleTimeString()})`);
-  } catch (e) {
-    console.error("updateTeamLocation error:", e);
+    console.log(`📍 Updated ${teamName} location → ${zoneName}`);
+  } catch (err) {
+    console.error("❌ updateTeamLocation error:", err);
   }
 }

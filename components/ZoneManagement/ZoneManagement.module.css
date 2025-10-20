@@ -1,6 +1,7 @@
 /* ============================================================================
    FILE: /public/components/ZoneManagement/ZoneManagement.module.css
    PURPOSE: Scoped styling for Zone Management UI (Control Page)
+   THEME: Dark dashboard aesthetic — consistent with Route Riot Control Panel
    ============================================================================ */
 
 /* -----------------------------
@@ -9,18 +10,19 @@
 .controlSection {
   background-color: #1e1e1e;
   border: 1px solid #333;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
   color: #ddd;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .controlSection h2 {
   color: #bb86fc;
   margin-top: 0;
   margin-bottom: 15px;
-  font-size: 1.4em;
+  font-size: 1.4rem;
+  letter-spacing: 0.4px;
 }
 
 /* -----------------------------
@@ -32,8 +34,9 @@
 }
 
 .cooldownSetup label {
-  font-weight: bold;
+  font-weight: 600;
   color: #ccc;
+  margin-right: 6px;
 }
 
 .cooldownSetup select {
@@ -41,13 +44,14 @@
   color: #fff;
   border: 1px solid #555;
   border-radius: 6px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   cursor: pointer;
 }
 
 .cooldownSetup select:focus {
   outline: none;
   border-color: #bb86fc;
+  box-shadow: 0 0 6px rgba(187, 134, 252, 0.5);
 }
 
 /* -----------------------------
@@ -57,7 +61,7 @@
   width: 100%;
   border-collapse: collapse;
   margin-top: 15px;
-  font-size: 0.95em;
+  font-size: 0.95rem;
   border-radius: 6px;
   overflow: hidden;
 }
@@ -117,7 +121,8 @@
 }
 
 .miniMap {
-  width: 600px;
+  width: 100%;
+  max-width: 600px;
   height: 200px;
   border-radius: 6px;
   border: 3px solid #555;
@@ -129,16 +134,17 @@
    Buttons (shared styling)
 --------------------------------*/
 button {
-  font-weight: bold;
+  font-weight: 600;
   border-radius: 6px;
   border: none;
   padding: 8px 16px;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease;
+  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
 }
 
 button:hover {
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(187, 134, 252, 0.2);
 }
 
 button:active {
@@ -148,28 +154,48 @@ button:active {
 /* Primary Actions */
 #add-zone-btn {
   background: #00897b;
-  color: white;
+  color: #fff;
+}
+
+#add-zone-btn:hover {
+  background: #00bfa5;
 }
 
 #refresh-zones-btn {
   background: #3949ab;
-  color: white;
+  color: #fff;
+}
+
+#refresh-zones-btn:hover {
+  background: #5c6bc0;
 }
 
 /* Zone management buttons in rows */
 .manage-zone-btn {
   background: #546e7a;
-  color: white;
+  color: #fff;
+}
+
+.manage-zone-btn:hover {
+  background: #78909c;
 }
 
 .reset-zone-btn {
   background: #b71c1c;
-  color: white;
+  color: #fff;
+}
+
+.reset-zone-btn:hover {
+  background: #d32f2f;
 }
 
 .force-capture-btn {
   background: #2e7d32;
-  color: white;
+  color: #fff;
+}
+
+.force-capture-btn:hover {
+  background: #43a047;
 }
 
 /* -----------------------------
@@ -184,7 +210,7 @@ button:active {
   text-align: center;
   margin-bottom: 10px;
   display: none;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Dynamic feedback colors */
@@ -210,4 +236,25 @@ button:active {
 button,
 #zone-status-banner {
   transition: all 0.2s ease;
+}
+
+/* -----------------------------
+   Responsive Adjustments
+--------------------------------*/
+@media (max-width: 768px) {
+  .miniMap {
+    width: 100%;
+    height: 160px;
+  }
+
+  .dataTable th,
+  .dataTable td {
+    padding: 8px 6px;
+    font-size: 0.85rem;
+  }
+
+  button {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
 }

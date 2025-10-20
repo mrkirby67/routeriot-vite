@@ -39,7 +39,7 @@ export function renderZoneQuestionEditor(zoneId, editId = null) {
           <option value="UP_DOWN">UP/DOWN</option>
           <option value="NUMBER">NUMBER</option>
           <option value="MULTIPLE_CHOICE">MULTIPLE CHOICE</option>
-          <option value="OPEN">OPEN</option>
+          <option value="OPEN">OPEN (text answer)</option>
           <option value="COMPLETE">COMPLETE (chat-trigger)</option>
         </select>
       </div>
@@ -137,22 +137,28 @@ function wireDynamicFields(els) {
             ${opts.map((o) => `<option>${o}</option>`).join('')}
           </select>`;
       }
+
       case 'NUMBER':
         return `
           <label>Correct Number</label>
           <input id="q-num" type="number" />
           <label>Tolerance (±)</label>
           <input id="q-tol" type="number" min="0" value="0" />`;
+
       case 'MULTIPLE_CHOICE':
         return `
+          <label>Choices</label>
           <div id="q-mc"></div>
-          <button id="q-add-mc" type="button">➕ Add Choice</button>`;
+          <button id="q-add-mc" type="button">➕ Add Choice</button>
+          <small class="${styles.help}">Mark exactly one as correct.</small>`;
+
       case 'OPEN':
         return `
           <label>Accepted Answers (comma-separated)</label>
-          <input id="q-accept" type="text" />
+          <input id="q-accept" type="text" placeholder="e.g. Paris, City of Light" />
           <label>Must Include (optional)</label>
-          <input id="q-inc" type="text" />`;
+          <input id="q-inc" type="text" placeholder="e.g. France" />`;
+
       case 'COMPLETE':
         return `
           <label>Trigger Phrase</label>
@@ -162,6 +168,7 @@ function wireDynamicFields(els) {
             ${allTeams.map((t) => `<option>${t.name}</option>`).join('')}
           </select>
           <label><input id="q-auto" type="checkbox" checked /> Auto award points</label>`;
+
       default:
         return '';
     }
@@ -169,6 +176,8 @@ function wireDynamicFields(els) {
 
   const update = () => {
     els.dyn.innerHTML = makeHtml(els.type.value);
+
+    // Handle dynamic MC options
     if (els.type.value === 'MULTIPLE_CHOICE') {
       const div = document.getElementById('q-mc');
       const addBtn = document.getElementById('q-add-mc');
@@ -176,8 +185,8 @@ function wireDynamicFields(els) {
         const idx = div.children.length + 1;
         div.insertAdjacentHTML(
           'beforeend',
-          `<div>
-            <input type="radio" name="correct" />
+          `<div class="${styles.mcRow}">
+            <input type="radio" name="mc-correct" />
             <input type="text" placeholder="Choice ${idx}" />
           </div>`
         );
@@ -207,10 +216,12 @@ function readForm(els, zoneId) {
     case 'UP_DOWN':
       base.booleanCorrect = document.getElementById('q-correct')?.value || '';
       break;
+
     case 'NUMBER':
       base.numberCorrect = Number(document.getElementById('q-num')?.value);
       base.numberTolerance = Number(document.getElementById('q-tol')?.value) || 0;
       break;
+
     case 'MULTIPLE_CHOICE': {
       const div = document.getElementById('q-mc');
       const rows = [...div.children];
@@ -222,10 +233,12 @@ function readForm(els, zoneId) {
         .filter((r) => r.text);
       break;
     }
+
     case 'OPEN':
       base.openAccepted = parseCsv(document.getElementById('q-accept')?.value);
       base.openInclude = parseCsv(document.getElementById('q-inc')?.value);
       break;
+
     case 'COMPLETE':
       base.proofType = 'chat';
       base.triggerPhrase = document.getElementById('q-trig')?.value.trim();
@@ -244,4 +257,5 @@ function loadIntoForm(els, d) {
   document.getElementById('q-text').value = d.question || '';
   document.getElementById('q-type').value = d.type || 'YES_NO';
   document.getElementById('q-points').value = d.points ?? 10;
+  els.type.dispatchEvent(new Event('change')); // refresh dynamic fields
 }

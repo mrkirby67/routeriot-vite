@@ -2,6 +2,7 @@
 // FILE: /modules/zonesChallenge.js
 // PURPOSE: Inline Challenge + Question handling logic for player zones
 // ============================================================================
+
 import { db } from './config.js';
 import {
   doc,
@@ -41,11 +42,10 @@ export async function displayZoneQuestions(zoneId, zoneName) {
     return;
   }
 
-  // 🔄 Remove any existing inline blocks for this zone
-  const existing = document.getElementById(`inline-question-${zoneId}`);
-  if (existing) existing.remove();
+  // 🔄 Remove any existing inline block for this zone
+  document.getElementById(`inline-question-${zoneId}`)?.remove();
 
-  // 📦 Create inline block under this zone
+  // 📦 Create inline question row
   const questionRow = document.createElement('tr');
   questionRow.id = `inline-question-${zoneId}`;
   questionRow.innerHTML = `
@@ -62,90 +62,134 @@ export async function displayZoneQuestions(zoneId, zoneName) {
   `;
   zoneRow.insertAdjacentElement('afterend', questionRow);
 
-  // 📚 Load questions from Firestore
-  const snapshot = await getDocs(collection(db, 'zones', zoneId, 'questions'));
-  if (snapshot.empty) {
-    document.getElementById(`question-text-${zoneId}`).textContent = 'No questions found for this zone.';
-    return;
-  }
+  // 📚 Load questions from Firestore (new modular schema support)
+  let questionData = null;
 
-  // 🎯 Select first “unique” question
-  let questionData;
-  snapshot.forEach(docSnap => {
-    if (docSnap.id.startsWith('unique') && !questionData) {
-      questionData = docSnap.data();
-      challengeState.questionId = docSnap.id;
+  try {
+    // First try: old nested structure (zones/{zoneId}/questions)
+    const subSnap = await getDocs(collection(db, 'zones', zoneId, 'questions'));
+    if (!subSnap.empty) {
+      subSnap.forEach(docSnap => {
+        if (!questionData && docSnap.id.startsWith('unique')) {
+          questionData = { id: docSnap.id, ...docSnap.data() };
+        }
+      });
     }
-  });
 
-  const questionEl = document.getElementById(`question-text-${zoneId}`);
-  const answerArea = document.getElementById(`answer-area-${zoneId}`);
-  const submitBtn = document.getElementById(`submit-answer-${zoneId}`);
+    // Fallback: global questions collection with zoneId field
+    if (!questionData) {
+      const globalDoc = await getDoc(doc(db, 'questions', zoneId));
+      if (globalDoc.exists()) questionData = { id: globalDoc.id, ...globalDoc.data() };
+    }
 
-  if (questionData?.question) {
-    questionEl.textContent = `❓ ${questionData.question}`;
-    answerArea.innerHTML = `
-      <input type="text" id="player-answer-${zoneId}"
-             placeholder="Your answer..."
-             style="width:80%;padding:8px;border-radius:6px;border:none;background:#333;color:#fff;">
-    `;
-    submitBtn.style.display = 'inline-block';
-    submitBtn.onclick = () => handleAnswerSubmitInline(zoneId);
-  } else {
-    questionEl.textContent = 'No unique question found for this zone.';
+    const questionEl = document.getElementById(`question-text-${zoneId}`);
+    const answerArea = document.getElementById(`answer-area-${zoneId}`);
+    const submitBtn = document.getElementById(`submit-answer-${zoneId}`);
+
+    if (questionData?.question) {
+      questionEl.textContent = `❓ ${questionData.question}`;
+
+      // 🧩 Render answer input differently by type
+      switch (questionData.type) {
+        case 'YES_NO':
+        case 'TRUE_FALSE':
+        case 'UP_DOWN': {
+          const opts =
+            questionData.type === 'YES_NO' ? ['YES', 'NO'] :
+            questionData.type === 'TRUE_FALSE' ? ['TRUE', 'FALSE'] :
+            ['UP', 'DOWN'];
+          answerArea.innerHTML = `
+            ${opts.map(o =>
+              `<label style="margin-right:10px;">
+                <input type="radio" name="answer-${zoneId}" value="${o}" /> ${o}
+              </label>`
+            ).join('')}
+          `;
+          break;
+        }
+
+        case 'MULTIPLE_CHOICE':
+          answerArea.innerHTML = questionData.mcOptions?.map((o, i) =>
+            `<label style="display:block;margin-bottom:4px;">
+              <input type="radio" name="answer-${zoneId}" value="${o.text}" /> ${o.text}
+            </label>`
+          ).join('') || '<p>No options defined.</p>';
+          break;
+
+        default:
+          // OPEN, NUMBER, COMPLETE, etc.
+          answerArea.innerHTML = `
+            <input type="text" id="player-answer-${zoneId}"
+                   placeholder="Your answer..."
+                   style="width:80%;padding:8px;border-radius:6px;border:none;background:#333;color:#fff;">
+          `;
+      }
+
+      submitBtn.style.display = 'inline-block';
+      submitBtn.onclick = () => handleAnswerSubmitInline(zoneId, questionData);
+    } else {
+      document.getElementById(`question-text-${zoneId}`).textContent =
+        'No unique question found for this zone.';
+    }
+
+    // 📢 Broadcast start
+    await broadcastChallenge(currentTeamName, zoneName);
+    console.log(`⚔️ ${currentTeamName} started challenge in ${zoneName}`);
+  } catch (err) {
+    console.error('❌ Error loading zone question:', err);
+    document.getElementById(`question-text-${zoneId}`).textContent =
+      '⚠️ Failed to load question data.';
   }
-
-  // 📢 Broadcast that the team started this challenge
-  await broadcastChallenge(currentTeamName, zoneName);
-  console.log(`⚔️ ${currentTeamName} started challenge in ${zoneName}`);
 }
 
 // ---------------------------------------------------------------------------
 // 🧩 INLINE ANSWER SUBMISSION HANDLER
 // ---------------------------------------------------------------------------
-async function handleAnswerSubmitInline(zoneId) {
-  const { questionId, attemptsLeft } = challengeState;
-  if (!zoneId || !questionId) return;
+async function handleAnswerSubmitInline(zoneId, questionData) {
+  const { attemptsLeft } = challengeState;
+  if (!zoneId || !questionData) return;
 
-  const input = document.getElementById(`player-answer-${zoneId}`);
-  const playerAnswer = input?.value.trim();
+  let playerAnswer = '';
+
+  if (['YES_NO', 'TRUE_FALSE', 'UP_DOWN', 'MULTIPLE_CHOICE'].includes(questionData.type)) {
+    const selected = document.querySelector(`input[name="answer-${zoneId}"]:checked`);
+    if (!selected) return alert('Please select an option.');
+    playerAnswer = selected.value.trim();
+  } else {
+    const input = document.getElementById(`player-answer-${zoneId}`);
+    playerAnswer = input?.value.trim();
+  }
+
   if (!playerAnswer) return alert('Please enter an answer.');
 
-  const questionDoc = await getDoc(doc(db, 'zones', zoneId, 'questions', questionId));
-  if (!questionDoc.exists()) return alert('Question not found.');
-
-  const questionData = questionDoc.data();
-  const zoneDoc = await getDoc(doc(db, 'zones', zoneId));
-  const zoneName = zoneDoc.data().name || zoneId;
-
-  const isCorrect = validateAnswer(playerAnswer, questionData.answer, questionData.type);
+  const isCorrect = validateAnswer(playerAnswer, questionData.answer ?? questionData.booleanCorrect ?? questionData.openAccepted, questionData.type);
 
   // ✅ CORRECT
   if (isCorrect) {
     const points = attemptsLeft === 3 ? 10 : attemptsLeft === 2 ? 8 : 6;
-    alert(`✅ CORRECT! ${zoneName} captured (+${points} pts)`);
+    alert(`✅ CORRECT! ${zoneId} captured (+${points} pts)`);
 
-    await updateTeamLocation(currentTeamName, zoneName);
-    await broadcastWin(currentTeamName, zoneName);
-
-    await setDoc(
-      doc(db, 'zones', zoneId),
-      {
-        status: 'Taken',
-        controllingTeam: currentTeamName,
-        updatedAt: serverTimestamp()
-      },
-      { merge: true }
-    );
-
-    await addPointsToTeam(currentTeamName, points);
-    await updateControlledZones(currentTeamName, zoneName);
+    try {
+      await updateTeamLocation(currentTeamName, zoneId);
+      await broadcastWin(currentTeamName, zoneId);
+      await setDoc(
+        doc(db, 'zones', zoneId),
+        {
+          status: 'Taken',
+          controllingTeam: currentTeamName,
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      );
+      await addPointsToTeam(currentTeamName, points);
+      await updateControlledZones(currentTeamName, zoneId);
+    } catch (err) {
+      console.error('❌ Error finalizing win:', err);
+    }
 
     // 🧹 Clean up question UI
-    const inlineRow = document.getElementById(`inline-question-${zoneId}`);
-    if (inlineRow) inlineRow.remove();
-
-    console.log(`🏁 ${currentTeamName} captured ${zoneName} (+${points} pts).`);
+    document.getElementById(`inline-question-${zoneId}`)?.remove();
+    console.log(`🏁 ${currentTeamName} captured ${zoneId} (+${points} pts).`);
   }
   // ❌ INCORRECT
   else {
@@ -154,8 +198,7 @@ async function handleAnswerSubmitInline(zoneId) {
       alert(`❌ Incorrect. ${challengeState.attemptsLeft} attempt(s) left.`);
     } else {
       alert('😓 Out of attempts. Time for a PitStop!');
-      const inlineRow = document.getElementById(`inline-question-${zoneId}`);
-      if (inlineRow) inlineRow.remove();
+      document.getElementById(`inline-question-${zoneId}`)?.remove();
     }
   }
 }
