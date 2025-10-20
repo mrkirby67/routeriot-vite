@@ -1,7 +1,7 @@
 // ============================================================================
-// MODULE: controlStatus.js (UPDATED)
+// MODULE: controlStatus.js (FINAL CLEAN VERSION)
 // Purpose: Watch Firestore for live game updates and team status sync
-// Includes auto Top 3 broadcast + global chat clear on reset + teamStatus clear
+// Includes auto Top 3 broadcast + separate clearChatOnly() + full clearAll()
 // ============================================================================
 
 import { listenForGameStatus } from './gameStateManager.js';
@@ -13,6 +13,7 @@ import {
   doc,
   onSnapshot,
   updateDoc,
+  setDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './config.js';
@@ -25,33 +26,29 @@ export function watchLiveGameStatus() {
   listenForGameStatus(async (state) => {
     const { status = 'waiting', zonesReleased = false } = state || {};
     const statusEl = document.getElementById('live-game-status');
-    const zonesEl  = document.getElementById('live-zones-status');
+    const zonesEl = document.getElementById('live-zones-status');
 
     if (statusEl) statusEl.textContent = status.toUpperCase();
-    if (zonesEl)  zonesEl.textContent  = zonesReleased ? 'Unlocked' : 'Locked';
+    if (zonesEl) zonesEl.textContent = zonesReleased ? 'Unlocked' : 'Locked';
 
     switch (status) {
       case 'active':
         showFlashMessage('🏁 Zones are LIVE!', '#2e7d32');
         break;
-
       case 'paused':
         showFlashMessage('⏸️ Game Paused!', '#ff9800');
         break;
-
       case 'finished':
       case 'ended':
         showFlashMessage('🏁 Game Over!', '#7b1fa2');
-        await broadcastTopThree(); // 🎯 Send Top 3 leaderboard
+        await broadcastTopThree();
         break;
-
       default:
         showFlashMessage('Waiting to start...', '#616161');
         break;
     }
   });
 
-  // Also begin watching per-team status collection for Control dashboard
   watchTeamStatuses();
 }
 
@@ -60,14 +57,11 @@ export function watchLiveGameStatus() {
 // ---------------------------------------------------------------------------
 function watchTeamStatuses() {
   const teamTable = document.getElementById('control-team-status-tbody');
-  if (!teamTable) {
-    console.warn('⚠️ No #control-team-status-tbody found; skipping teamStatus listener.');
-    return;
-  }
+  if (!teamTable) return;
 
   const teamStatusRef = collection(db, 'teamStatus');
   onSnapshot(teamStatusRef, (snapshot) => {
-    teamTable.innerHTML = ''; // rebuild each update
+    teamTable.innerHTML = '';
 
     snapshot.forEach((docSnap) => {
       const teamName = docSnap.id;
@@ -89,11 +83,11 @@ function watchTeamStatuses() {
 }
 
 // ---------------------------------------------------------------------------
-// 🧹 CLEAR ALL CHAT, SCORES, & TEAM STATUS (Global Reset)
+// 💬 CLEAR CHAT ONLY (Does NOT touch scores or zones)
 // ---------------------------------------------------------------------------
-export async function clearAllChatAndScores() {
+export async function clearChatOnly() {
   try {
-    console.log('🧹 Clearing all chat collections, scoreboard data, and team statuses...');
+    console.log('💬 Clearing all communications and chat logs (scores untouched)...');
 
     // 1️⃣ Delete all documents in communications
     const commSnap = await getDocs(collection(db, 'communications'));
@@ -118,23 +112,48 @@ export async function clearAllChatAndScores() {
       }
     }
 
-    // 4️⃣ Reset scoreboard
-    await resetScores();
-
-    // 5️⃣ Clear all teamStatus locations
-    await clearAllTeamStatuses();
-
-    // 6️⃣ Broadcast a system notice that all chat & status are cleared
-    await addSystemNotice('\n'.repeat(10) + '🧹 ALL CHAT, SCORES & TEAM STATUSES CLEARED BY GAME MASTER 🧹');
-
-    console.log('✅ All chat, scores, and team statuses cleared.');
+    // ✅ Leave scores and zones untouched
+    await addSystemNotice('💬 All chat and messages cleared by Game Master (scores preserved)');
+    showFlashMessage('💬 Chat cleared — scores preserved.', '#0288d1', 3000);
+    console.log('✅ Chat cleared; scores preserved.');
   } catch (err) {
-    console.error('❌ Error clearing data:', err);
+    console.error('❌ Error clearing chat:', err);
+    showFlashMessage('❌ Chat clear failed. Check console.', '#c62828', 4000);
   }
 }
 
 // ---------------------------------------------------------------------------
-// 🧼 Clear all team statuses (used by Clear All button or reset)
+// 🧹 CLEAR ALL (Chat + Scores + Team Status + Zones)
+// ---------------------------------------------------------------------------
+export async function clearAllChatAndScores() {
+  try {
+    console.log('🧹 Performing full CLEAR ALL: chat, scores, teamStatus, zones...');
+
+    // 1️⃣ Clear chat/conversations
+    await clearChatOnly();
+
+    // 2️⃣ Reset scoreboard
+    await resetScores();
+
+    // 3️⃣ Clear all teamStatus locations
+    await clearAllTeamStatuses();
+
+    // 4️⃣ Reset all zones to Available
+    await clearAllZones();
+
+    // 5️⃣ Notify everyone
+    await addSystemNotice('\n'.repeat(10) + '🧹 ALL CHAT, SCORES, TEAM STATUSES & ZONES CLEARED 🧹');
+    showFlashMessage('🧼 All data fully cleared.', '#1565c0', 3000);
+
+    console.log('✅ All data cleared: chat, scores, teamStatus, zones.');
+  } catch (err) {
+    console.error('❌ Error during full Clear All:', err);
+    showFlashMessage('❌ Clear All failed.', '#c62828', 4000);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 🧼 Clear all team statuses
 // ---------------------------------------------------------------------------
 export async function clearAllTeamStatuses() {
   try {
@@ -152,6 +171,33 @@ export async function clearAllTeamStatuses() {
     console.log("🧼 All teamStatus entries cleared!");
   } catch (err) {
     console.error("❌ Error clearing teamStatus collection:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 🧭 Clear all zones
+// ---------------------------------------------------------------------------
+export async function clearAllZones() {
+  try {
+    const zonesRef = collection(db, "zones");
+    const snapshot = await getDocs(zonesRef);
+
+    const updates = snapshot.docs.map((docSnap) =>
+      setDoc(
+        docSnap.ref,
+        {
+          status: "Available",
+          controllingTeam: null,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      )
+    );
+
+    await Promise.allSettled(updates);
+    console.log("🗺️ All zones reset to Available.");
+  } catch (err) {
+    console.error("❌ Error clearing zones collection:", err);
   }
 }
 
