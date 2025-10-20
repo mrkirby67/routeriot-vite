@@ -1,11 +1,12 @@
 // ============================================================================
-// File: player.js
-// Purpose: Player-side entry point with synced countdown + pause/resume logic
-// Updated: Added 🪰 Bug Strike listener for chaos overlay
+// FILE: player.js
+// PURPOSE: Player-side entry point with synced countdown + pause/resume logic
+// UPDATED: Added 🪰 Bug Strike listener + 🎮 Wild Card Launcher support
 // ============================================================================
 import { allTeams } from './data.js';
 import { db } from './modules/config.js';
 import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 import { setupPlayerChat } from './modules/chatManager.js';
 import { listenForGameStatus } from './modules/gameStateManager.js';
 import { initializeZones } from './modules/zones.js';
@@ -17,7 +18,8 @@ import {
 } from './modules/playerUI.js';
 import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
-import { initializeBugStrikeListener } from './modules/playerBugStrikeUI.js'; // 🪰 NEW
+import { initializeBugStrikeListener } from './modules/playerBugStrikeUI.js'; // 🪰 chaos overlay
+import { WildCardLauncherComponent, initializeWildCardLauncher } from './components/WildCardLauncher/WildCardLauncher.js'; // 🎮 new launcher
 
 // ============================================================================
 // MAIN INITIALIZATION
@@ -38,7 +40,6 @@ export async function initializePlayerPage() {
     console.error('❌ Missing team name.');
     return;
   }
-
   localStorage.setItem('teamName', currentTeamName);
 
   // 2️⃣ Validate team
@@ -55,20 +56,28 @@ export async function initializePlayerPage() {
     setupPlayerChat(currentTeamName);
     initializeZones(currentTeamName);
     initializePlayerScoreboard();
-
-    // 🪰 Initialize Bug Strike listener
-    initializeBugStrikeListener(currentTeamName);
+    initializeBugStrikeListener(currentTeamName); // 🪰
   } catch (err) {
     console.error('🔥 Error initializing player modules:', err);
     alert('Error initializing player. Check console.');
     return;
   }
 
-  // 4️⃣ Initial display
+  // 4️⃣ Add Wild Card Launcher UI (bottom of page)
+  try {
+    const launcherContainer = document.createElement('div');
+    launcherContainer.innerHTML = WildCardLauncherComponent();
+    document.body.appendChild(launcherContainer);
+    initializeWildCardLauncher(currentTeamName);
+  } catch (err) {
+    console.error('⚠️ Failed to initialize Wild Card Launcher:', err);
+  }
+
+  // 5️⃣ Initial display
   showWaitingBanner();
   setInlineTimer('--:--:--');
 
-  // 5️⃣ If game already active, start timer immediately
+  // 6️⃣ If game already active, start timer immediately
   try {
     const gameDoc = await getDoc(doc(db, 'game', 'gameState'));
     const gameData = gameDoc.exists() ? gameDoc.data() : null;
@@ -85,7 +94,7 @@ export async function initializePlayerPage() {
     console.error('⚠️ Could not fetch initial game state:', err);
   }
 
-  // 6️⃣ Live game state sync (pause/resume/end)
+  // 7️⃣ Live game state sync (pause/resume/end)
   listenForGameStatus((state) => handleLiveGameState(state));
 
   console.log('✅ Player initialized for team:', currentTeamName);

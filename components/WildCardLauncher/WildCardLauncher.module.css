@@ -1,0 +1,109 @@
+/* ============================================================================
+   FILE: WildCardLauncher.module.css
+   PURPOSE: Player-side Wild Card Launcher styles
+   STYLE: Sleek, dark theme with compact table layout and subtle animations
+   ============================================================================ */
+
+.launcherSection {
+  background: #1c1c1c;
+  color: #f5f5f5;
+  border: 2px solid #333;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin: 20px auto;
+  max-width: 640px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  box-shadow: 0 0 12px rgba(0, 255, 128, 0.1);
+  transition: all 0.2s ease-in-out;
+}
+
+.launcherSection:hover {
+  box-shadow: 0 0 18px rgba(0, 255, 128, 0.25);
+}
+
+.launcherSection h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #00e676;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+/* ============================================================================
+   TABLE DESIGN
+   ============================================================================ */
+.launcherTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.launcherTable th,
+.launcherTable td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid #333;
+}
+
+.launcherTable thead th {
+  background: #2a2a2a;
+  color: #a5ffa5;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.launcherTable tbody tr:nth-child(even) {
+  background: #222;
+}
+
+.launcherTable tbody tr:hover {
+  background: #2c2c2c;
+}
+
+/* ============================================================================
+   BUTTONS
+   ============================================================================ */
+.launcherTable button {
+  background: linear-gradient(145deg, #00e676, #009f4d);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.launcherTable button:hover {
+  background: linear-gradient(145deg, #00ff99, #00cc66);
+  transform: scale(1.05);
+}
+
+.launcherTable button:disabled {
+  background: #555;
+  color: #aaa;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+@media (max-width: 600px) {
+  .launcherSection {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .launcherTable th,
+  .launcherTable td {
+    padding: 6px;
+  }
+
+  .launcherTable button {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+  }
+}
