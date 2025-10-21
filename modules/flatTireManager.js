@@ -9,6 +9,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   addDoc,
@@ -29,9 +30,9 @@ export async function planAssignments({
   teams = [],
   towZones = [],
   strategy = 'random',
-  maxEvents = 1,
-  windowStart,
-  windowEnd
+  flatsPerTeam = 1,
+  windowStartMs,
+  windowEndMs
 }) {
   if (!Array.isArray(teams) || !teams.length) {
     throw new Error('No teams provided for Flat Tire planning.');
@@ -39,8 +40,8 @@ export async function planAssignments({
   if (!Array.isArray(towZones) || !towZones.length) {
     throw new Error('Select at least one tow zone.');
   }
-  const startMs = normalizeToMillis(windowStart);
-  const endMs = normalizeToMillis(windowEnd);
+  const startMs = normalizeToMillis(windowStartMs);
+  const endMs = normalizeToMillis(windowEndMs);
   if (!startMs || !endMs) {
     throw new Error('Invalid window start/end.');
   }
@@ -48,7 +49,8 @@ export async function planAssignments({
     throw new Error('Window end must be after start.');
   }
 
-  const selectedTeams = shuffleArray([...teams]).slice(0, Math.min(maxEvents, teams.length));
+  const assignmentLimit = Math.max(1, flatsPerTeam | 0);
+  const selectedTeams = shuffleArray([...teams]).slice(0, Math.min(assignmentLimit, teams.length));
   if (!selectedTeams.length) {
     throw new Error('No teams available to schedule.');
   }
@@ -92,6 +94,7 @@ export async function planAssignments({
       completedAt: null,
       status,
       selectionStrategy: strategy,
+      flatsPerTeam: assignmentLimit,
       updatedAt: serverTimestamp()
     }, { merge: false });
   }));
@@ -139,6 +142,71 @@ export async function revealAssignmentForTeam(teamName, now = Date.now()) {
   });
 
   console.log(`📣 Revealed Flat Tire assignment for ${teamName} (${zoneName}).`);
+}
+
+export async function pauseAllAssignments(now = Date.now()) {
+  const snapshot = await getDocs(ASSIGNMENTS_COLLECTION);
+  const updates = [];
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    if (!data || ['completed', 'cancelled'].includes(data.status)) return;
+    if (data.status === 'paused') return;
+
+    const dueMs = data.dueBy?.toMillis ? data.dueBy.toMillis() : (typeof data.dueBy === 'number' ? data.dueBy : null);
+    const remaining = dueMs ? Math.max(dueMs - now, 0) : Math.max(data.remainingMs ?? 0, 0);
+
+    updates.push(updateDoc(docSnap.ref, {
+      status: 'paused',
+      prePauseStatus: data.status || 'scheduled',
+      remainingMs: remaining,
+      dueBy: null,
+      updatedAt: serverTimestamp()
+    }));
+  });
+
+  await Promise.all(updates);
+}
+
+export async function resumeAllAssignments(now = Date.now()) {
+  const snapshot = await getDocs(ASSIGNMENTS_COLLECTION);
+  const updates = [];
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    if (!data || data.status !== 'paused') return;
+
+    const remaining = Math.max(data.remainingMs ?? 0, 0);
+    const resumeStatus = data.prePauseStatus || 'scheduled';
+    const dueBy = remaining > 0 ? Timestamp.fromMillis(now + remaining) : Timestamp.fromMillis(now);
+
+    updates.push(updateDoc(docSnap.ref, {
+      status: resumeStatus,
+      dueBy,
+      remainingMs: null,
+      prePauseStatus: null,
+      updatedAt: serverTimestamp()
+    }));
+  });
+
+  await Promise.all(updates);
+}
+
+export async function cancelAllAssignments() {
+  const snapshot = await getDocs(ASSIGNMENTS_COLLECTION);
+  const updates = [];
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    if (!data || ['completed', 'cancelled'].includes(data.status)) return;
+
+    updates.push(updateDoc(docSnap.ref, {
+      status: 'cancelled',
+      cancelledAt: serverTimestamp(),
+      remainingMs: null,
+      prePauseStatus: null,
+      updatedAt: serverTimestamp()
+    }));
+  });
+
+  await Promise.all(updates);
 }
 
 // ----------------------------------------------------------------------------
