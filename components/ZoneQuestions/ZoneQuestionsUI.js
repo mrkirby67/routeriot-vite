@@ -21,9 +21,8 @@ import {
 export function ZoneQuestionsComponent() {
   return `
     <div class="${styles.controlSection}">
-      <h2>🚗 Flat Tire – Tow Time Checkpoints</h2>
-      <p>Teams must reach their assigned tow zone to complete the recovery task.
-         Each checkpoint below contains its own objective or proof requirement.</p>
+      <h2>Flat Tire — Tow Time</h2>
+      <p>Schedule & manage tow assignments. Teams only see the tow location when a flat is triggered.</p>
       <div id="zone-questions-accordion" class="${styles.accordion}">
         <div class="${styles.loading}">⏳ Loading tow zones...</div>
       </div>

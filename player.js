@@ -20,6 +20,7 @@ import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
 import { initializeBugStrikeListener } from './modules/playerBugStrikeUI.js'; // 🪰 chaos overlay
 import { WildCardLauncherComponent, initializeWildCardLauncher } from './components/WildCardLauncher/WildCardLauncher.js'; // 🎮 new launcher
+import { initializeFlatTireUI } from './modules/flatTireUI.js';
 
 // ============================================================================
 // MAIN INITIALIZATION
@@ -57,6 +58,7 @@ export async function initializePlayerPage() {
     initializeZones(currentTeamName);
     initializePlayerScoreboard();
     initializeBugStrikeListener(currentTeamName); // 🪰
+    initializeFlatTireUI(currentTeamName);
   } catch (err) {
     console.error('🔥 Error initializing player modules:', err);
     alert('Error initializing player. Check console.');

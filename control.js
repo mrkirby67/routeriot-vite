@@ -12,6 +12,9 @@ import {
   BugStrikeControlComponent, initializeBugStrikeControl
 } from './components/BugStrikeControl/BugStrikeControl.js';
 import {
+  FlatTireControlComponent, initializeFlatTireControl
+} from './components/FlatTireControl/FlatTireControl.js';
+import {
   RacerManagementComponent, initializeRacerManagementLogic
 } from './components/RacerManagement/RacerManagement.js';
 import {
@@ -57,6 +60,7 @@ async function main() {
   initializeGameChallengesLogic();
   initializeBroadcastLogic();
   initializeBugStrikeControl();
+  initializeFlatTireControl();
   listenToAllMessages();
 
   try {
@@ -158,6 +162,7 @@ function renderAllSections() {
   safeSetHTML('game-controls-container', GameControlsComponent());
   safeSetHTML('scoreboard-container', ScoreboardComponent());
   safeSetHTML('bugstrike-control-container', BugStrikeControlComponent());
+  safeSetHTML('flat-tire-control-container', FlatTireControlComponent());
   safeSetHTML('team-links-container', TeamLinksComponent());
   safeSetHTML('racer-management-container', RacerManagementComponent());
   safeSetHTML('zone-management-container', ZoneManagementComponent());
