@@ -1,5 +1,5 @@
 import { db } from '../../modules/config.js';
-import { onSnapshot, doc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { onSnapshot, doc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './Broadcast.module.css';
 
 export function BroadcastComponent() {
@@ -42,12 +42,14 @@ export function initializeBroadcastLogic() {
             const commsRef = collection(db, "communications");
             await addDoc(commsRef, {
                 teamName: "Game Master",
+                sender: "Game Master",
+                senderDisplay: "Game Master",
                 message: message,
-                timestamp: new Date()
+                isBroadcast: true,
+                timestamp: serverTimestamp()
             });
             alert("Broadcast sent!");
             broadcastInput.value = '';
         } catch (error) { console.error("Error sending broadcast:", error); }
     });
 }
-

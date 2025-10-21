@@ -84,6 +84,8 @@ async function onForceCapture(zoneId, renderZones, tableBody, googleMapsApiLoade
   // Notify communications log
   await addDoc(collection(db, 'communications'), {
     teamName: 'Game Master',
+    sender: 'Game Master',
+    senderDisplay: 'Game Master',
     message: `⚡ Admin forced ${cleanName} to capture ${zoneId}.`,
     timestamp: serverTimestamp(),
   });

@@ -19,21 +19,24 @@ import { flashPlayerLocation } from './zonesUtils.js';
 export async function broadcastEvent(teamName = "Game Master", message = "", isBroadcast = true) {
   try {
     const sender = teamName?.trim() || "Game Master";
-    let formattedMsg = message;
+    const safeMessage = typeof message === 'string' ? message : '';
+    let formattedMsg = safeMessage;
 
     // 🔹 Add HTML color styling for control dashboard readability
-    if (message.toLowerCase().includes("challenging")) {
-      formattedMsg = `<span style="color:#ff7043; font-weight:bold;">${message}</span>`; // orange
-    } else if (message.toLowerCase().includes("captured")) {
-      formattedMsg = `<span style="color:#ffd700; font-weight:bold;">${message}</span>`; // gold
-    } else if (message.toLowerCase().includes("finished") || message.toLowerCase().includes("completed")) {
-      formattedMsg = `<span style="color:#00e676; font-weight:bold;">${message}</span>`; // green
+    const lowered = safeMessage.toLowerCase();
+    if (lowered.includes("challenging")) {
+      formattedMsg = `<span style="color:#ff7043; font-weight:bold;">${safeMessage}</span>`; // orange
+    } else if (lowered.includes("captured")) {
+      formattedMsg = `<span style="color:#ffd700; font-weight:bold;">${safeMessage}</span>`; // gold
+    } else if (lowered.includes("finished") || lowered.includes("completed")) {
+      formattedMsg = `<span style="color:#00e676; font-weight:bold;">${safeMessage}</span>`; // green
     } else {
-      formattedMsg = `<span style="color:#ffffff;">${message}</span>`; // default white
+      formattedMsg = `<span style="color:#ffffff;">${safeMessage}</span>`; // default white
     }
 
     await addDoc(collection(db, "communications"), {
       teamName: sender,
+      sender,
       senderDisplay: sender,
       message: formattedMsg,
       isBroadcast,

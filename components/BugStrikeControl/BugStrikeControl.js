@@ -135,6 +135,9 @@ export async function initializeBugStrikeControl() {
 
     try {
       await addDoc(collection(db, 'communications'), {
+        teamName: 'Game Master',
+        sender: 'Game Master',
+        senderDisplay: 'Game Master',
         type: 'bugStrike',
         to: targetTeam,
         from: 'Game Master',

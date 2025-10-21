@@ -19,12 +19,70 @@ import {
   doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+const GAME_MASTER_NAME = 'Game Master';
+const listenerRegistry = {
+  control: [],
+  player: [],
+  others: new Map(),
+};
+
+function safeHTML(str = '') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function resolveSenderName(msg) {
+  if (!msg || typeof msg !== 'object') return GAME_MASTER_NAME;
+  const raw =
+    (typeof msg.senderDisplay === 'string' && msg.senderDisplay.trim()) ? msg.senderDisplay.trim() :
+    (typeof msg.sender === 'string' && msg.sender.trim()) ? msg.sender.trim() :
+    (typeof msg.teamName === 'string' && msg.teamName.trim()) ? msg.teamName.trim() :
+    null;
+  return raw || GAME_MASTER_NAME;
+}
+
+function shouldRenderRaw(msg) {
+  const senderName = resolveSenderName(msg);
+  return Boolean(msg?.isBroadcast && senderName === GAME_MASTER_NAME);
+}
+
+function clearRegistry(key) {
+  if (Array.isArray(listenerRegistry[key])) {
+    listenerRegistry[key].forEach(unsub => {
+      try { unsub?.(); } catch {}
+    });
+    listenerRegistry[key] = [];
+  } else if (listenerRegistry.others instanceof Map && listenerRegistry.others.has(key)) {
+    const arr = listenerRegistry.others.get(key) || [];
+    arr.forEach(unsub => {
+      try { unsub?.(); } catch {}
+    });
+    listenerRegistry.others.delete(key);
+  }
+}
+
+export function registerListener(key, unsub) {
+  if (!unsub) return;
+  if (Array.isArray(listenerRegistry[key])) {
+    listenerRegistry[key].push(unsub);
+  } else {
+    if (!listenerRegistry.others.has(key)) listenerRegistry.others.set(key, []);
+    listenerRegistry.others.get(key).push(unsub);
+  }
+}
+
 // ============================================================================
 // 🧭 CONTROL PAGE: Listen to ALL MESSAGES (visible to Game Master)
 // ============================================================================
 export async function listenToAllMessages() {
   const logBox = document.getElementById('communication-log');
   if (!logBox) return console.warn("⚠️ No #communication-log element found.");
+
+  clearRegistry('control');
 
   const activeSnap = await getDoc(doc(db, "game", "activeTeams"));
   const activeTeams = activeSnap.exists() ? activeSnap.data().list || [] : [];
@@ -44,19 +102,23 @@ export async function listenToAllMessages() {
       const time = new Date(ts).toLocaleTimeString();
       const entry = document.createElement('p');
       if (msg.isBroadcast || msg.recipient === 'ALL') {
+        const senderName = resolveSenderName(msg);
         const senderDisplay =
-          msg.sender && msg.sender !== 'Game Master'
-            ? `<strong style="color:#FFD700;">${msg.sender}</strong>`
-            : `<strong style="color:#fdd835;">GAME MASTER</strong>`;
+          senderName !== GAME_MASTER_NAME
+            ? `<strong style="color:#FFD700;">${safeHTML(senderName)}</strong>`
+            : `<strong style="color:#fdd835;">${GAME_MASTER_NAME.toUpperCase()}</strong>`;
+        const messageBody = shouldRenderRaw(msg)
+          ? msg.message
+          : safeHTML(msg.text || msg.message || '(no message)');
         entry.innerHTML = `
           <span style="color:#888;">[${time}]</span>
-          ${senderDisplay}: ${msg.text || msg.message || '(no message)'}
+          ${senderDisplay}: ${messageBody}
         `;
       } else {
         entry.innerHTML = `
           <span style="color:#888;">[${time}]</span>
-          <strong style="color:#FFD700;">${msg.sender || 'Unknown'}</strong> ➡️
-          <strong style="color:#00CED1;">${msg.recipient || 'Unknown'}</strong>: ${msg.text || msg.message || ''}
+          <strong style="color:#FFD700;">${safeHTML(resolveSenderName(msg))}</strong> ➡️
+          <strong style="color:#00CED1;">${safeHTML(msg.recipient || 'Unknown')}</strong>: ${safeHTML(msg.text || msg.message || '')}
         `;
       }
       logBox.appendChild(entry);
@@ -82,9 +144,11 @@ export async function listenToAllMessages() {
     renderLog();
   };
 
-  onSnapshot(privateMessagesQuery, processSnapshot);
-  onSnapshot(publicCommsQuery, processSnapshot);
-  onSnapshot(controlAllQuery, processSnapshot);
+  registerListener('control', onSnapshot(privateMessagesQuery, processSnapshot));
+  registerListener('control', onSnapshot(publicCommsQuery, processSnapshot));
+  registerListener('control', onSnapshot(controlAllQuery, processSnapshot));
+
+  return () => clearRegistry('control');
 }
 
 // ============================================================================
@@ -94,6 +158,9 @@ export async function setupPlayerChat(currentTeamName) {
   const opponentsTbody = document.getElementById('opponents-tbody');
   const chatLog = document.getElementById('team-chat-log');
   if (!opponentsTbody || !chatLog) return console.warn("⚠️ Chat elements missing on player page.");
+
+  clearRegistry('player');
+  clearRegistry('playerMessages');
 
   opponentsTbody.innerHTML = '';
 
@@ -121,7 +188,7 @@ export async function setupPlayerChat(currentTeamName) {
 
   // 🛰️ Live Last Known Location Listener (handles clears)
   const teamStatusCol = collection(db, 'teamStatus');
-  onSnapshot(teamStatusCol, (snapshot) => {
+  const teamStatusUnsub = onSnapshot(teamStatusCol, (snapshot) => {
     // Reset everyone to "--" if collection is cleared
     if (snapshot.empty) {
       opponentsTbody.querySelectorAll('.last-location').forEach(cell => {
@@ -148,6 +215,7 @@ export async function setupPlayerChat(currentTeamName) {
       }
     });
   });
+  registerListener('player', teamStatusUnsub);
 
   // Hook up send buttons
   opponentsTbody.querySelectorAll('.send-btn').forEach(button => {
@@ -162,7 +230,13 @@ export async function setupPlayerChat(currentTeamName) {
     });
   });
 
-  listenForMyMessages(currentTeamName, chatLog);
+  const messagesCleanup = listenForMyMessages(currentTeamName, chatLog);
+
+  return () => {
+    clearRegistry('player');
+    clearRegistry('playerMessages');
+    messagesCleanup?.();
+  };
 }
 
 // ============================================================================
@@ -189,6 +263,7 @@ async function sendMessage(sender, recipient, text) {
 // 📡 Listen for My Messages (Player Side) + Broadcasts
 // ============================================================================
 function listenForMyMessages(myTeamName, logBox) {
+  clearRegistry('playerMessages');
   const messagesRef = collectionGroup(db, 'messages');
   const sentQuery = query(messagesRef, where('sender', '==', myTeamName));
   const receivedQuery = query(messagesRef, where('recipient', '==', myTeamName));
@@ -213,25 +288,31 @@ function listenForMyMessages(myTeamName, logBox) {
       const entry = document.createElement('p');
 
       if (msg.isBroadcast || msg.recipient === 'ALL') {
+        const senderName = resolveSenderName(msg);
         const senderDisplay =
-          msg.sender && msg.sender !== 'Game Master'
-            ? `<strong style="color:#FFD700;">${msg.sender}</strong>`
-            : `<strong style="color:#fdd835;">GAME MASTER</strong>`;
+          senderName !== GAME_MASTER_NAME
+            ? `<strong style="color:#FFD700;">${safeHTML(senderName)}</strong>`
+            : `<strong style="color:#fdd835;">${GAME_MASTER_NAME.toUpperCase()}</strong>`;
         entry.style.backgroundColor = '#3a3a24';
         entry.style.padding = '8px';
         entry.style.borderRadius = '5px';
         entry.style.margin = '5px 0';
+        const messageBody = shouldRenderRaw(msg)
+          ? msg.message
+          : safeHTML(msg.text || msg.message || '(no message)');
         entry.innerHTML = `
           <span style="color: #aaa;">[${time}]</span>
-          ${senderDisplay}: <span style="font-weight:bold;">${msg.text || msg.message || '(no message)'}</span>
+          ${senderDisplay}: <span style="font-weight:bold;">${messageBody}</span>
         `;
       } else {
-        const isMine = msg.sender === myTeamName;
+        const senderName = resolveSenderName(msg);
+        const isMine = senderName === myTeamName;
         const color = isMine ? '#FFD700' : '#00CED1';
+        const otherParty = isMine ? (msg.recipient || 'Unknown') : senderName || 'Unknown';
         const prefix = isMine
-          ? `<strong style="color:${color};">You ➡️ ${msg.recipient || 'Unknown'}:</strong>`
-          : `<strong style="color:${color};">${msg.sender || 'Unknown'} ➡️ You:</strong>`;
-        entry.innerHTML = `${prefix} ${msg.text || msg.message || ''} <span style="color:#888;">(${time})</span>`;
+          ? `<strong style="color:${color};">You ➡️ ${safeHTML(msg.recipient || 'Unknown')}:</strong>`
+          : `<strong style="color:${color};">${safeHTML(otherParty)} ➡️ You:</strong>`;
+        entry.innerHTML = `${prefix} ${safeHTML(msg.text || msg.message || '')} <span style="color:#888;">(${time})</span>`;
       }
       logBox.appendChild(entry);
     });
@@ -260,8 +341,10 @@ function listenForMyMessages(myTeamName, logBox) {
     renderLog();
   };
 
-  onSnapshot(sentQuery, processSnapshot);
-  onSnapshot(receivedQuery, processSnapshot);
-  onSnapshot(broadcastQuery, processSnapshot);
-  onSnapshot(controlAllQuery, processSnapshot);
+  registerListener('playerMessages', onSnapshot(sentQuery, processSnapshot));
+  registerListener('playerMessages', onSnapshot(receivedQuery, processSnapshot));
+  registerListener('playerMessages', onSnapshot(broadcastQuery, processSnapshot));
+  registerListener('playerMessages', onSnapshot(controlAllQuery, processSnapshot));
+
+  return () => clearRegistry('playerMessages');
 }

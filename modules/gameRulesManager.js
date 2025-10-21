@@ -170,8 +170,10 @@ export async function startGame(gameDuration = 120) {
 
   await addDoc(collection(db, 'communications'), {
     teamName: 'Game Master',
+    sender: 'Game Master',
+    senderDisplay: 'Game Master',
     message: '🏁 The race has begun! Zones are now active — good luck racers!',
-    timestamp: new Date()
+    timestamp: serverTimestamp()
   });
 
   alert(`🏁 Game Started — Zones Released!\n${teamsInPlay.size} teams active.`);
@@ -195,8 +197,10 @@ export async function endGame() {
     if (scores.length === 0) {
       await addDoc(collection(db, 'communications'), {
         teamName: 'Game Master',
+        sender: 'Game Master',
+        senderDisplay: 'Game Master',
         message: '🏁 Game Ended — No scores found.',
-        timestamp: new Date()
+        timestamp: serverTimestamp()
       });
       alert('Game Ended — no scores recorded.');
       return;
@@ -207,8 +211,10 @@ export async function endGame() {
 
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',
+      sender: 'Game Master',
+      senderDisplay: 'Game Master',
       message: `🏁 FINAL STANDINGS 🏁\n\n${lines.join('\n')}\n\n— Route Riot Control`,
-      timestamp: new Date()
+      timestamp: serverTimestamp()
     });
 
     alert('🏁 Game Ended — Winners broadcasted!');

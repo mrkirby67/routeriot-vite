@@ -209,6 +209,8 @@ async function addSystemNotice(message) {
     const { addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',
+      sender: 'Game Master',
+      senderDisplay: 'Game Master',
       message,
       isBroadcast: true,
       timestamp: serverTimestamp()

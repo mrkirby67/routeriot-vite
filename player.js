@@ -22,6 +22,9 @@ import { initializeBugStrikeListener } from './modules/playerBugStrikeUI.js'; //
 import { WildCardLauncherComponent, initializeWildCardLauncher } from './components/WildCardLauncher/WildCardLauncher.js'; // 🎮 new launcher
 import { initializeFlatTireUI } from './modules/flatTireUI.js';
 
+let gameStatusUnsub = null;
+let chatCleanup = null;
+
 // ============================================================================
 // MAIN INITIALIZATION
 // ============================================================================
@@ -54,7 +57,8 @@ export async function initializePlayerPage() {
   // 3️⃣ Initialize UI + core modules
   try {
     initializePlayerUI(team, currentTeamName);
-    setupPlayerChat(currentTeamName);
+    chatCleanup?.();
+    chatCleanup = setupPlayerChat(currentTeamName);
     initializeZones(currentTeamName);
     initializePlayerScoreboard();
     initializeBugStrikeListener(currentTeamName); // 🪰
@@ -97,7 +101,8 @@ export async function initializePlayerPage() {
   }
 
   // 7️⃣ Live game state sync (pause/resume/end)
-  listenForGameStatus((state) => handleLiveGameState(state));
+  gameStatusUnsub?.();
+  gameStatusUnsub = listenForGameStatus((state) => handleLiveGameState(state));
 
   console.log('✅ Player initialized for team:', currentTeamName);
 }

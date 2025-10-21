@@ -189,6 +189,8 @@ export async function broadcastTopThree() {
 
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',
+      sender: 'Game Master',
+      senderDisplay: 'Game Master',
       message,
       isBroadcast: true,
       timestamp: serverTimestamp()

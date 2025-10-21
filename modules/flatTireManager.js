@@ -127,12 +127,15 @@ export async function revealAssignmentForTeam(teamName, now = Date.now()) {
   });
 
   await addDoc(COMMUNICATIONS_COLLECTION, {
-    teamName: 'Game Master',
+    teamName: teamName,
+    sender: teamName,
+    senderDisplay: teamName,
     message: `🚨 ${teamName} blew a tire! Head to ${zoneName}.`,
     type: 'flatTire',
     audience: 'players',
     isBroadcast: true,
-    createdAt: serverTimestamp()
+    createdAt: serverTimestamp(),
+    timestamp: serverTimestamp()
   });
 
   console.log(`📣 Revealed Flat Tire assignment for ${teamName} (${zoneName}).`);

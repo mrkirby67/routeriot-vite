@@ -43,6 +43,8 @@ export function wireGameControls() {
         await updateDoc(GAME_STATE_REF, update);
         await addDoc(collection(db, "communications"), {
           teamName: "Game Master",
+          sender: "Game Master",
+          senderDisplay: "Game Master",
           message: "🏁 A new game has begun! Scoreboard cleared, chat wiped, and zones live.",
           isBroadcast: true,
           timestamp: serverTimestamp(),

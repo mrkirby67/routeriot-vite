@@ -110,6 +110,9 @@ export function initializeWildCardLauncher(currentTeamName, wildcards = []) {
 
     try {
       await addDoc(collection(db, 'communications'), {
+        teamName: currentTeamName,
+        sender: currentTeamName,
+        senderDisplay: currentTeamName,
         type: 'wildcard',
         subtype: type,
         from: currentTeamName,

@@ -34,6 +34,7 @@ export async function broadcastEvent(teamName, message, isBroadcast = true) {
 
     await addDoc(collection(db, "communications"), {
       teamName: cleanTeam,
+      sender: cleanTeam,
       senderDisplay: cleanTeam,
       message: text,
       isBroadcast,

@@ -25,11 +25,20 @@ import { allTeams } from '../data.js';
 
 let zonesLocked = true;
 let currentTeamName = null;
+let zonesListeners = [];
+
+function clearZoneListeners() {
+  zonesListeners.forEach(unsub => {
+    try { unsub?.(); } catch {}
+  });
+  zonesListeners = [];
+}
 
 /* ---------------------------------------------------------------------------
  * 🧭 INITIALIZE ZONES (Player View)
  * ------------------------------------------------------------------------ */
 export async function initializeZones(teamName) {
+  clearZoneListeners();
   // Normalize team name
   const teamObj = allTeams.find(t => t.name === teamName);
   currentTeamName = teamObj ? teamObj.name : teamName;
@@ -41,7 +50,7 @@ export async function initializeZones(teamName) {
   /* -------------------------------------------------------------------------
    * 🔔 LISTEN TO GAME STATE (lock/unlock zones + detect ending)
    * ---------------------------------------------------------------------- */
-  onSnapshot(doc(db, 'game', 'gameState'), (gameSnap) => {
+  zonesListeners.push(onSnapshot(doc(db, 'game', 'gameState'), (gameSnap) => {
     const data = gameSnap.data();
     if (!data?.status) return;
 
@@ -59,12 +68,12 @@ export async function initializeZones(teamName) {
     }
 
     zonesLocked = shouldLock;
-  });
+  }));
 
   /* -------------------------------------------------------------------------
    * 🗺️ LISTEN TO ALL ZONES (re-render player zone table)
    * ---------------------------------------------------------------------- */
-  onSnapshot(zonesCollection, (snapshot) => {
+  zonesListeners.push(onSnapshot(zonesCollection, (snapshot) => {
     tableBody.innerHTML = '';
 
     snapshot.forEach(docSnap => {
@@ -91,7 +100,7 @@ export async function initializeZones(teamName) {
       `;
       tableBody.appendChild(row);
     });
-  });
+  }));
 
   /* -------------------------------------------------------------------------
    * 🎯 HANDLE CHALLENGE ATTEMPTS

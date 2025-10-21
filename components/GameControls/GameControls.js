@@ -131,9 +131,11 @@ async function announceTopThree() {
 
   await addDoc(collection(db, 'communications'), {
     teamName: 'Game Master',
+    sender: 'Game Master',
+    senderDisplay: 'Game Master',
     message,
     isBroadcast: true,
-    timestamp: new Date()
+    timestamp: serverTimestamp()
   });
 }
 
@@ -239,9 +241,11 @@ export function initializeGameControlsLogic() {
 
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',
+      sender: 'Game Master',
+      senderDisplay: 'Game Master',
       message: '🏁 The race has begun! Zones are active — good luck racers!',
       isBroadcast: true,
-      timestamp: new Date()
+      timestamp: serverTimestamp()
     });
 
     showAnimatedBanner('🏁 Race Started!', '#2e7d32');
@@ -279,9 +283,11 @@ export function initializeGameControlsLogic() {
       await clearChatsAndScores(); // uses maintenance.js function
       await addDoc(collection(db, 'communications'), {
         teamName: 'Game Master',
+        sender: 'Game Master',
+        senderDisplay: 'Game Master',
         message: '💬 All chats cleared by Control.',
         isBroadcast: true,
-        timestamp: new Date()
+        timestamp: serverTimestamp()
       });
       showAnimatedBanner('💬 Chats Cleared!', '#2196f3');
     }
@@ -292,9 +298,11 @@ export function initializeGameControlsLogic() {
     await resetFullGame();
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',
+      sender: 'Game Master',
+      senderDisplay: 'Game Master',
       message: '🔄 Game has been fully reset.',
       isBroadcast: true,
-      timestamp: new Date()
+      timestamp: serverTimestamp()
     });
     showAnimatedBanner('🔄 Game Reset', '#ffa000');
   });
@@ -307,9 +315,11 @@ export function initializeGameControlsLogic() {
     for (const t of teamSnap.docs) await deleteDoc(t.ref);
     await addDoc(collection(db, 'communications'), {
       teamName: 'Game Master',
+      sender: 'Game Master',
+      senderDisplay: 'Game Master',
       message: '🧹 All chat, scores, zones & team data cleared by Control.',
       isBroadcast: true,
-      timestamp: new Date()
+      timestamp: serverTimestamp()
     });
     showAnimatedBanner('🧹 All Data Cleared!', '#c62828');
   });

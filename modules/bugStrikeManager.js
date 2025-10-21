@@ -146,7 +146,9 @@ export async function useBugStrike(fromTeam, targetTeam) {
 
     // Send communication message
     await addDoc(collection(db, 'communications'), {
-      teamName: 'Game Master',
+      teamName: fromTeam,
+      sender: fromTeam,
+      senderDisplay: fromTeam,
       message: `🪰 ${fromTeam} launched a BUG STRIKE on ${targetTeam}! SPLAT!`,
       type: 'bugStrike',
       from: fromTeam,

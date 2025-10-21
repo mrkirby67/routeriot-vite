@@ -9,7 +9,7 @@
 // File: routeriot-vite-main/control.html
 // =============================
 // HTML structure:
-//   IDs: broadcast-container, game-challenges-container, game-controls-container, pause-btn, racer-management-container, resume-btn, roster-modal, roster-modal-body, scoreboard-container, team-links-container, zone-management-container
+//   IDs: broadcast-container, game-challenges-container, game-controls-container, pause-btn, release-zones-btn, racer-management-container, resume-btn, roster-modal, roster-modal-body, scoreboard-container, team-links-container, zone-management-container
 //   Classes: container, manual-controls, modal-backdrop, modal-close-btn, modal-content
 
 // =============================

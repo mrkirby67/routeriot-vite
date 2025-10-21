@@ -256,7 +256,11 @@ async function verifyAndComplete(teamName, assignment, zoneData) {
     throw new Error('Geolocation not supported on this device.');
   }
 
-  const coords = zoneData?.gps?.split(',').map(Number) || [];
+  if (!zoneData?.gps || typeof zoneData.gps !== 'string') {
+    throw new Error('Tow zone GPS data is invalid.');
+  }
+
+  const coords = zoneData.gps.split(',').map(Number);
   if (coords.length !== 2 || coords.some(Number.isNaN)) {
     throw new Error('Tow zone GPS data is invalid.');
   }
@@ -304,10 +308,13 @@ async function markAssignmentComplete(teamName, assignment, zoneData, geoPositio
 
   await addDoc(collection(db, 'communications'), {
     teamName: 'Game Master',
+    sender: 'Game Master',
+    senderDisplay: 'Game Master',
     message: `🔧 ${teamName} fixed the flat at ${zoneName}.`,
     type: 'flatTireCompleted',
     isBroadcast: true,
     createdAt: serverTimestamp(),
+    timestamp: serverTimestamp(),
     meta: {
       team: teamName,
       towZone: assignment.towZoneId,
