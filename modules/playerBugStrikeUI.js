@@ -32,6 +32,10 @@ export function initializeBugStrikeListener(teamName) {
   }
 
   const commRef = collection(db, 'communications');
+  // Firestore needs a composite index here because we chain `where('to' == teamName)` and
+  // `where('type' == 'bugStrike')` with `orderBy('timestamp', 'desc')`. Create it via
+  // Firebase Console → Firestore Database → Indexes → Composite → collection `communications`,
+  // fields: `to` Ascending, `type` Ascending, `timestamp` Descending.
   const q = query(
     commRef,
     where('to', '==', teamName),
