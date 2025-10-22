@@ -1,0 +1,809 @@
+// =============================
+// File: routeriot-vite-main/404.html
+// =============================
+// HTML structure:
+//   IDs: message
+//   Classes: (none)
+
+// =============================
+// File: routeriot-vite-main/components/Broadcast/Broadcast.js
+// =============================
+// Functions and classes:
+//   - BroadcastComponent()
+//   - initializeBroadcastLogic()
+// Exported members:
+//   - BroadcastComponent
+//   - initializeBroadcastLogic
+
+// =============================
+// File: routeriot-vite-main/components/Broadcast/Broadcast.module.css
+// =============================
+// CSS selectors:
+//   .broadcastBox, .controlSection, .logBox, .logBox p
+
+// =============================
+// File: routeriot-vite-main/components/BugStrikeControl/BugStrikeControl.js
+// =============================
+// Functions and classes:
+//   - BugStrikeControlComponent()
+//   - initializeBugStrikeControl()
+// Exported members:
+//   - BugStrikeControlComponent
+//   - initializeBugStrikeControl
+
+// =============================
+// File: routeriot-vite-main/components/BugStrikeControl/BugStrikeControl.module.css
+// =============================
+// CSS selectors:
+//   .controlSection, .controlSection h2, .cooldownNotice, .launchButton, .launchButton:hover, .numberInput, .settingsRow, .settingsRow label
+
+// =============================
+// File: routeriot-vite-main/components/FlatTireControl/FlatTireControl.js
+// =============================
+// Functions and classes:
+//   - applySavedSelection()
+//   - cancelCountdownLoop()
+//   - cleanupListeners()
+//   - computeGameWindow()
+//   - FlatTireControlComponent()
+//   - formatDuration()
+//   - formatTimestamp()
+//   - handleGameStateChange()
+//   - handleZoneSelection()
+//   - initializeFlatTireControl()
+//   - loadExistingConfig()
+//   - loadTowZones()
+//   - onSelectButtonClick()
+//   - pad()
+//   - parseGps()
+//   - renderTowMap()
+//   - safeMiniMap()
+//   - saveConfig()
+//   - saveTowZones()
+//   - scheduleTowZoneSave()
+//   - setStatus()
+//   - startCountdownLoop()
+//   - step()
+//   - toggleSelectionMode()
+//   - toggleZoneVisualState()
+//   - updateControlStates()
+//   - updateCountdown()
+//   - updateSelectionMeta()
+//   - watchAssignments()
+// Exported members:
+//   - FlatTireControlComponent
+//   - initializeFlatTireControl
+
+// =============================
+// File: routeriot-vite-main/components/FlatTireControl/FlatTireControl.module.css
+// =============================
+// CSS selectors:
+//   .actions, .controlSection, .countdownLabel, .countdownValue, .countdownWrapper, .dataTable, .dataTable td, .dataTable th, .dataTable tr:nth-child(even) td, .emptyState, .field, .field input, .field select, .field span, .headerRow, .headerRow h2, .loading, .mapRegion, .mapRegion .loading, .modeActive, .primaryBtn, .primaryBtn:disabled, .primaryBtn:hover, .secondaryBtn, .secondaryBtn:disabled, .secondaryBtn:hover, .selectionActive, .selectionMeta, .selectionToolbar, .settingsRow, .statusCell, .statusMsg, .tableWrapper, .tableWrapper h3, .zoneBadge, .zoneGps, .zoneIdLabel, .zoneMapGrid, .zoneMapPreview, .zoneMeta, .zoneMeta strong, .zoneOption, .zoneOptionDisabled, .zoneOptionSelectable, .zoneOptionSelectable:hover, .zoneOptionSelectable:hover :global(.mini-map), .zoneOptionSelected, .zoneOptionSelected .zoneBadge, .zoneOptionSelected :global(.mini-map), .zoneRadius, :global(.mini-map)
+
+// =============================
+// File: routeriot-vite-main/components/GameChallenges/GameChallenges.js
+// =============================
+// Functions and classes:
+//   - GameChallengesComponent()
+//   - initializeGameChallengesLogic()
+// Exported members:
+//   - GameChallengesComponent
+//   - initializeGameChallengesLogic
+
+// =============================
+// File: routeriot-vite-main/components/GameChallenges/GameChallenges.module.css
+// =============================
+// CSS selectors:
+//   .controlSection, .flattireRow, .questionsTable, .questionsTable td, .questionsTable td[contenteditable="true"], .questionsTable td[contenteditable="true"]:focus, .questionsTable th, .speedbumpRow
+
+// =============================
+// File: routeriot-vite-main/components/GameControls/GameControls.js
+// =============================
+// Functions and classes:
+//   - announceTopThree()
+//   - GameControlsComponent()
+//   - initializeGameControlsLogic()
+//   - launchConfetti()
+//   - showAnimatedBanner()
+// Exported members:
+//   - GameControlsComponent
+//   - initializeGameControlsLogic
+
+// =============================
+// File: routeriot-vite-main/components/GameControls/GameControls.module.css
+// =============================
+// CSS selectors:
+//   #rules-text, #rules-text:focus, .controlButton, .controlButton:hover, .controlSection, .controlSection h2, .controlSection:hover, .dataTable, .dataTable td, .dataTable th, .dataTable tr:hover, .end, .end:hover, .gameControls, .liveTimer, .liveTimer.flash, .modal-backdrop, .modal-close-btn, .modal-close-btn:hover, .modal-content, .pause, .pause:hover, .start, .start:hover, .teamSetup, .teamSetup label, .timerSetup, .warning, .warning:hover, ::-webkit-scrollbar, ::-webkit-scrollbar-thumb, ::-webkit-scrollbar-thumb:hover, input[type="number"], input[type="number"]:focus
+
+// =============================
+// File: routeriot-vite-main/components/RacerManagement/RacerManagement.js
+// =============================
+// Functions and classes:
+//   - initializeRacerManagementLogic()
+//   - RacerManagementComponent()
+//   - saveRacerData()
+// Exported members:
+//   - RacerManagementComponent
+//   - initializeRacerManagementLogic
+
+// =============================
+// File: routeriot-vite-main/components/RacerManagement/RacerManagement.module.css
+// =============================
+// CSS selectors:
+//   .controlSection, .dataTable, .dataTable td, .dataTable td[contenteditable="true"], .dataTable td[contenteditable="true"]:focus, .dataTable th
+
+// =============================
+// File: routeriot-vite-main/components/Scoreboard/Scoreboard.js
+// =============================
+// Functions and classes:
+//   - attachHandlers()
+//   - formatTimestamp()
+//   - initializeScoreboardListener()
+//   - renderTable()
+//   - ScoreboardComponent()
+//   - triggerRender()
+// Exported members:
+//   - ScoreboardComponent
+//   - initializeScoreboardListener
+
+// =============================
+// File: routeriot-vite-main/components/Scoreboard/Scoreboard.module.css
+// =============================
+// CSS selectors:
+//   .adjustBtn, .adjustBtn:hover, .controlSection, .dataTable, .dataTable td, .dataTable th, .scoreInput
+
+// =============================
+// File: routeriot-vite-main/components/TeamLinks/TeamLinks.js
+// =============================
+// Functions and classes:
+//   - initializeTeamLinksLogic()
+//   - TeamLinksComponent()
+// Exported members:
+//   - TeamLinksComponent
+//   - initializeTeamLinksLogic
+
+// =============================
+// File: routeriot-vite-main/components/TeamLinks/TeamLinks.module.css
+// =============================
+// CSS selectors:
+//   .controlSection, .dataTable, .dataTable td, .dataTable th
+
+// =============================
+// File: routeriot-vite-main/components/WildCardLauncher/WildCardLauncher.js
+// =============================
+// Functions and classes:
+//   - initializeWildCardLauncher()
+//   - setWildCardEnabled()
+//   - WildCardLauncherComponent()
+// Exported members:
+//   - WildCardLauncherComponent
+//   - initializeWildCardLauncher
+//   - setWildCardEnabled
+
+// =============================
+// File: routeriot-vite-main/components/WildCardLauncher/WildCardLauncher.module.css
+// =============================
+// CSS selectors:
+//   .launcherSection, .launcherSection h3, .launcherSection:hover, .launcherTable, .launcherTable button, .launcherTable button:disabled, .launcherTable button:hover, .launcherTable tbody tr:hover, .launcherTable tbody tr:nth-child(even), .launcherTable td, .launcherTable th, .launcherTable thead th
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/ZoneManagement.js
+// =============================
+// Functions and classes:
+//   - clearTeamLocation()
+//   - initializeZoneManagementLogic()
+//   - updateTeamLocation()
+// Exported members:
+//   - ZoneManagementComponent
+//   - initializeZoneManagementLogic
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/ZoneManagement.module.css
+// =============================
+// CSS selectors:
+//   #add-zone-btn, #add-zone-btn:hover, #refresh-zones-btn, #refresh-zones-btn:hover, #zone-status-banner, #zone-status-banner.active, #zone-status-banner.error, #zone-status-banner.paused, .controlSection, .controlSection h2, .cooldownSetup, .cooldownSetup label, .cooldownSetup select, .cooldownSetup select:focus, .dataTable, .dataTable td, .dataTable td[contenteditable="true"], .dataTable td[contenteditable="true"]:focus, .dataTable th, .dataTable tr:hover td, .force-capture-btn, .force-capture-btn:hover, .manage-zone-btn, .manage-zone-btn:hover, .mapPreviewRow, .mapPreviewRow td, .mapPreviewRow.visible, .miniMap, .reset-zone-btn, .reset-zone-btn:hover, button, button:active, button:hover
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/zoneFirestore.js
+// =============================
+// Functions and classes:
+//   - broadcastChallenge()
+//   - broadcastEvent()
+//   - broadcastWin()
+//   - updateTeamLocation()
+// Exported members:
+//   - broadcastChallenge
+//   - broadcastEvent
+//   - broadcastWin
+//   - updateTeamLocation
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/zoneHandlers.js
+// =============================
+// Functions and classes:
+//   - attachZoneHandlers()
+//   - onAddZone()
+//   - onEditableBlur()
+//   - onForceCapture()
+//   - onManageClick()
+//   - onResetClick()
+// Exported members:
+//   - attachZoneHandlers
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/zoneRender.js
+// =============================
+// Functions and classes:
+//   - calculateZoomFromDiameter()
+//   - miniMapHtml()
+//   - renderZones()
+// Exported members:
+//   - renderZones
+
+// =============================
+// File: routeriot-vite-main/components/ZoneManagement/zoneUI.js
+// =============================
+// Functions and classes:
+//   - ZoneManagementComponent()
+// Exported members:
+//   - ZoneManagementComponent
+
+// =============================
+// File: routeriot-vite-main/components/ZoneQuestions/ZoneQuestions.js
+// =============================
+// Functions and classes:
+//   - initializeZoneQuestions()
+// Exported members:
+//   - ZoneQuestionsComponent
+//   - initializeZoneQuestions
+//   - initializeZoneQuestionsUI
+
+// =============================
+// File: routeriot-vite-main/components/ZoneQuestions/ZoneQuestions.module.css
+// =============================
+// CSS selectors:
+//   .accordion, .addBtn, .addBtn:hover, .cancelBtn, .cancelBtn:hover, .controlSection, .dataTable, .dataTable tbody tr:hover, .dataTable tbody tr:nth-child(odd), .dataTable td, .dataTable th, .dataTable thead th, .editor, .expandBtn, .expandBtn:hover, .formRow, .formRow input[type="number"], .formRow input[type="number"]:focus, .formRow input[type="text"], .formRow input[type="text"]:focus, .formRow label, .formRow select, .formRow select:focus, .help, .inline, .loading, .mcRow, .mcRow input[type="text"], .pill, .pill:hover, .questionsContainer, .saveBtn, .saveBtn:hover, .smallBtn, .smallBtn:hover, .status, .zoneBody, .zoneHeader, .zoneHeader:hover, .zoneId, .zonePanel, .zonePanel:hover
+
+// =============================
+// File: routeriot-vite-main/components/ZoneQuestions/ZoneQuestionsEditor.js
+// =============================
+// Functions and classes:
+//   - initializeZoneQuestionEditor()
+//   - loadIntoForm()
+//   - makeHtml()
+//   - readForm()
+//   - renderZoneQuestionEditor()
+//   - update()
+//   - wireDynamicFields()
+// Exported members:
+//   - initializeZoneQuestionEditor
+//   - renderZoneQuestionEditor
+
+// =============================
+// File: routeriot-vite-main/components/ZoneQuestions/ZoneQuestionsLogic.js
+// =============================
+// Functions and classes:
+//   - parseCsv()
+//   - renderAnswerSummary()
+//   - validateQuestionBeforeSave()
+// Exported members:
+//   - parseCsv
+//   - renderAnswerSummary
+//   - validateQuestionBeforeSave
+
+// =============================
+// File: routeriot-vite-main/components/ZoneQuestions/ZoneQuestionsTypes.js
+// =============================
+// Functions and classes:
+//   - validateQuestionType()
+// Exported members:
+//   - allowedQuestionTypes
+//   - booleanSets
+//   - defaultTolerance
+//   - minChoices
+//   - questionTypeLabels
+//   - validateQuestionType
+
+// =============================
+// File: routeriot-vite-main/components/ZoneQuestions/ZoneQuestionsUI.js
+// =============================
+// Functions and classes:
+//   - initializeZoneQuestionsUI()
+//   - loadZoneCheckpoints()
+//   - ZoneQuestionsComponent()
+// Exported members:
+//   - ZoneQuestionsComponent
+//   - initializeZoneQuestionsUI
+
+// =============================
+// File: routeriot-vite-main/control.html
+// =============================
+// HTML structure:
+//   IDs: broadcast-container, bugstrike-control-container, flat-tire-control-container, game-challenges-container, game-controls-container, pause-btn, racer-management-container, release-zones-btn, resume-btn, roster-modal, roster-modal-body, scoreboard-container, team-links-container, zone-management-container, zone-questions-container
+//   Classes: container, manual-controls, modal-backdrop, modal-close-btn, modal-content
+
+// =============================
+// File: routeriot-vite-main/control.js
+// =============================
+// Functions and classes:
+//   - handleControlTimer()
+//   - main()
+//   - registerCleanup()
+//   - renderAllSections()
+//   - safeSetHTML()
+//   - teardownControlListeners()
+// Exported members:
+//   (none)
+
+// =============================
+// File: routeriot-vite-main/data.js
+// =============================
+// Functions and classes:
+//   (none)
+// Exported members:
+//   - allTeams
+
+// =============================
+// File: routeriot-vite-main/gameTestState.html
+// =============================
+// HTML structure:
+//   IDs: (none)
+//   Classes: (none)
+
+// =============================
+// File: routeriot-vite-main/index.html
+// =============================
+// HTML structure:
+//   IDs: home-map
+//   Classes: button, container
+
+// =============================
+// File: routeriot-vite-main/modules/auth.js
+// =============================
+// Functions and classes:
+//   (none)
+// Exported members:
+//   (none)
+
+// =============================
+// File: routeriot-vite-main/modules/bugStrikeManager.js
+// =============================
+// Functions and classes:
+//   - getAllBugStrikeData()
+//   - getBugStrikeSettings()
+//   - grantBugStrike()
+//   - initializeBugStrikesForTeams()
+//   - resetBugStrikes()
+//   - useBugStrike()
+// Exported members:
+//   - getAllBugStrikeData
+//   - getBugStrikeSettings
+//   - grantBugStrike
+//   - initializeBugStrikesForTeams
+//   - resetBugStrikes
+//   - useBugStrike
+
+// =============================
+// File: routeriot-vite-main/modules/chatManager.js
+// =============================
+// Functions and classes:
+//   - clearRegistry()
+//   - listenForMyMessages()
+//   - listenToAllMessages()
+//   - processSnapshot()
+//   - registerListener()
+//   - renderLog()
+//   - resolveSenderName()
+//   - safeHTML()
+//   - sendMessage()
+//   - setupPlayerChat()
+//   - shouldRenderRaw()
+// Exported members:
+//   - listenToAllMessages
+//   - registerListener
+//   - setupPlayerChat
+
+// =============================
+// File: routeriot-vite-main/modules/config.js
+// =============================
+// Functions and classes:
+//   - getEnv()
+// Exported members:
+//   - FIREBASE_API_KEY
+//   - GOOGLE_MAPS_API_KEY
+//   - db
+//   - firebaseConfig
+
+// =============================
+// File: routeriot-vite-main/modules/controlActions.js
+// =============================
+// Functions and classes:
+//   - clearAllScores()
+//   - resetFullGameState()
+//   - safelyEndGameAndResetZones()
+// Exported members:
+//   - clearAllScores
+//   - resetFullGameState
+//   - safelyEndGameAndResetZones
+
+// =============================
+// File: routeriot-vite-main/modules/controlStatus.js
+// =============================
+// Functions and classes:
+//   - addSystemNotice()
+//   - clearAllChatAndScores()
+//   - clearAllTeamStatuses()
+//   - clearAllZones()
+//   - clearChatOnly()
+//   - formatTimestamp()
+//   - watchLiveGameStatus()
+//   - watchTeamStatuses()
+// Exported members:
+//   - clearAllChatAndScores
+//   - clearAllTeamStatuses
+//   - clearAllZones
+//   - clearChatOnly
+//   - watchLiveGameStatus
+
+// =============================
+// File: routeriot-vite-main/modules/controlUI.js
+// =============================
+// Functions and classes:
+//   - wireGameControls()
+// Exported members:
+//   - wireGameControls
+
+// =============================
+// File: routeriot-vite-main/modules/emailTeams.js
+// =============================
+// Functions and classes:
+//   - emailAllTeams()
+// Exported members:
+//   - emailAllTeams
+
+// =============================
+// File: routeriot-vite-main/modules/flatTireManager.js
+// =============================
+// Functions and classes:
+//   - cancelAllAssignments()
+//   - findFarthestTowZone()
+//   - getTeamLastZone()
+//   - loadZoneData()
+//   - normalizeToMillis()
+//   - pauseAllAssignments()
+//   - planAssignments()
+//   - resumeAllAssignments()
+//   - revealAssignmentForTeam()
+//   - selectTowZoneForTeam()
+//   - shuffleArray()
+// Exported members:
+//   - cancelAllAssignments
+//   - pauseAllAssignments
+//   - planAssignments
+//   - resumeAllAssignments
+//   - revealAssignmentForTeam
+
+// =============================
+// File: routeriot-vite-main/modules/flatTireUI.js
+// =============================
+// Functions and classes:
+//   - detachFlatTireUIListeners()
+//   - ensurePanel()
+//   - formatDueBy()
+//   - getCurrentPosition()
+//   - getZoneRadiusMeters()
+//   - hidePanel()
+//   - initializeFlatTireUI()
+//   - injectStyles()
+//   - loadZoneData()
+//   - markAssignmentComplete()
+//   - registerFlatListener()
+//   - renderPanel()
+//   - showCompletionToast()
+//   - verifyAndComplete()
+// Exported members:
+//   - detachFlatTireUIListeners
+//   - initializeFlatTireUI
+
+// =============================
+// File: routeriot-vite-main/modules/gameCountdown.js
+// =============================
+// Functions and classes:
+//   - showCountdownBanner()
+//   - showFlashMessage()
+// Exported members:
+//   - showCountdownBanner
+//   - showFlashMessage
+
+// =============================
+// File: routeriot-vite-main/modules/gameMaintenance.js
+// =============================
+// Functions and classes:
+//   - clearChatsAndScores()
+//   - clearTeamStatus()
+//   - resetFullGame()
+// Exported members:
+//   - clearChatsAndScores
+//   - clearTeamStatus
+//   - resetFullGame
+
+// =============================
+// File: routeriot-vite-main/modules/gameRulesManager.js
+// =============================
+// Functions and classes:
+//   - emailTeams()
+//   - endGame()
+//   - initializeGameTimer()
+//   - loadRules()
+//   - pauseGame()
+//   - randomizeTeams()
+//   - resetFullGame()
+//   - saveRules()
+//   - startGame()
+//   - toggleRules()
+// Exported members:
+//   - emailTeams
+//   - endGame
+//   - initializeGameTimer
+//   - loadRules
+//   - pauseGame
+//   - randomizeTeams
+//   - resetFullGame
+//   - saveRules
+//   - startGame
+//   - toggleRules
+
+// =============================
+// File: routeriot-vite-main/modules/gameStateManager.js
+// =============================
+// Functions and classes:
+//   - clearGameStatusListeners()
+//   - handleGameStateUpdate()
+//   - listenForGameStatus()
+//   - pauseGame()
+//   - releaseZones()
+//   - resetGameState()
+//   - resumeGame()
+//   - setGameStatus()
+//   - updateTeamState()
+// Exported members:
+//   - clearGameStatusListeners
+//   - listenForGameStatus
+//   - pauseGame
+//   - releaseZones
+//   - resetGameState
+//   - resumeGame
+//   - setGameStatus
+//   - updateTeamState
+
+// =============================
+// File: routeriot-vite-main/modules/gameTimer.js
+// =============================
+// Functions and classes:
+//   - clearElapsedTimer()
+//   - formatTime()
+//   - listenToGameTimer()
+//   - pauseGameTimer()
+//   - resumeGameTimer()
+//   - startCountdownTimer()
+//   - update()
+// Exported members:
+//   - clearElapsedTimer
+//   - listenToGameTimer
+//   - pauseGameTimer
+//   - resumeGameTimer
+
+// =============================
+// File: routeriot-vite-main/modules/gameUI.js
+// =============================
+// Functions and classes:
+//   - $()
+//   - clearElapsedTimer()
+//   - removeWaitingBanner()
+//   - showCountdownBanner()
+//   - showFlashMessage()
+//   - showWaitingBanner()
+//   - startCountdownTimer()
+//   - startElapsedTimer()
+//   - tick()
+// Exported members:
+//   - clearElapsedTimer
+//   - removeWaitingBanner
+//   - showCountdownBanner
+//   - showFlashMessage
+//   - showWaitingBanner
+//   - startCountdownTimer
+//   - startElapsedTimer
+
+// =============================
+// File: routeriot-vite-main/modules/googleMapsLoader.js
+// =============================
+// Functions and classes:
+//   - loadGoogleMapsApi()
+// Exported members:
+//   - loadGoogleMapsApi
+
+// =============================
+// File: routeriot-vite-main/modules/homeMap.js
+// =============================
+// Functions and classes:
+//   - averageCenter()
+//   - boundsOf()
+//   - buildStaticMapUrl()
+//   - circlePathPoints()
+//   - computeZoom()
+//   - parseGPS()
+//   - renderHomeMap()
+// Exported members:
+//   - renderHomeMap
+
+// =============================
+// File: routeriot-vite-main/modules/playerBugStrikeUI.js
+// =============================
+// Functions and classes:
+//   - createBugStrikeOverlay()
+//   - createRandomSplat()
+//   - disableGameplayControls()
+//   - disposeBugStrikeListener()
+//   - formatTime()
+//   - initializeBugStrikeListener()
+//   - randomColor()
+//   - removeBugStrikeOverlay()
+//   - triggerBugStrikeEffect()
+//   - updateCountdownDisplay()
+// Exported members:
+//   - disposeBugStrikeListener
+//   - initializeBugStrikeListener
+
+// =============================
+// File: routeriot-vite-main/modules/playerUI.js
+// =============================
+// Functions and classes:
+//   - $()
+//   - draw()
+//   - fmtTime()
+//   - getTeamNameFromUrl()
+//   - hidePausedOverlay()
+//   - initializePlayerUI()
+//   - setText()
+//   - showGameOverOverlay()
+//   - showPausedOverlay()
+//   - startConfetti()
+//   - stopConfetti()
+//   - updatePlayerTimer()
+// Exported members:
+//   - hidePausedOverlay
+//   - initializePlayerUI
+//   - showGameOverOverlay
+//   - showPausedOverlay
+//   - startConfetti
+//   - stopConfetti
+//   - updatePlayerTimer
+
+// =============================
+// File: routeriot-vite-main/modules/scoreboardManager.js
+// =============================
+// Functions and classes:
+//   - addPointsToTeam()
+//   - broadcastTopThree()
+//   - initializePlayerScoreboard()
+//   - resetScores()
+//   - updateControlledZones()
+// Exported members:
+//   - addPointsToTeam
+//   - broadcastTopThree
+//   - initializePlayerScoreboard
+//   - resetScores
+//   - updateControlledZones
+
+// =============================
+// File: routeriot-vite-main/modules/zones.js
+// =============================
+// Functions and classes:
+//   - clearZoneListeners()
+//   - initializeZones()
+//   - registerZoneListener()
+//   - showFinalStandings()
+//   - teardownZonesListeners()
+// Exported members:
+//   - initializeZones
+//   - teardownZonesListeners
+
+// =============================
+// File: routeriot-vite-main/modules/zonesChallenge.js
+// =============================
+// Functions and classes:
+//   - displayZoneQuestions()
+//   - handleAnswerSubmitInline()
+//   - setTeamContext()
+// Exported members:
+//   - displayZoneQuestions
+//   - setTeamContext
+
+// =============================
+// File: routeriot-vite-main/modules/zonesFirestore.js
+// =============================
+// Functions and classes:
+//   - broadcastChallenge()
+//   - broadcastEvent()
+//   - broadcastWin()
+//   - updateTeamLocation()
+// Exported members:
+//   - broadcastChallenge
+//   - broadcastEvent
+//   - broadcastWin
+//   - updateTeamLocation
+
+// =============================
+// File: routeriot-vite-main/modules/zonesMap.js
+// =============================
+// Functions and classes:
+//   - buildCirclePathPoints()
+//   - calculateZoomFromDiameter()
+//   - calculateZoomLevel()
+//   - encodeCircle()
+//   - generateMiniMap()
+// Exported members:
+//   - calculateZoomFromDiameter
+//   - calculateZoomLevel
+//   - encodeCircle
+//   - generateMiniMap
+
+// =============================
+// File: routeriot-vite-main/modules/zonesUtils.js
+// =============================
+// Functions and classes:
+//   - calculateDistance()
+//   - flashPlayerLocation()
+//   - playRaceStartSequence()
+//   - showCountdownBanner()
+//   - toRad()
+//   - validateAnswer()
+//   - waitForElement()
+// Exported members:
+//   - calculateDistance
+//   - flashPlayerLocation
+//   - playRaceStartSequence
+//   - showCountdownBanner
+//   - validateAnswer
+//   - waitForElement
+
+// =============================
+// File: routeriot-vite-main/player.html
+// =============================
+// HTML structure:
+//   IDs: challenge-answer-area, challenge-box, challenge-question, challenge-zone-name, commissioner-message, game-status, opponents-table, opponents-tbody, player-scoreboard-table, player-scoreboard-tbody, player-zones-table, player-zones-tbody, scoreboard-container, submit-answer-btn, team-chat-log, team-member-list, team-name, team-slogan, timer-display
+//   Classes: broadcast-message-display, container, control-section, data-table, log-box, slogan, team-members
+
+// =============================
+// File: routeriot-vite-main/player.js
+// =============================
+// Functions and classes:
+//   - formatHMS()
+//   - getEndTimestampMs()
+//   - handleLiveGameState()
+//   - initializePlayerPage()
+//   - pausePlayerTimer()
+//   - removeWaitingBanner()
+//   - setInlineTimer()
+//   - showWaitingBanner()
+//   - startPlayerTimer()
+//   - stopAndCalculateRemaining()
+//   - teardownPlayerListeners()
+//   - updateTimerDisplay()
+// Exported members:
+//   - initializePlayerPage
+
+// =============================
+// File: routeriot-vite-main/style.css
+// =============================
+// CSS selectors:
+//   #challenge-question, #player-timer, .back-link, .broadcast-message-display, .button, .button:hover, .challenge-btn, .challenge-btn:hover, .chat-input, .container, .control-section, .data-table, .data-table td, .data-table th, .data-table tr, .data-table tr:hover, .email-link-btn, .liveTimer, .log-box, .log-box p, .message-cell, .mini-map, .mini-map.status-available, .mini-map.status-taken, .modal-backdrop, .modal-close-btn, .modal-close-btn:hover, .modal-content, .nav-link, .nav-link:hover, .send-btn, .send-btn:hover, .slogan, .team-members ul, .team-roster-block, .team-roster-block:last-child, ::-webkit-scrollbar, ::-webkit-scrollbar-thumb, ::-webkit-scrollbar-thumb:hover, a, a:hover, body, body:has(nav), button, button:hover, h1, h2, h3, input:focus, input[type="number"], input[type="text"], nav, select
+
+// =============================
+// File: routeriot-vite-main/vite.config.js
+// =============================
+// Functions and classes:
+//   (none)
+// Exported members:
+//   - default

@@ -5,56 +5,81 @@
 
 import { firebaseConfig } from './config.js';
 
-// ---------------------------------------------------------------------------
-// 🗺️ Calculate Zoom Level (approximation for static map clarity)
-// ---------------------------------------------------------------------------
-export function calculateZoomLevel(diameterKm, imageWidthPixels = 150) {
-  const GLOBE_WIDTH = 256; // pixels at zoom level 0
-  const EARTH_RADIUS_KM = 6371;
+const FALLBACK_DIAMETER_KM = 0.05;
 
-  if (!diameterKm || diameterKm <= 0) return 15;
+// ---------------------------------------------------------------------------
+// 🗺️ Calculate Zoom Level (shared across Flat Tire + Zone Management)
+// ---------------------------------------------------------------------------
+export function calculateZoomFromDiameter(diameterKm) {
+  const numeric = parseFloat(diameterKm);
+  const safe = Number.isFinite(numeric) && numeric > 0 ? numeric : FALLBACK_DIAMETER_KM;
+  return Math.max(3, Math.min(21, Math.round(16 - Math.log2(safe))));
+}
 
-  const angle = (diameterKm / EARTH_RADIUS_KM) * (180 / Math.PI) * 2;
-  const zoom = Math.floor(Math.log2((imageWidthPixels * 360) / (angle * GLOBE_WIDTH)));
-  return Math.max(8, Math.min(18, zoom)); // Clamp between 8–18
+// Backwards compatibility helper (kept for legacy imports)
+export function calculateZoomLevel(diameterKm, _imageWidthPixels = 150) {
+  return calculateZoomFromDiameter(diameterKm);
 }
 
 // ---------------------------------------------------------------------------
-// 🧭 Encode Circle (for drawing encoded polyline of a circular zone boundary)
+// 🧭 Encode Circle (for drawing circular zone boundaries on static maps)
 // ---------------------------------------------------------------------------
 export function encodeCircle(centerStr, radiusMeters = 50) {
   try {
-    if (!window.google?.maps?.geometry) return "";
+    if (!centerStr) return { mode: 'none', value: '' };
 
     const [lat, lng] = centerStr.split(',').map(Number);
-    if (isNaN(lat) || isNaN(lng)) return "";
-
-    const R = 6371e3; // Earth's radius in meters
-    const points = [];
-
-    for (let i = 0; i <= 360; i += 10) {
-      const brng = (i * Math.PI) / 180;
-      const lat2 = Math.asin(
-        Math.sin(lat * Math.PI / 180) * Math.cos(radiusMeters / R) +
-        Math.cos(lat * Math.PI / 180) * Math.sin(radiusMeters / R) * Math.cos(brng)
-      );
-      const lng2 =
-        (lng * Math.PI) / 180 +
-        Math.atan2(
-          Math.sin(brng) * Math.sin(radiusMeters / R) * Math.cos(lat * Math.PI / 180),
-          Math.cos(radiusMeters / R) - Math.sin(lat * Math.PI / 180) * Math.sin(lat2)
-        );
-
-      points.push([lat2 * 180 / Math.PI, lng2 * 180 / Math.PI]);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      return { mode: 'none', value: '' };
     }
 
-    return google.maps.geometry.encoding.encodePath(
-      points.map(([pLat, pLng]) => new google.maps.LatLng(pLat, pLng))
-    );
+    const hasGoogleGeometry =
+      typeof window !== 'undefined' &&
+      window.google?.maps?.geometry?.encoding &&
+      window.google?.maps?.LatLng;
+
+    if (hasGoogleGeometry) {
+      const points = buildCirclePathPoints(lat, lng, radiusMeters);
+      const encoded = window.google.maps.geometry.encoding.encodePath(
+        points.map(([pLat, pLng]) => new window.google.maps.LatLng(pLat, pLng))
+      );
+      return encoded ? { mode: 'encoded', value: encoded } : { mode: 'none', value: '' };
+    }
+
+    const fallbackPoints = buildCirclePathPoints(lat, lng, radiusMeters);
+    return fallbackPoints.length
+      ? { mode: 'points', value: fallbackPoints }
+      : { mode: 'none', value: '' };
   } catch (err) {
-    console.warn("⚠️ encodeCircle failed:", err);
-    return "";
+    console.warn('⚠️ encodeCircle failed:', err);
+    return { mode: 'none', value: '' };
   }
+}
+
+function buildCirclePathPoints(lat, lng, radiusMeters = 50, stepDegrees = 12) {
+  const R = 6371e3; // metres
+  const points = [];
+  const latRad = (lat * Math.PI) / 180;
+  const lngRad = (lng * Math.PI) / 180;
+  const angularDistance = radiusMeters / R;
+
+  for (let degrees = 0; degrees <= 360; degrees += stepDegrees) {
+    const bearing = (degrees * Math.PI) / 180;
+    const lat2 = Math.asin(
+      Math.sin(latRad) * Math.cos(angularDistance) +
+      Math.cos(latRad) * Math.sin(angularDistance) * Math.cos(bearing)
+    );
+    const lng2 =
+      lngRad +
+      Math.atan2(
+        Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(latRad),
+        Math.cos(angularDistance) - Math.sin(latRad) * Math.sin(lat2)
+      );
+
+    points.push([lat2 * 180 / Math.PI, lng2 * 180 / Math.PI]);
+  }
+
+  return points;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,31 +96,38 @@ export function generateMiniMap(zoneData = {}) {
   }
 
   const [lat, lng] = zoneData.gps.split(',').map(n => parseFloat(n.trim()));
-  const diameterKm = parseFloat(zoneData.diameter) || 0.05;
-  const zoomLevel = calculateZoomLevel(diameterKm);
-  const radiusMeters = (diameterKm / 2) * 1000;
+  const diameterKm = parseFloat(zoneData.diameter) || FALLBACK_DIAMETER_KM;
+  const zoomLevel = calculateZoomFromDiameter(diameterKm);
+  const radiusMeters = Math.max((diameterKm / 2) * 1000, 5);
 
   // Build Static Map URL
-  const mapUrl = new URL("https://maps.googleapis.com/maps/api/staticmap");
-  mapUrl.searchParams.set("center", `${lat},${lng}`);
-  mapUrl.searchParams.set("zoom", zoomLevel);
-  mapUrl.searchParams.set("size", "150x150");
-  mapUrl.searchParams.set("maptype", "satellite");
-  mapUrl.searchParams.set("markers", `color:red|${lat},${lng}`);
-  mapUrl.searchParams.set("key", firebaseConfig.apiKey);
+  const mapUrl = new URL('https://maps.googleapis.com/maps/api/staticmap');
+  mapUrl.searchParams.set('center', `${lat},${lng}`);
+  mapUrl.searchParams.set('zoom', zoomLevel);
+  mapUrl.searchParams.set('size', '150x150');
+  mapUrl.searchParams.set('maptype', 'satellite');
+  mapUrl.searchParams.set('markers', `color:red|${lat},${lng}`);
+  mapUrl.searchParams.set('key', firebaseConfig.apiKey);
 
-  // Optional overlay circle via encoded path
+  // Optional overlay circle via encoded or point-based path
   try {
-    const encodedCircle = encodeCircle(`${lat},${lng}`, radiusMeters);
-    if (encodedCircle) {
+    const circle = encodeCircle(`${lat},${lng}`, radiusMeters);
+    if (circle.mode === 'encoded' && circle.value) {
       mapUrl.searchParams.append(
-        "path",
-        `color:0xFF000080|weight:2|enc:${encodedCircle}`
+        'path',
+        `color:0xFF980080|weight:2|fillcolor:0xFF980020|enc:${circle.value}`
+      );
+    } else if (circle.mode === 'points' && circle.value?.length) {
+      const pathPoints = circle.value.map(([pLat, pLng]) => `${pLat},${pLng}`).join('|');
+      mapUrl.searchParams.append(
+        'path',
+        `color:0xFF980080|weight:2|fillcolor:0xFF980020|${pathPoints}`
       );
     }
   } catch (err) {
-    console.warn("⚠️ Could not encode circle:", err);
+    console.warn('⚠️ Could not encode circle:', err);
   }
 
-  return `<img src="${mapUrl.toString()}" class="mini-map" alt="Map preview of ${zoneData.name || 'Zone'}">`;
+  const label = zoneData.name || 'Zone';
+  return `<img src="${mapUrl.toString()}" class="mini-map" alt="Map preview of ${label}">`;
 }

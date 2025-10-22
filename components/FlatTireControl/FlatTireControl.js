@@ -12,8 +12,7 @@ import {
   getDoc,
   getDocs,
   onSnapshot,
-  serverTimestamp,
-  Timestamp
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import {
@@ -23,20 +22,15 @@ import {
   cancelAllAssignments
 } from '../../modules/flatTireManager.js';
 import { listenForGameStatus } from '../../modules/gameStateManager.js';
-import { generateMiniMap } from '../../modules/zonesMap.js';
+import { generateMiniMap, calculateZoomFromDiameter } from '../../modules/zonesMap.js';
 
 const CONFIG_REF = doc(db, 'game', 'flatTireConfig');
 const ASSIGNMENTS_COLLECTION = collection(db, 'flatTireAssignments');
 
-const DIRECTIONS = [
-  { key: 'north', label: 'North', emoji: '⬆️' },
-  { key: 'east', label: 'East', emoji: '➡️' },
-  { key: 'south', label: 'South', emoji: '⬇️' },
-  { key: 'west', label: 'West', emoji: '⬅️' },
-];
-
 let zonesMap = new Map();
-let zoneGroups = { north: [], east: [], south: [], west: [] };
+let zonesList = [];
+let selectedTowZones = new Set();
+let isSelectingZones = false;
 let currentGameState = null;
 let lastGameStatus = null;
 let gameStatusUnsub = null;
@@ -44,6 +38,19 @@ let assignmentsUnsub = null;
 let unloadHandler = null;
 let countdownFrame = null;
 let countdownTargetMs = null;
+let selectionSaveTimeout = null;
+
+const selectionState = {
+  selectButton: null,
+  countLabel: null,
+  mapContainer: null
+};
+
+let controlButtons = {
+  planButton: null,
+  pauseButton: null,
+  resumeButton: null
+};
 
 // ============================================================================
 // 🧱 COMPONENT MARKUP
@@ -74,7 +81,14 @@ export function FlatTireControlComponent() {
         </label>
       </div>
 
-      <div id="flat-tire-zones" class="${styles.zoneGrid}">
+      <div class="${styles.selectionToolbar}">
+        <button id="flat-tire-select" type="button" class="${styles.secondaryBtn}">
+          🗺️ Select Zones
+        </button>
+        <span id="flat-tire-selected-count" class="${styles.selectionMeta}">No zones selected</span>
+      </div>
+
+      <div id="flat-tire-map-region" class="${styles.mapRegion}">
         <div class="${styles.loading}">Loading zones…</div>
       </div>
 
@@ -113,34 +127,54 @@ export async function initializeFlatTireControl() {
   cleanupListeners('reinitialize');
 
   zonesMap = new Map();
-  zoneGroups = { north: [], east: [], south: [], west: [] };
+  zonesList = [];
+  selectedTowZones = new Set();
+  isSelectingZones = false;
   currentGameState = null;
   lastGameStatus = null;
+  if (selectionSaveTimeout) {
+    clearTimeout(selectionSaveTimeout);
+    selectionSaveTimeout = null;
+  }
 
   const strategySelect = document.getElementById('flat-tire-strategy');
   const flatsInput = document.getElementById('flat-tire-flats');
-  const zonesContainer = document.getElementById('flat-tire-zones');
+  const mapContainer = document.getElementById('flat-tire-map-region');
   const planButton = document.getElementById('flat-tire-plan');
   const pauseButton = document.getElementById('flat-tire-pause');
   const resumeButton = document.getElementById('flat-tire-resume');
-  const statusLabel = document.getElementById('flat-tire-status');
+  const selectButton = document.getElementById('flat-tire-select');
+  const selectedCountLabel = document.getElementById('flat-tire-selected-count');
 
-  if (!strategySelect || !planButton || !zonesContainer) {
+  if (!strategySelect || !planButton || !mapContainer || !selectButton || !selectedCountLabel) {
     console.warn('⚠️ Flat Tire control not mounted.');
     return () => cleanupListeners('missing-dom');
   }
 
+  selectionState.selectButton?.removeEventListener('click', onSelectButtonClick);
+  selectionState.mapContainer?.removeEventListener('click', handleZoneSelection);
+  selectionState.selectButton = selectButton;
+  selectionState.countLabel = selectedCountLabel;
+  selectionState.mapContainer = mapContainer;
+  selectButton.addEventListener('click', onSelectButtonClick);
+  mapContainer.addEventListener('click', handleZoneSelection);
+
+  controlButtons = { planButton, pauseButton, resumeButton };
+  toggleSelectionMode(false);
+  updateSelectionMeta();
+
   try {
     const zoneData = await loadTowZones();
     zonesMap = zoneData.map;
-    zoneGroups = zoneData.groups;
-    renderZoneTiles(zonesContainer, zoneGroups);
+    zonesList = zoneData.list;
+    renderTowMap();
+    updateControlStates(currentGameState);
 
     const config = await loadExistingConfig();
     if (config) {
       strategySelect.value = config.selectionStrategy || 'random';
       if (config.flatsPerTeam) flatsInput.value = config.flatsPerTeam;
-      markSelectedZones(zonesContainer, config.towZoneIds || []);
+      applySavedSelection(config.towZoneIds || []);
     }
 
     watchAssignments(zonesMap);
@@ -150,7 +184,7 @@ export async function initializeFlatTireControl() {
   }
 
   planButton.addEventListener('click', async () => {
-    const towZoneIds = getSelectedZoneIds(zonesContainer);
+    const towZoneIds = Array.from(selectedTowZones).filter(id => zonesMap.get(id)?.isSelectable);
     if (!towZoneIds.length) {
       setStatus('⚠️ Select at least one tow zone.', true);
       return;
@@ -177,7 +211,7 @@ export async function initializeFlatTireControl() {
 
       const towZones = towZoneIds
         .map(id => zonesMap.get(id))
-        .filter(Boolean)
+        .filter(zone => zone?.isSelectable)
         .map(zone => ({ id: zone.id, data: zone.data }));
 
       await planAssignments({
@@ -218,7 +252,7 @@ export async function initializeFlatTireControl() {
     }
   });
 
-  gameStatusUnsub = listenForGameStatus((state) => handleGameStateChange(state, { planButton, pauseButton, resumeButton }));
+  gameStatusUnsub = listenForGameStatus((state) => handleGameStateChange(state));
 
   if (unloadHandler) {
     window.removeEventListener('beforeunload', unloadHandler);
@@ -235,36 +269,50 @@ export async function initializeFlatTireControl() {
 // ============================================================================
 async function loadTowZones() {
   const map = new Map();
-  const groups = { north: [], east: [], south: [], west: [] };
+  const list = [];
 
   try {
     const snap = await getDocs(collection(db, 'zones'));
     if (snap.empty) {
-      return { map, groups };
+      return { map, list };
     }
 
-    const zonesWithCoords = [];
     snap.forEach(docSnap => {
       const zoneData = docSnap.data();
       const zoneId = docSnap.id;
-      map.set(zoneId, { id: zoneId, data: zoneData });
-
       const [lat, lng] = parseGps(zoneData.gps);
-      if (lat !== null && lng !== null) {
-        zonesWithCoords.push({ id: zoneId, data: zoneData, lat, lng });
-      }
+      const isSelectable = lat !== null && lng !== null;
+      const diameterKm = parseFloat(zoneData?.diameter) || 0.05;
+      const zoom = calculateZoomFromDiameter(diameterKm);
+      const radiusMeters = Math.round(Math.max((diameterKm / 2) * 1000, 20));
+
+      const zoneEntry = {
+        id: zoneId,
+        data: zoneData,
+        lat,
+        lng,
+        zoom,
+        radiusMeters,
+        isSelectable
+      };
+
+      map.set(zoneId, zoneEntry);
+      list.push(zoneEntry);
     });
 
-    const center = computeCenter(zonesWithCoords);
-    zonesWithCoords.forEach(zone => {
-      const direction = resolveDirection(center, zone);
-      groups[direction].push(zone);
+    list.sort((a, b) => {
+      if (a.isSelectable !== b.isSelectable) {
+        return a.isSelectable ? -1 : 1;
+      }
+      const nameA = (a.data?.name || a.id || '').toLowerCase();
+      const nameB = (b.data?.name || b.id || '').toLowerCase();
+      return nameA.localeCompare(nameB);
     });
   } catch (err) {
     console.error('❌ Unable to load zones:', err);
   }
 
-  return { map, groups };
+  return { map, list };
 }
 
 async function loadExistingConfig() {
@@ -285,6 +333,13 @@ async function saveConfig(config) {
     flatsPerTeam: config.flatsPerTeam,
     towZoneIds: config.towZoneIds,
     plannedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+async function saveTowZones(towZoneIds) {
+  await setDoc(CONFIG_REF, {
+    towZoneIds,
+    updatedAt: serverTimestamp()
   }, { merge: true });
 }
 
@@ -330,56 +385,116 @@ function watchAssignments(zonesMapRef) {
   console.info('📡 [flatTireControl] attached assignments listener');
 }
 
-function renderZoneTiles(container, groups) {
+function renderTowMap() {
+  const container = selectionState.mapContainer;
   if (!container) return;
 
-  container.innerHTML = DIRECTIONS.map(({ key, label, emoji }) => {
-    const zones = groups[key] || [];
-    const listContent = zones.length
-      ? zones.map(zone => `
-          <label class="${styles.zoneOption}">
-            <input type="checkbox" value="${zone.id}">
-            <div>
-              <strong>${zone.data.name || zone.id}</strong>
-              <span>ID: ${zone.id}</span>
-              ${renderMiniMap(zone)}
-            </div>
-          </label>
-        `).join('')
-      : `<p class="${styles.emptyState}">⚠️ Zones not initialized.</p>`;
+  container.innerHTML = '';
 
-    return `
-      <div class="${styles.zoneTile}" data-direction="${key}">
-        <div class="${styles.zoneHeading}">
-          <span>${emoji} ${label}</span>
-          <span class="${styles.zoneCount}">${zones.length}</span>
-        </div>
-        <div class="${styles.zoneList}">
-          ${listContent}
-        </div>
-      </div>
-    `;
-  }).join('');
+  if (!zonesList.length) {
+    const empty = document.createElement('div');
+    empty.className = styles.emptyState;
+    empty.textContent = '⚠️ Zones not initialized.';
+    container.appendChild(empty);
+    updateControlStates(currentGameState);
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = styles.zoneMapGrid;
+
+  zonesList.forEach(zone => {
+    const selected = selectedTowZones.has(zone.id);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.zoneId = zone.id;
+    button.setAttribute('aria-pressed', String(selected));
+
+    const classes = [styles.zoneOption];
+    if (selected) classes.push(styles.zoneOptionSelected);
+    if (isSelectingZones) classes.push(styles.zoneOptionSelectable);
+    if (!zone.isSelectable) classes.push(styles.zoneOptionDisabled);
+    button.className = classes.filter(Boolean).join(' ');
+
+    if (!zone.isSelectable) {
+      button.disabled = true;
+    }
+
+    const mapPreview = document.createElement('div');
+    mapPreview.className = styles.zoneMapPreview;
+    mapPreview.innerHTML = safeMiniMap(zone);
+
+    const badge = document.createElement('span');
+    badge.className = styles.zoneBadge;
+    badge.textContent = zone.isSelectable
+      ? (selected ? 'Selected' : 'Available')
+      : 'Needs GPS';
+    mapPreview.appendChild(badge);
+
+    const meta = document.createElement('div');
+    meta.className = styles.zoneMeta;
+
+    const title = document.createElement('strong');
+    title.textContent = zone.data?.name || zone.id;
+    meta.appendChild(title);
+
+    const idLabel = document.createElement('span');
+    idLabel.className = styles.zoneIdLabel;
+    idLabel.textContent = zone.id;
+    meta.appendChild(idLabel);
+
+    const gpsLabel = document.createElement('span');
+    gpsLabel.className = styles.zoneGps;
+    gpsLabel.textContent = zone.data?.gps || 'GPS missing';
+    meta.appendChild(gpsLabel);
+
+    if (zone.isSelectable && Number.isFinite(zone.radiusMeters)) {
+      const radiusLabel = document.createElement('span');
+      radiusLabel.className = styles.zoneRadius;
+      radiusLabel.textContent = `≈ ${zone.radiusMeters}m radius`;
+      meta.appendChild(radiusLabel);
+    }
+
+    button.appendChild(mapPreview);
+    button.appendChild(meta);
+    grid.appendChild(button);
+  });
+
+  container.appendChild(grid);
+  updateSelectionMeta();
+  updateControlStates(currentGameState);
 }
 
-function renderMiniMap(zone) {
+function safeMiniMap(zone) {
   try {
     return generateMiniMap({ ...(zone.data || {}), name: zone.data?.name });
   } catch {
-    return '';
+    return '<div style="height:150px;background:#111;border-radius:10px;"></div>';
   }
 }
 
-function markSelectedZones(container, ids) {
-  const set = new Set(ids);
-  container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-    cb.checked = set.has(cb.value);
-  });
-}
+function applySavedSelection(ids = []) {
+  const filtered = Array.isArray(ids)
+    ? ids.filter(id => zonesMap.get(id)?.isSelectable)
+    : [];
+  selectedTowZones = new Set(filtered);
 
-function getSelectedZoneIds(container) {
-  return Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
-    .map(cb => cb.value);
+  if (!selectionState.mapContainer) {
+    updateSelectionMeta();
+    updateControlStates(currentGameState);
+    return;
+  }
+
+  selectionState.mapContainer
+    .querySelectorAll('button[data-zone-id]')
+    .forEach(button => {
+      const zoneId = button.dataset.zoneId;
+      const isSelected = selectedTowZones.has(zoneId) && !button.disabled;
+      toggleZoneVisualState(button, isSelected);
+    });
+
+  updateSelectionMeta();
+  updateControlStates(currentGameState);
 }
 
 function parseGps(raw) {
@@ -391,40 +506,13 @@ function parseGps(raw) {
   return [lat, lng];
 }
 
-function computeCenter(zones) {
-  if (!zones.length) return { lat: 0, lng: 0 };
-  const avg = zones.reduce((acc, zone) => {
-    acc.lat += zone.lat;
-    acc.lng += zone.lng;
-    return acc;
-  }, { lat: 0, lng: 0 });
-  return {
-    lat: avg.lat / zones.length,
-    lng: avg.lng / zones.length
-  };
-}
-
-function resolveDirection(center, zone) {
-  const latDelta = zone.lat - center.lat;
-  const lngDelta = zone.lng - center.lng;
-  if (latDelta === 0 && lngDelta === 0) return 'north';
-
-  const angle = (Math.atan2(latDelta, lngDelta) * 180) / Math.PI;
-  const normalized = (angle + 360) % 360;
-
-  if (normalized >= 45 && normalized < 135) return 'north';
-  if (normalized >= 135 && normalized < 225) return 'west';
-  if (normalized >= 225 && normalized < 315) return 'south';
-  return 'east';
-}
-
 // ============================================================================
 // 🕒 Game State Integration
 // ============================================================================
-function handleGameStateChange(state, controls) {
+function handleGameStateChange(state) {
   currentGameState = state;
   updateCountdown(state);
-  updateControlStates(state, controls);
+  updateControlStates(state);
 
   if (!lastGameStatus) {
     lastGameStatus = state.status;
@@ -482,19 +570,23 @@ function updateCountdown(state) {
   }
 }
 
-function updateControlStates(state, controls) {
-  const planButton = controls.planButton;
-  const pauseButton = controls.pauseButton;
-  const resumeButton = controls.resumeButton;
-  const zonesAvailable = zonesMap.size > 0;
+function updateControlStates(state) {
+  const planButton = controlButtons.planButton;
+  const pauseButton = controlButtons.pauseButton;
+  const resumeButton = controlButtons.resumeButton;
 
+  const zonesAvailable = zonesList.length > 0;
+  const hasSelection = selectedTowZones.size > 0;
   const gameActive = state?.status === 'active';
-  if (planButton) planButton.disabled = !gameActive || !zonesAvailable;
+
+  if (planButton) planButton.disabled = !gameActive || !zonesAvailable || !hasSelection;
   if (pauseButton) pauseButton.disabled = !gameActive;
   if (resumeButton) resumeButton.disabled = !gameActive;
 
   if (!zonesAvailable) {
     setStatus('⚠️ Zones not initialized.', true);
+  } else if (!hasSelection) {
+    setStatus('⚠️ Select at least one tow zone.', true);
   } else if (!gameActive) {
     setStatus('⚠️ Game not active.', true);
   } else {
@@ -552,11 +644,27 @@ function cleanupListeners(reason = 'manual') {
   assignmentsUnsub = null;
   lastGameStatus = null;
 
+  if (selectionSaveTimeout) {
+    clearTimeout(selectionSaveTimeout);
+    selectionSaveTimeout = null;
+  }
+
+  if (selectionState.selectButton) {
+    selectionState.selectButton.removeEventListener('click', onSelectButtonClick);
+  }
+  if (selectionState.mapContainer) {
+    selectionState.mapContainer.removeEventListener('click', handleZoneSelection);
+  }
+  selectionState.selectButton = null;
+  selectionState.countLabel = null;
+  selectionState.mapContainer = null;
+
   if (unloadHandler) {
     window.removeEventListener('beforeunload', unloadHandler);
     unloadHandler = null;
   }
 
+  controlButtons = { planButton: null, pauseButton: null, resumeButton: null };
   cancelCountdownLoop();
 }
 
@@ -588,4 +696,95 @@ function setStatus(message, isWarning = false) {
   if (!label) return;
   label.textContent = message;
   label.style.color = isWarning ? '#ff7043' : '#ffcc80';
+}
+
+function updateSelectionMeta() {
+  const label = selectionState.countLabel;
+  if (!label) return;
+
+  const count = selectedTowZones.size;
+  label.textContent = count === 0
+    ? 'No zones selected'
+    : `${count} zone${count === 1 ? '' : 's'} selected`;
+}
+
+function toggleZoneVisualState(button, isSelected) {
+  const selectable = !button.disabled;
+  const badge = button.querySelector(`.${styles.zoneBadge}`);
+
+  button.classList.toggle(styles.zoneOptionSelected, selectable && isSelected);
+  button.setAttribute('aria-pressed', String(selectable && isSelected));
+
+  if (badge) {
+    if (!selectable) {
+      badge.textContent = 'Needs GPS';
+    } else {
+      badge.textContent = isSelected ? 'Selected' : 'Available';
+    }
+  }
+}
+
+function toggleSelectionMode(active) {
+  isSelectingZones = !!active;
+
+  const button = selectionState.selectButton;
+  const container = selectionState.mapContainer;
+  if (button) {
+    button.classList.toggle(styles.modeActive, isSelectingZones);
+    button.setAttribute('aria-pressed', String(isSelectingZones));
+    button.textContent = isSelectingZones ? '✅ Done Selecting' : '🗺️ Select Zones';
+  }
+  if (container) {
+    container.classList.toggle(styles.selectionActive, isSelectingZones);
+    container.querySelectorAll('button[data-zone-id]').forEach(btn => {
+      btn.classList.toggle(styles.zoneOptionSelectable, isSelectingZones && !btn.disabled);
+    });
+  }
+}
+
+function scheduleTowZoneSave() {
+  if (selectionSaveTimeout) {
+    clearTimeout(selectionSaveTimeout);
+  }
+  const ids = Array.from(selectedTowZones);
+  selectionSaveTimeout = setTimeout(() => {
+    saveTowZones(ids).catch(err => console.error('⚠️ Failed to save tow zones selection:', err));
+  }, 350);
+}
+
+// ============================================================================
+// 🎛️ Event Handlers
+// ============================================================================
+function onSelectButtonClick() {
+  toggleSelectionMode(!isSelectingZones);
+}
+
+function handleZoneSelection(event) {
+  const button = event.target.closest('button[data-zone-id]');
+  if (!button) return;
+
+  if (button.disabled) {
+    setStatus('⚠️ This zone is missing GPS coordinates.', true);
+    return;
+  }
+
+  if (!isSelectingZones) {
+    setStatus('Tap “Select Zones” to edit tow circles.', true);
+    return;
+  }
+
+  const zoneId = button.dataset.zoneId;
+  if (!zonesMap.has(zoneId)) return;
+
+  const wasSelected = selectedTowZones.has(zoneId);
+  if (wasSelected) {
+    selectedTowZones.delete(zoneId);
+  } else {
+    selectedTowZones.add(zoneId);
+  }
+
+  toggleZoneVisualState(button, !wasSelected);
+  updateSelectionMeta();
+  updateControlStates(currentGameState);
+  scheduleTowZoneSave();
 }
