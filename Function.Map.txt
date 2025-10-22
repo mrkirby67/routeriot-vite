@@ -134,7 +134,7 @@
 // File: routeriot-vite-main/components/SpeedBumpControl/SpeedBumpControl.module.css
 // =============================
 // CSS selectors:
-//   .actionBtn, .actionBtn:disabled, .actionBtn:hover:not(:disabled), .controlSection, .dataTable, .dataTable td, .dataTable th, .dataTable tr:nth-child(even) td, .headerRow, .headerRow h2, .inlineActions, .legendNote, .loading, .overrideToggle, .overrideToggle input, .primaryBtn, .primaryBtn:disabled, .primaryBtn:hover, .promptCell, .promptLegend, .promptPreview, .releaseBtn, .secondaryBtn, .secondaryBtn:disabled, .secondaryBtn:hover, .shuffleBtn, .shuffleBtn:hover, .statusActive, .statusBadge, .statusCooldown, .statusIdle, .subhead, .teamCell, .teamCell span, .teamCell strong
+//   .actionBtn, .actionBtn:disabled, .actionBtn:hover:not(:disabled), .controlSection, .dataTable, .dataTable td, .dataTable th, .dataTable tr:nth-child(even) td, .headerRow, .headerRow h2, .inlineActions, .legendNote, .loading, .overrideToggle, .overrideToggle input, .primaryBtn, .primaryBtn:disabled, .primaryBtn:hover, .promptCell, .promptInput, .promptInput:focus, .promptLegend, .promptPreview, .releaseBtn, .secondaryBtn, .secondaryBtn:disabled, .secondaryBtn:hover, .shuffleBtn, .shuffleBtn:hover, .statusActive, .statusBadge, .statusCooldown, .statusIdle, .subhead, .teamCell, .teamCell span, .teamCell strong
 
 // =============================
 // File: routeriot-vite-main/components/SpeedBumpControl/speedBumpControlController.js
@@ -143,6 +143,8 @@
 //   - createSpeedBumpControlController()
 //   - formatSeconds()
 //   - initPrompts()
+//   - loadPersistedPrompts()
+//   - persistPrompts()
 //   - SpeedBumpControlController
 // Exported members:
 //   - createSpeedBumpControlController
@@ -311,7 +313,6 @@
 //   - teardownControlListeners()
 // Exported members:
 //   (none)
-// Note: GameChallenges and Flat Tire panels removed; control now renders only actively used modules.
 
 // =============================
 // File: routeriot-vite-main/data.js

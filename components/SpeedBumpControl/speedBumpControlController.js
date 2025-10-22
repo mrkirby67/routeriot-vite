@@ -23,6 +23,32 @@ function initPrompts() {
   });
 }
 
+function loadPersistedPrompts() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem('speedBumpPrompts');
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') return parsed;
+  } catch (err) {
+    console.warn('⚠️ Failed to load stored Speed Bump prompts:', err);
+  }
+  return {};
+}
+
+function persistPrompts(map) {
+  if (typeof window === 'undefined') return;
+  try {
+    const obj = {};
+    map.forEach((value, key) => {
+      obj[key] = value;
+    });
+    window.localStorage.setItem('speedBumpPrompts', JSON.stringify(obj));
+  } catch (err) {
+    console.warn('⚠️ Failed to persist Speed Bump prompts:', err);
+  }
+}
+
 export function createSpeedBumpControlController() {
   initPrompts();
   return new SpeedBumpControlController();
@@ -36,9 +62,19 @@ class SpeedBumpControlController {
       shuffleAllBtn: null
     };
     this.promptByTeam = new Map(DEFAULT_PROMPTS);
+    this.loadSavedPrompts();
     this.unsubscribe = null;
     this.handleStatePush = this.handleStatePush.bind(this);
     this.onOverrideChange = this.renderRows.bind(this);
+  }
+
+  loadSavedPrompts() {
+    const stored = loadPersistedPrompts();
+    Object.entries(stored).forEach(([team, prompt]) => {
+      if (typeof prompt === 'string' && prompt.trim()) {
+        this.promptByTeam.set(team, prompt);
+      }
+    });
   }
 
   initialize() {
@@ -59,6 +95,7 @@ class SpeedBumpControlController {
         this.promptByTeam.set(team.name, getRandomSpeedBumpPrompt([this.promptByTeam.get(team.name)]));
       });
       this.renderRows();
+      persistPrompts(this.promptByTeam);
     });
 
     this.unsubscribe = subscribeSpeedBumps(this.handleStatePush);
@@ -95,7 +132,7 @@ class SpeedBumpControlController {
           <span>${team.slogan || ''}</span>
         </td>
         <td class="${styles.promptCell}">
-          <div class="${styles.promptPreview}" data-role="prompt">${this.promptByTeam.get(team.name)}</div>
+          <input type="text" class="${styles.promptInput}" data-role="prompt-input" value="${this.promptByTeam.get(team.name) || ''}" autocomplete="off" spellcheck="false" />
           <div class="${styles.inlineActions}">
             <button type="button" class="${styles.shuffleBtn}" data-role="shuffle">🔁 Shuffle</button>
           </div>
@@ -118,12 +155,24 @@ class SpeedBumpControlController {
       const role = actionBtn.dataset.role;
       if (role === 'shuffle') {
         this.promptByTeam.set(teamName, getRandomSpeedBumpPrompt([this.promptByTeam.get(teamName)]));
+        persistPrompts(this.promptByTeam);
         this.updateRow(teamName);
       } else if (role === 'send') {
         this.handleSend(teamName);
       } else if (role === 'release') {
         this.handleRelease(teamName);
       }
+    });
+
+    tableBody.addEventListener('input', (event) => {
+      const target = event.target;
+      if (!target || target.dataset.role !== 'prompt-input') return;
+      const tr = target.closest('tr[data-team]');
+      if (!tr) return;
+      const teamName = tr.dataset.team;
+      const value = target.value;
+      this.promptByTeam.set(teamName, value);
+      persistPrompts(this.promptByTeam);
     });
   }
 
@@ -157,13 +206,18 @@ class SpeedBumpControlController {
     const row = this.dom.tableBody?.querySelector(`tr[data-team="${teamName}"]`);
     if (!row) return;
 
-    const promptEl = row.querySelector('[data-role="prompt"]');
+    const inputEl = row.querySelector('[data-role="prompt-input"]');
     const statusEl = row.querySelector('[data-role="status"]');
     const sendBtn = row.querySelector('button[data-role="send"]');
     const releaseBtn = row.querySelector('button[data-role="release"]');
 
-    const prompt = this.promptByTeam.get(teamName) || getRandomSpeedBumpPrompt();
-    if (promptEl) promptEl.textContent = prompt;
+    let prompt = this.promptByTeam.get(teamName);
+    if (!prompt) {
+      prompt = getRandomSpeedBumpPrompt();
+      this.promptByTeam.set(teamName, prompt);
+      persistPrompts(this.promptByTeam);
+    }
+    if (inputEl && inputEl.value !== prompt) inputEl.value = prompt;
 
     const active = getActiveBump(teamName);
     const cooldownMs = getCooldownRemaining('Control', 'bump');
