@@ -24,9 +24,6 @@ import {
   ScoreboardComponent, initializeScoreboardListener
 } from './components/Scoreboard/Scoreboard.js';
 import {
-  GameChallengesComponent, initializeGameChallengesLogic
-} from './components/GameChallenges/GameChallenges.js';
-import {
   BroadcastComponent, initializeBroadcastLogic
 } from './components/Broadcast/Broadcast.js';
 import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
@@ -82,7 +79,6 @@ async function main() {
   registerCleanup(initializeScoreboardListener() || null, 'scoreboard');
   registerCleanup(initializeGameControlsLogic() || null, 'gameControls');
   registerCleanup(initializeRacerManagementLogic() || null, 'racerManagement');
-  registerCleanup(initializeGameChallengesLogic() || null, 'gameChallenges');
   registerCleanup(initializeBroadcastLogic() || null, 'broadcast');
   registerCleanup(initializeBugStrikeControl() || null, 'bugStrikeControl');
 
@@ -131,13 +127,17 @@ function handleControlTimer(state) {
   const timerEl = document.getElementById('control-timer-display');
   if (!timerEl) return;
 
-  switch (status) {
+  const currentStatus = status || 'waiting';
+
+  switch (currentStatus) {
     case 'waiting':
-      timerEl.textContent = '--:--';
+      timerEl.hidden = true;
+      timerEl.textContent = '00:00:00';
       clearElapsedTimer?.();
       break;
 
     case 'active': {
+      timerEl.hidden = false;
       let endTimestamp = null;
       if (endTime?.toMillis) {
         endTimestamp = endTime.toMillis();
@@ -155,17 +155,20 @@ function handleControlTimer(state) {
 
     case 'paused':
       clearElapsedTimer?.();
+      timerEl.hidden = false;
       timerEl.textContent = '⏸️ PAUSED';
       break;
 
     case 'finished':
     case 'ended':
       clearElapsedTimer?.();
+      timerEl.hidden = false;
       timerEl.textContent = '00:00';
       break;
 
     default:
-      timerEl.textContent = '--:--';
+      timerEl.hidden = false;
+      timerEl.textContent = '00:00:00';
   }
 }
 
@@ -173,24 +176,6 @@ function handleControlTimer(state) {
 // 🖼️ RENDER COMPONENTS (adds timer container)
 // ---------------------------------------------------------------------------
 function renderAllSections() {
-  // Timer placeholder at top of page
-  const existingTimer = document.getElementById('control-timer-container');
-  if (!existingTimer) {
-    const timerDiv = document.createElement('div');
-    timerDiv.id = 'control-timer-container';
-    timerDiv.style.cssText = `
-      text-align:center;
-      font-family:monospace;
-      font-size:1.8rem;
-      font-weight:bold;
-      margin:10px auto;
-      padding:8px 0;
-      color:#00e676;
-    `;
-    timerDiv.innerHTML = `<span id="control-timer-display">--:--</span>`;
-    document.body.prepend(timerDiv);
-  }
-
   // Core control panels
   safeSetHTML('game-controls-container', GameControlsComponent());
   safeSetHTML('scoreboard-container', ScoreboardComponent());
@@ -200,7 +185,6 @@ function renderAllSections() {
   safeSetHTML('team-links-container', TeamLinksComponent());
   safeSetHTML('racer-management-container', RacerManagementComponent());
   safeSetHTML('zone-management-container', ZoneManagementComponent());
-  safeSetHTML('game-challenges-container', GameChallengesComponent());
   safeSetHTML('broadcast-container', BroadcastComponent());
 
   // 🧩 Zone Questions UI panel

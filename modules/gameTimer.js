@@ -30,8 +30,17 @@ function formatTime(ms) {
 // ---------------------------------------------------------------------------
 // 🕒 Draw the remaining time continuously
 // ---------------------------------------------------------------------------
-function startCountdownTimer(endMs) {
-  const display = document.getElementById('timer-display');
+function getTimerDisplay(selector) {
+  if (selector) {
+    const el = document.querySelector(selector);
+    if (el) return el;
+  }
+  return document.getElementById('timer-display') ||
+    document.getElementById('control-timer-display');
+}
+
+function startCountdownTimer(endMs, displaySelector) {
+  const display = getTimerDisplay(displaySelector);
   if (!display || !endMs) return;
 
   clearElapsedTimer();
@@ -128,7 +137,7 @@ export async function resumeGameTimer() {
 // 📡 Live Sync for All Clients (Control + Player)
 // ---------------------------------------------------------------------------
 export function listenToGameTimer() {
-  const display = document.getElementById('timer-display');
+  const display = getTimerDisplay();
   if (!display) {
     console.warn('⏱️ Timer display not found — skipping listener init.');
     return;
@@ -180,6 +189,10 @@ export function listenToGameTimer() {
       default:
         clearElapsedTimer();
         display.textContent = '--:--:--';
+    }
+
+    if (display.id === 'control-timer-display') {
+      display.hidden = status === 'waiting';
     }
   });
 }

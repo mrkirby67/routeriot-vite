@@ -42,18 +42,9 @@
     <!-- 🪰 Bug Strike Control -->
     <div id="bugstrike-control-container"></div>
 
-    <!-- 🧩 Game Challenges -->
-    <div id="game-challenges-container"></div>
-
     <!-- 📢 Broadcasts -->
     <div id="broadcast-container"></div>
 
-    <!-- ⏯ Manual Controls -->
-    <div class="manual-controls" style="text-align:center; margin-top:20px;">
-      <button id="pause-btn">⏸️ Pause Game</button>
-      <button id="release-zones-btn">🌍 Release Zones</button>
-      <button id="resume-btn">▶️ Resume Game</button>
-    </div>
   </div>
 
   <!-- 🧾 Modal -->
@@ -97,9 +88,6 @@
       ScoreboardComponent, initializeScoreboardListener
     } from './components/Scoreboard/Scoreboard.js';
     import {
-      GameChallengesComponent, initializeGameChallengesLogic
-    } from './components/GameChallenges/GameChallenges.js';
-    import {
       BroadcastComponent, initializeBroadcastLogic
     } from './components/Broadcast/Broadcast.js';
     import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
@@ -116,7 +104,6 @@
       document.getElementById('racer-management-container').innerHTML= RacerManagementComponent();
       document.getElementById('zone-management-container').innerHTML = ZoneManagementComponent();
       document.getElementById('zone-questions-container').innerHTML  = ZoneQuestionsComponent();
-      document.getElementById('game-challenges-container').innerHTML = GameChallengesComponent();
       document.getElementById('broadcast-container').innerHTML       = BroadcastComponent();
 
       initializeScoreboardListener();
@@ -125,7 +112,6 @@
       initializeSpeedBumpControl();
       initializeSabotageLauncher();
       initializeRacerManagementLogic();
-      initializeGameChallengesLogic();
       initializeBroadcastLogic();
       listenToAllMessages();
 

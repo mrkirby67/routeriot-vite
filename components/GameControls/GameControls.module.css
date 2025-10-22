@@ -138,6 +138,13 @@
   transition: all 0.3s ease;
 }
 
+.liveTimerValue {
+  display: inline-block;
+  margin-left: 10px;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+}
+
 .liveTimer.flash {
   animation: pulse 1.5s infinite;
 }

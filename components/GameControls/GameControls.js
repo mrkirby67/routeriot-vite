@@ -169,7 +169,7 @@ export function GameControlsComponent() {
         <input type="number" id="game-duration" value="120">
         <div class="${styles.liveTimer}">
           <strong>Live Timer:</strong>
-          <span id="timer-display">--:--:--</span>
+          <span id="control-timer-display" class="${styles.liveTimerValue}" hidden>00:00:00</span>
         </div>
       </div>
 

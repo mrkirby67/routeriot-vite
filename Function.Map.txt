@@ -38,22 +38,6 @@
 //   .controlSection, .controlSection h2, .cooldownNotice, .launchButton, .launchButton:hover, .numberInput, .settingsRow, .settingsRow label
 
 // =============================
-// File: routeriot-vite-main/components/GameChallenges/GameChallenges.js
-// =============================
-// Functions and classes:
-//   - GameChallengesComponent()
-//   - initializeGameChallengesLogic()
-// Exported members:
-//   - GameChallengesComponent
-//   - initializeGameChallengesLogic
-
-// =============================
-// File: routeriot-vite-main/components/GameChallenges/GameChallenges.module.css
-// =============================
-// CSS selectors:
-//   .controlSection, .flattireRow, .questionsTable, .questionsTable td, .questionsTable td[contenteditable="true"], .questionsTable td[contenteditable="true"]:focus, .questionsTable th, .speedbumpRow
-
-// =============================
 // File: routeriot-vite-main/components/GameControls/GameControls.js
 // =============================
 // Functions and classes:
@@ -70,7 +54,7 @@
 // File: routeriot-vite-main/components/GameControls/GameControls.module.css
 // =============================
 // CSS selectors:
-//   #rules-text, #rules-text:focus, .controlButton, .controlButton:hover, .controlSection, .controlSection h2, .controlSection:hover, .dataTable, .dataTable td, .dataTable th, .dataTable tr:hover, .end, .end:hover, .gameControls, .liveTimer, .liveTimer.flash, .modal-backdrop, .modal-close-btn, .modal-close-btn:hover, .modal-content, .pause, .pause:hover, .start, .start:hover, .teamSetup, .teamSetup label, .timerSetup, .warning, .warning:hover, ::-webkit-scrollbar, ::-webkit-scrollbar-thumb, ::-webkit-scrollbar-thumb:hover, input[type="number"], input[type="number"]:focus
+//   #rules-text, #rules-text:focus, .controlButton, .controlButton:hover, .controlSection, .controlSection h2, .controlSection:hover, .dataTable, .dataTable td, .dataTable th, .dataTable tr:hover, .end, .end:hover, .gameControls, .liveTimer, .liveTimer.flash, .liveTimerValue, .modal-backdrop, .modal-close-btn, .modal-close-btn:hover, .modal-content, .pause, .pause:hover, .start, .start:hover, .teamSetup, .teamSetup label, .timerSetup, .warning, .warning:hover, ::-webkit-scrollbar, ::-webkit-scrollbar-thumb, ::-webkit-scrollbar-thumb:hover, input[type="number"], input[type="number"]:focus
 
 // =============================
 // File: routeriot-vite-main/components/RacerManagement/RacerManagement.js
@@ -107,7 +91,6 @@
 //   - SabotageLauncherComponent
 //   - initializeSabotageLauncher
 //   - teardownSabotageLauncher
-// Note: replaces Wild Card launcher with team-list sabotage UI.
 
 // =============================
 // File: routeriot-vite-main/components/SabotageLauncher/SabotageLauncher.module.css
@@ -146,7 +129,6 @@
 //   - SpeedBumpControlComponent
 //   - initializeSpeedBumpControl
 //   - teardownSpeedBumpControl
-// Note: converted from Flat Tire control to Speed Bump management.
 
 // =============================
 // File: routeriot-vite-main/components/SpeedBumpControl/SpeedBumpControl.module.css
@@ -314,8 +296,8 @@
 // File: routeriot-vite-main/control.html
 // =============================
 // HTML structure:
-//   IDs: broadcast-container, bugstrike-control-container, game-challenges-container, game-controls-container, pause-btn, racer-management-container, release-zones-btn, resume-btn, roster-modal, roster-modal-body, sabotage-launcher-container, scoreboard-container, speedbump-control-container, team-links-container, zone-management-container, zone-questions-container
-//   Classes: container, manual-controls, modal-backdrop, modal-close-btn, modal-content
+//   IDs: broadcast-container, bugstrike-control-container, game-controls-container, racer-management-container, roster-modal, roster-modal-body, sabotage-launcher-container, scoreboard-container, speedbump-control-container, team-links-container, zone-management-container, zone-questions-container
+//   Classes: container, modal-backdrop, modal-close-btn, modal-content
 
 // =============================
 // File: routeriot-vite-main/control.js
@@ -329,6 +311,7 @@
 //   - teardownControlListeners()
 // Exported members:
 //   (none)
+// Note: GameChallenges and Flat Tire panels removed; control now renders only actively used modules.
 
 // =============================
 // File: routeriot-vite-main/data.js
@@ -577,6 +560,7 @@
 // Functions and classes:
 //   - clearElapsedTimer()
 //   - formatTime()
+//   - getTimerDisplay()
 //   - listenToGameTimer()
 //   - pauseGameTimer()
 //   - resumeGameTimer()
@@ -760,7 +744,6 @@
 //   - sendSpeedBump
 //   - startCooldown
 //   - subscribeSpeedBumps
-// Note: centralizes cooldowns, direct messaging, and broadcast parsing for Speed Bumps.
 
 // =============================
 // File: routeriot-vite-main/modules/speedBumpPlayer.js
