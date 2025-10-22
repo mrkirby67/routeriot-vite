@@ -12,8 +12,8 @@ import {
   BugStrikeControlComponent, initializeBugStrikeControl
 } from './components/BugStrikeControl/BugStrikeControl.js';
 import {
-  FlatTireControlComponent, initializeFlatTireControl
-} from './components/FlatTireControl/FlatTireControl.js';
+  SpeedBumpControlComponent, initializeSpeedBumpControl
+} from './components/SpeedBumpControl/SpeedBumpControl.js';
 import {
   RacerManagementComponent, initializeRacerManagementLogic
 } from './components/RacerManagement/RacerManagement.js';
@@ -30,6 +30,9 @@ import {
   BroadcastComponent, initializeBroadcastLogic
 } from './components/Broadcast/Broadcast.js';
 import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
+import {
+  SabotageLauncherComponent, initializeSabotageLauncher
+} from './components/SabotageLauncher/SabotageLauncher.js';
 
 // 🧩 NEW: Zone Questions (Modular System)
 import {
@@ -83,8 +86,10 @@ async function main() {
   registerCleanup(initializeBroadcastLogic() || null, 'broadcast');
   registerCleanup(initializeBugStrikeControl() || null, 'bugStrikeControl');
 
-  const flatTireCleanup = await initializeFlatTireControl();
-  registerCleanup(flatTireCleanup, 'flatTireControl');
+  const speedBumpCleanup = await initializeSpeedBumpControl();
+  registerCleanup(speedBumpCleanup, 'speedBumpControl');
+
+  registerCleanup(initializeSabotageLauncher() || null, 'sabotageLauncher');
 
   const chatCleanup = await listenToAllMessages();
   registerCleanup(chatCleanup, 'communications');
@@ -190,7 +195,8 @@ function renderAllSections() {
   safeSetHTML('game-controls-container', GameControlsComponent());
   safeSetHTML('scoreboard-container', ScoreboardComponent());
   safeSetHTML('bugstrike-control-container', BugStrikeControlComponent());
-  safeSetHTML('flat-tire-control-container', FlatTireControlComponent());
+  safeSetHTML('speedbump-control-container', SpeedBumpControlComponent());
+  safeSetHTML('sabotage-launcher-container', SabotageLauncherComponent());
   safeSetHTML('team-links-container', TeamLinksComponent());
   safeSetHTML('racer-management-container', RacerManagementComponent());
   safeSetHTML('zone-management-container', ZoneManagementComponent());

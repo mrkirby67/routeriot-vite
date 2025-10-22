@@ -30,8 +30,11 @@
     <!-- 🗺️ Zone Management -->
     <div id="zone-management-container"></div>
 
-    <!-- 🛠️ Flat Tire Control -->
-    <div id="flat-tire-control-container"></div>
+    <!-- 🚧 Speed Bump Control -->
+    <div id="speedbump-control-container"></div>
+
+    <!-- 🐞 Sabotage Launcher -->
+    <div id="sabotage-launcher-container"></div>
 
     <!-- ❓ Zone Questions (new) -->
     <div id="zone-questions-container"></div>
@@ -76,6 +79,12 @@
       BugStrikeControlComponent, initializeBugStrikeControl
     } from './components/BugStrikeControl/BugStrikeControl.js';
     import {
+      SpeedBumpControlComponent, initializeSpeedBumpControl
+    } from './components/SpeedBumpControl/SpeedBumpControl.js';
+    import {
+      SabotageLauncherComponent, initializeSabotageLauncher
+    } from './components/SabotageLauncher/SabotageLauncher.js';
+    import {
       RacerManagementComponent, initializeRacerManagementLogic
     } from './components/RacerManagement/RacerManagement.js';
     import {
@@ -100,6 +109,8 @@
     async function main() {
       document.getElementById('game-controls-container').innerHTML   = GameControlsComponent();
       document.getElementById('bugstrike-control-container').innerHTML = BugStrikeControlComponent();
+      document.getElementById('speedbump-control-container').innerHTML = SpeedBumpControlComponent();
+      document.getElementById('sabotage-launcher-container').innerHTML = SabotageLauncherComponent();
       document.getElementById('scoreboard-container').innerHTML      = ScoreboardComponent();
       document.getElementById('team-links-container').innerHTML      = TeamLinksComponent();
       document.getElementById('racer-management-container').innerHTML= RacerManagementComponent();
@@ -111,6 +122,8 @@
       initializeScoreboardListener();
       initializeGameControlsLogic();
       initializeBugStrikeControl();
+      initializeSpeedBumpControl();
+      initializeSabotageLauncher();
       initializeRacerManagementLogic();
       initializeGameChallengesLogic();
       initializeBroadcastLogic();

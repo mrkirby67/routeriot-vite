@@ -1,0 +1,239 @@
+/* ============================================================================
+   FILE: SpeedBumpControl.module.css
+   PURPOSE: Styling for the Speed Bump – Photo Challenge control panel
+   ============================================================================ */
+
+.controlSection {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 16px;
+  color: #ddd;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.headerRow h2 {
+  margin: 0;
+  font-size: 1.45rem;
+  color: #ffcc80;
+  letter-spacing: 0.5px;
+}
+
+.subhead {
+  margin: 4px 0 0;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.overrideToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #f5f5f5;
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid rgba(255, 193, 7, 0.35);
+  padding: 8px 12px;
+  border-radius: 999px;
+}
+
+.overrideToggle input {
+  accent-color: #ff9800;
+}
+
+.promptLegend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.legendNote {
+  font-size: 0.8rem;
+  color: #ffb74d;
+  font-style: italic;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.primaryBtn {
+  background: linear-gradient(135deg, #00e676, #00acc1);
+  color: #00363a;
+}
+
+.secondaryBtn {
+  background: #3949ab;
+  color: #f5f5f5;
+}
+
+.primaryBtn:hover,
+.secondaryBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.primaryBtn:disabled,
+.secondaryBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(12, 12, 12, 0.85);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dataTable th,
+.dataTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #2b2b2b;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.dataTable th {
+  background: rgba(33, 33, 33, 0.95);
+  color: #9e9e9e;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.4px;
+}
+
+.dataTable tr:nth-child(even) td {
+  background: rgba(30, 30, 30, 0.65);
+}
+
+.teamCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teamCell strong {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.teamCell span {
+  font-size: 0.75rem;
+  color: #9e9e9e;
+}
+
+.promptCell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.promptPreview {
+  color: #f5f5f5;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.inlineActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+}
+
+.statusActive {
+  background: rgba(255, 87, 34, 0.25);
+  color: #ff7043;
+  border: 1px solid rgba(255, 87, 34, 0.55);
+}
+
+.statusIdle {
+  background: rgba(76, 175, 80, 0.2);
+  color: #81c784;
+  border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
+.statusCooldown {
+  background: rgba(129, 212, 250, 0.2);
+  color: #81d4fa;
+  border: 1px solid rgba(129, 212, 250, 0.4);
+}
+
+.loading {
+  text-align: center;
+  color: #aaa;
+  padding: 16px;
+}
+
+.actionBtn {
+  background: #ff7043;
+  color: #1a1200;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.actionBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 112, 67, 0.35);
+}
+
+.actionBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.releaseBtn {
+  background: #66bb6a;
+  color: #0b2b10;
+}
+
+.shuffleBtn {
+  background: transparent;
+  color: #ffb74d;
+  border: 1px solid rgba(255, 183, 77, 0.45);
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.shuffleBtn:hover {
+  background: rgba(255, 183, 77, 0.15);
+}

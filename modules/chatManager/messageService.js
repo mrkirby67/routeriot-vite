@@ -1,0 +1,120 @@
+// ============================================================================
+// FILE: modules/chatManager/messageService.js
+// PURPOSE: Message sending + player-side message feeds
+// ============================================================================
+
+import { db } from '../config.js';
+import {
+  addDoc,
+  collection,
+  collectionGroup,
+  onSnapshot,
+  orderBy,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { clearRegistry, registerListener } from './registry.js';
+import { GAME_MASTER_NAME, resolveSenderName, safeHTML, shouldRenderRaw } from './utils.js';
+
+export async function sendMessage(sender, recipient, text) {
+  const sortedNames = [sender, recipient].sort();
+  const convoId = `${sortedNames[0].replace(/\s/g, '')}_${sortedNames[1].replace(/\s/g, '')}`;
+  const messagesRef = collection(db, 'conversations', convoId, 'messages');
+
+  try {
+    await addDoc(messagesRef, {
+      sender,
+      recipient,
+      text,
+      timestamp: Date.now()
+    });
+  } catch (err) {
+    console.error("❌ Error sending message:", err);
+  }
+}
+
+export function listenForMyMessages(myTeamName, logBox) {
+  clearRegistry('playerMessages');
+  const messagesRef = collectionGroup(db, 'messages');
+  const sentQuery = query(messagesRef, where('sender', '==', myTeamName));
+  const receivedQuery = query(messagesRef, where('recipient', '==', myTeamName));
+  const broadcastQuery = query(collection(db, 'communications'), orderBy('timestamp', 'asc'));
+  const controlAllQuery = query(collection(db, 'conversations', 'CONTROL_ALL', 'messages'), orderBy('timestamp', 'asc'));
+
+  const allMessages = [];
+  const messageIds = new Set();
+
+  const renderLog = () => {
+    allMessages.sort((a, b) => a.timestamp - b.timestamp);
+    logBox.innerHTML = '';
+
+    if (allMessages.length === 0) {
+      logBox.innerHTML = '<p style="color:#888;">(No messages yet)</p>';
+      return;
+    }
+
+    allMessages.forEach(msg => {
+      const ts = msg.timestamp?.toMillis ? msg.timestamp.toMillis() : msg.timestamp;
+      const time = new Date(ts).toLocaleTimeString();
+      const entry = document.createElement('p');
+
+      if (msg.isBroadcast || msg.recipient === 'ALL') {
+        const senderName = resolveSenderName(msg);
+        const senderDisplay =
+          senderName !== GAME_MASTER_NAME
+            ? `<strong style="color:#FFD700;">${safeHTML(senderName)}</strong>`
+            : `<strong style="color:#fdd835;">${GAME_MASTER_NAME.toUpperCase()}</strong>`;
+        entry.style.backgroundColor = '#3a3a24';
+        entry.style.padding = '8px';
+        entry.style.borderRadius = '5px';
+        entry.style.margin = '5px 0';
+        const messageBody = shouldRenderRaw(msg)
+          ? msg.message
+          : safeHTML(msg.text || msg.message || '(no message)');
+        entry.innerHTML = `
+          <span style="color: #aaa;">[${time}]</span>
+          ${senderDisplay}: <span style="font-weight:bold;">${messageBody}</span>
+        `;
+      } else {
+        const senderName = resolveSenderName(msg);
+        const isMine = senderName === myTeamName;
+        const color = isMine ? '#FFD700' : '#00CED1';
+        const otherParty = isMine ? (msg.recipient || 'Unknown') : senderName || 'Unknown';
+        const prefix = isMine
+          ? `<strong style="color:${color};">You ➡️ ${safeHTML(msg.recipient || 'Unknown')}:</strong>`
+          : `<strong style="color:${color};">${safeHTML(otherParty)} ➡️ You:</strong>`;
+        entry.innerHTML = `${prefix} ${safeHTML(msg.text || msg.message || '')} <span style="color:#888;">(${time})</span>`;
+      }
+      logBox.appendChild(entry);
+    });
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+
+  const processSnapshot = (snapshot) => {
+    if (snapshot.empty) {
+      allMessages.length = 0;
+      messageIds.clear();
+      renderLog();
+      return;
+    }
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added' && !messageIds.has(change.doc.id)) {
+        const data = change.doc.data();
+        data.timestamp = data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp;
+        messageIds.add(change.doc.id);
+        allMessages.push(data);
+      } else if (change.type === 'removed') {
+        const idx = allMessages.findIndex(m => m.id === change.doc.id);
+        if (idx !== -1) allMessages.splice(idx, 1);
+      }
+    });
+    renderLog();
+  };
+
+  registerListener('playerMessages', onSnapshot(sentQuery, processSnapshot));
+  registerListener('playerMessages', onSnapshot(receivedQuery, processSnapshot));
+  registerListener('playerMessages', onSnapshot(broadcastQuery, processSnapshot));
+  registerListener('playerMessages', onSnapshot(controlAllQuery, processSnapshot));
+
+  return () => clearRegistry('playerMessages');
+}

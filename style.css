@@ -351,3 +351,35 @@ button:hover,
     font-size: 1em;
   }
 }
+/* === Speed Bump Actions (Player Chat) === */
+.speedbump-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.speedbump-send-btn,
+.speedbump-release-btn {
+  background: linear-gradient(135deg, #ffb74d, #fb8c00);
+  color: #1a1200;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.speedbump-release-btn {
+  background: linear-gradient(135deg, #66bb6a, #388e3c);
+  color: #061b0a;
+}
+.speedbump-send-btn:hover:not(:disabled),
+.speedbump-release-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+.speedbump-send-btn:disabled,
+.speedbump-release-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

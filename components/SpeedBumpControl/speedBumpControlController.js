@@ -1,0 +1,207 @@
+// ============================================================================
+// FILE: components/SpeedBumpControl/speedBumpControlController.js
+// PURPOSE: UI orchestration for Speed Bump – Photo Challenge control panel
+// ============================================================================
+
+import styles from './SpeedBumpControl.module.css';
+import { allTeams } from '../../data.js';
+import { getRandomSpeedBumpPrompt } from '../../modules/speedBumpChallenges.js';
+import {
+  sendSpeedBump,
+  releaseSpeedBump,
+  subscribeSpeedBumps,
+  getCooldownRemaining,
+  getActiveBump
+} from '../../modules/speedBumpManager.js';
+
+const DEFAULT_PROMPTS = new Map();
+
+function initPrompts() {
+  if (DEFAULT_PROMPTS.size) return;
+  allTeams.forEach(team => {
+    DEFAULT_PROMPTS.set(team.name, getRandomSpeedBumpPrompt());
+  });
+}
+
+export function createSpeedBumpControlController() {
+  initPrompts();
+  return new SpeedBumpControlController();
+}
+
+class SpeedBumpControlController {
+  constructor() {
+    this.dom = {
+      tableBody: null,
+      overrideToggle: null,
+      shuffleAllBtn: null
+    };
+    this.promptByTeam = new Map(DEFAULT_PROMPTS);
+    this.unsubscribe = null;
+    this.handleStatePush = this.handleStatePush.bind(this);
+    this.onOverrideChange = this.renderRows.bind(this);
+  }
+
+  initialize() {
+    const tableBody = document.getElementById('speedbump-table-body');
+    const overrideToggle = document.getElementById('speedbump-admin-override');
+    const shuffleAllBtn = document.getElementById('speedbump-shuffle-all');
+    if (!tableBody || !overrideToggle || !shuffleAllBtn) {
+      console.warn('⚠️ Speed Bump control DOM not ready.');
+      return () => {};
+    }
+
+    this.dom = { tableBody, overrideToggle, shuffleAllBtn };
+    overrideToggle.addEventListener('change', this.onOverrideChange);
+    this.renderInitialRows();
+
+    shuffleAllBtn.addEventListener('click', () => {
+      allTeams.forEach(team => {
+        this.promptByTeam.set(team.name, getRandomSpeedBumpPrompt([this.promptByTeam.get(team.name)]));
+      });
+      this.renderRows();
+    });
+
+    this.unsubscribe = subscribeSpeedBumps(this.handleStatePush);
+    this.renderRows();
+    return reason => this.destroy(reason);
+  }
+
+  destroy(reason = 'manual') {
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+    if (this.dom.overrideToggle) {
+      this.dom.overrideToggle.removeEventListener('change', this.onOverrideChange);
+    }
+    if (this.dom.shuffleAllBtn) {
+      this.dom.shuffleAllBtn.replaceWith(this.dom.shuffleAllBtn.cloneNode(true));
+    }
+    this.dom = { tableBody: null, overrideToggle: null, shuffleAllBtn: null };
+    console.info(`🧹 [speedBumpControl] destroyed (${reason})`);
+  }
+
+  handleStatePush() {
+    this.renderRows();
+  }
+
+  renderInitialRows() {
+    const { tableBody } = this.dom;
+    tableBody.innerHTML = '';
+    allTeams.forEach(team => {
+      const tr = document.createElement('tr');
+      tr.dataset.team = team.name;
+      tr.innerHTML = `
+        <td class="${styles.teamCell}">
+          <strong>${team.name}</strong>
+          <span>${team.slogan || ''}</span>
+        </td>
+        <td class="${styles.promptCell}">
+          <div class="${styles.promptPreview}" data-role="prompt">${this.promptByTeam.get(team.name)}</div>
+          <div class="${styles.inlineActions}">
+            <button type="button" class="${styles.shuffleBtn}" data-role="shuffle">🔁 Shuffle</button>
+          </div>
+        </td>
+        <td class="${styles.inlineActions}">
+          <button type="button" class="${styles.actionBtn}" data-role="send">🚧 Send</button>
+          <button type="button" class="${styles.actionBtn} ${styles.releaseBtn}" data-role="release">🟢 Release</button>
+        </td>
+        <td data-role="status">—</td>
+      `;
+      tableBody.appendChild(tr);
+    });
+
+    tableBody.addEventListener('click', (event) => {
+      const actionBtn = event.target.closest('button[data-role]');
+      if (!actionBtn) return;
+      const tr = event.target.closest('tr[data-team]');
+      if (!tr) return;
+      const teamName = tr.dataset.team;
+      const role = actionBtn.dataset.role;
+      if (role === 'shuffle') {
+        this.promptByTeam.set(teamName, getRandomSpeedBumpPrompt([this.promptByTeam.get(teamName)]));
+        this.updateRow(teamName);
+      } else if (role === 'send') {
+        this.handleSend(teamName);
+      } else if (role === 'release') {
+        this.handleRelease(teamName);
+      }
+    });
+  }
+
+  async handleSend(teamName) {
+    const fromTeam = 'Control';
+    const challenge = this.promptByTeam.get(teamName) || getRandomSpeedBumpPrompt();
+    const override = this.dom.overrideToggle?.checked ?? true;
+    const result = await sendSpeedBump(fromTeam, teamName, challenge, { override });
+    if (!result.ok && !override) {
+      const seconds = result.reason || Math.ceil(getCooldownRemaining(fromTeam, 'bump') / 1000);
+      alert(`⏳ Speed Bump on cooldown. Ready in ${seconds}s.`);
+    }
+    this.updateRow(teamName);
+  }
+
+  async handleRelease(teamName) {
+    const override = this.dom.overrideToggle?.checked ?? true;
+    if (!override && !getActiveBump(teamName)) {
+      alert('ℹ️ This team is not currently speed bumped.');
+      return;
+    }
+    await releaseSpeedBump(teamName, 'Control');
+    this.updateRow(teamName);
+  }
+
+  renderRows() {
+    allTeams.forEach(team => this.updateRow(team.name));
+  }
+
+  updateRow(teamName) {
+    const row = this.dom.tableBody?.querySelector(`tr[data-team="${teamName}"]`);
+    if (!row) return;
+
+    const promptEl = row.querySelector('[data-role="prompt"]');
+    const statusEl = row.querySelector('[data-role="status"]');
+    const sendBtn = row.querySelector('button[data-role="send"]');
+    const releaseBtn = row.querySelector('button[data-role="release"]');
+
+    const prompt = this.promptByTeam.get(teamName) || getRandomSpeedBumpPrompt();
+    if (promptEl) promptEl.textContent = prompt;
+
+    const active = getActiveBump(teamName);
+    const cooldownMs = getCooldownRemaining('Control', 'bump');
+    const onCooldown = cooldownMs > 0 && !(this.dom.overrideToggle?.checked ?? true);
+
+    if (sendBtn) {
+      sendBtn.disabled = onCooldown;
+      sendBtn.title = onCooldown ? `Cooldown – ready in ${Math.ceil(cooldownMs / 1000)}s` : '';
+    }
+
+    if (releaseBtn) {
+      const override = this.dom.overrideToggle?.checked ?? true;
+      releaseBtn.disabled = !active && !override;
+    }
+
+    if (statusEl) {
+      if (active) {
+        statusEl.innerHTML = `
+          <span class="${styles.statusBadge} ${styles.statusActive}">🚧 Active — from ${active.by}</span><br>
+          <span>${active.challenge}</span>
+        `;
+      } else if (onCooldown) {
+        statusEl.innerHTML = `
+          <span class="${styles.statusBadge} ${styles.statusCooldown}">
+            ⏳ Cooldown ${formatSeconds(Math.ceil(cooldownMs / 1000))}
+          </span>
+        `;
+      } else {
+        statusEl.innerHTML = `
+          <span class="${styles.statusBadge} ${styles.statusIdle}">Ready</span>
+        `;
+      }
+    }
+  }
+}
+
+function formatSeconds(totalSeconds) {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}

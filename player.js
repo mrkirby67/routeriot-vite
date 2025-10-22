@@ -19,13 +19,12 @@ import {
 import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
 import { initializeBugStrikeListener } from './modules/playerBugStrikeUI.js'; // 🪰 chaos overlay
-import { WildCardLauncherComponent, initializeWildCardLauncher } from './components/WildCardLauncher/WildCardLauncher.js'; // 🎮 new launcher
-import { initializeFlatTireUI, detachFlatTireUIListeners } from './modules/flatTireUI.js';
+import { initializeSpeedBumpPlayer } from './modules/speedBumpPlayer.js';
 
 let gameStatusUnsub = null;
 let chatCleanup = null;
 let zonesCleanup = null;
-let flatTireCleanup = null;
+let speedBumpCleanup = null;
 let bugStrikeCleanup = null;
 let unloadHandler = null;
 
@@ -36,9 +35,8 @@ function teardownPlayerListeners(reason = 'manual') {
   zonesCleanup?.(reason);
   zonesCleanup = null;
 
-  const hadFlatCleanup = Boolean(flatTireCleanup);
-  flatTireCleanup?.(reason);
-  flatTireCleanup = null;
+  speedBumpCleanup?.(reason);
+  speedBumpCleanup = null;
 
   bugStrikeCleanup?.(reason);
   bugStrikeCleanup = null;
@@ -46,9 +44,6 @@ function teardownPlayerListeners(reason = 'manual') {
   gameStatusUnsub?.(reason);
   gameStatusUnsub = null;
 
-  if (!hadFlatCleanup) {
-    detachFlatTireUIListeners(reason);
-  }
 
   if (unloadHandler) {
     window.removeEventListener('beforeunload', unloadHandler);
@@ -94,28 +89,18 @@ export async function initializePlayerPage() {
     zonesCleanup = initializeZones(currentTeamName);
     initializePlayerScoreboard();
     bugStrikeCleanup = initializeBugStrikeListener(currentTeamName); // 🪰
-    flatTireCleanup = initializeFlatTireUI(currentTeamName);
+    speedBumpCleanup = initializeSpeedBumpPlayer(currentTeamName);
   } catch (err) {
     console.error('🔥 Error initializing player modules:', err);
     alert('Error initializing player. Check console.');
     return;
   }
 
-  // 4️⃣ Add Wild Card Launcher UI (bottom of page)
-  try {
-    const launcherContainer = document.createElement('div');
-    launcherContainer.innerHTML = WildCardLauncherComponent();
-    document.body.appendChild(launcherContainer);
-    initializeWildCardLauncher(currentTeamName);
-  } catch (err) {
-    console.error('⚠️ Failed to initialize Wild Card Launcher:', err);
-  }
-
-  // 5️⃣ Initial display
+  // 4️⃣ Initial display
   showWaitingBanner();
   setInlineTimer('--:--:--');
 
-  // 6️⃣ If game already active, start timer immediately
+  // 5️⃣ If game already active, start timer immediately
   try {
     const gameDoc = await getDoc(doc(db, 'game', 'gameState'));
     const gameData = gameDoc.exists() ? gameDoc.data() : null;
@@ -132,7 +117,7 @@ export async function initializePlayerPage() {
     console.error('⚠️ Could not fetch initial game state:', err);
   }
 
-  // 7️⃣ Live game state sync (pause/resume/end)
+  // 6️⃣ Live game state sync (pause/resume/end)
   gameStatusUnsub?.();
   gameStatusUnsub = listenForGameStatus((state) => handleLiveGameState(state));
 
