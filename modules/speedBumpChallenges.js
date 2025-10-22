@@ -22,3 +22,7 @@ export function getRandomSpeedBumpPrompt(exclusions = []) {
   const index = Math.floor(Math.random() * source.length);
   return source[index];
 }
+
+export function getDefaultPrompts() {
+  return [...speedBumpPrompts];
+}

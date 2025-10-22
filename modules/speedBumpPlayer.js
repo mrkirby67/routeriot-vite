@@ -9,7 +9,8 @@ import {
   releaseSpeedBump,
   subscribeSpeedBumps,
   getCooldownRemaining,
-  getActiveBump
+  getActiveBump,
+  markProofSent
 } from './speedBumpManager.js';
 import {
   showSpeedBumpOverlay,
@@ -39,7 +40,10 @@ function handleStateUpdate() {
     showSpeedBumpOverlay({
       by: active.by,
       challenge: active.challenge,
-      onRelease: () => releaseSpeedBump(currentTeamName, `${currentTeamName} release`) 
+      countdownMs: active.countdownMs,
+      proofSent: Boolean(active.proofSentAt),
+      onProof: () => markProofSent(currentTeamName),
+      onRelease: () => releaseSpeedBumpFromPlayer(currentTeamName, currentTeamName)
     });
   } else {
     hideSpeedBumpOverlay();
@@ -63,14 +67,20 @@ export async function sendSpeedBumpFromPlayer(fromTeam, targetTeam) {
     const seconds = result.reason || Math.ceil(getCooldownRemaining(fromTeam, 'bump') / 1000);
     alert(`🚧 Speed Bump cooldown active (${seconds} seconds remaining).`);
   } else {
-    alert(`🚧 Speed Bump sent to ${targetTeam}!`);
+    alert(`🚧 Speed Bump sent to ${targetTeam}! Wait for their photo proof before releasing them.`);
   }
 }
 
 export async function releaseSpeedBumpFromPlayer(targetTeam, releasingTeam) {
   const active = getActiveBump(targetTeam);
-  if (!active || active.by !== releasingTeam) {
-    alert('ℹ️ This team is not Speed Bumped by you.');
+  if (!active) {
+    alert('ℹ️ No active Speed Bump to release.');
+    return;
+  }
+  const isOwner = active.by === releasingTeam;
+  const isSelfRelease = targetTeam === releasingTeam && (!active.countdownMs || active.countdownMs <= 0);
+  if (!isOwner && !isSelfRelease) {
+    alert('ℹ️ You can only release this team after the proof timer finishes.');
     return;
   }
   await releaseSpeedBump(targetTeam, releasingTeam);

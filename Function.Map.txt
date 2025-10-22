@@ -134,13 +134,14 @@
 // File: routeriot-vite-main/components/SpeedBumpControl/SpeedBumpControl.module.css
 // =============================
 // CSS selectors:
-//   .actionBtn, .actionBtn:disabled, .actionBtn:hover:not(:disabled), .controlSection, .dataTable, .dataTable td, .dataTable th, .dataTable tr:nth-child(even) td, .headerRow, .headerRow h2, .inlineActions, .legendNote, .loading, .overrideToggle, .overrideToggle input, .primaryBtn, .primaryBtn:disabled, .primaryBtn:hover, .promptCell, .promptInput, .promptInput:focus, .promptLegend, .promptPreview, .releaseBtn, .secondaryBtn, .secondaryBtn:disabled, .secondaryBtn:hover, .shuffleBtn, .shuffleBtn:hover, .statusActive, .statusBadge, .statusCooldown, .statusIdle, .subhead, .teamCell, .teamCell span, .teamCell strong
+//   .actionBtn, .actionBtn:disabled, .actionBtn:hover:not(:disabled), .controlSection, .dataTable, .dataTable td, .dataTable th, .dataTable tr:nth-child(even) td, .headerRow, .headerRow h2, .inlineActions, .legendControls, .legendNote, .loading, .overrideToggle, .overrideToggle input, .primaryBtn, .primaryBtn:disabled, .primaryBtn:hover, .promptCell, .promptInput, .promptInput:focus, .promptLegend, .promptPreview, .releaseBtn, .secondaryBtn, .secondaryBtn:disabled, .secondaryBtn:hover, .shuffleBtn, .shuffleBtn:hover, .statusActive, .statusBadge, .statusCooldown, .statusDetail, .statusIdle, .subhead, .teamCell, .teamCell span, .teamCell strong
 
 // =============================
 // File: routeriot-vite-main/components/SpeedBumpControl/speedBumpControlController.js
 // =============================
 // Functions and classes:
 //   - createSpeedBumpControlController()
+//   - escapeHtml()
 //   - formatSeconds()
 //   - initPrompts()
 //   - loadPersistedPrompts()
@@ -678,13 +679,16 @@
 // Functions and classes:
 //   - $()
 //   - draw()
+//   - formatMMSS()
 //   - hidePausedOverlay()
 //   - hideSpeedBumpOverlay()
+//   - primaryButtonStyle()
 //   - showGameOverOverlay()
 //   - showPausedOverlay()
 //   - showSpeedBumpOverlay()
 //   - startConfetti()
 //   - stopConfetti()
+//   - updateCountdown()
 // Exported members:
 //   - hidePausedOverlay
 //   - hideSpeedBumpOverlay
@@ -714,8 +718,10 @@
 // File: routeriot-vite-main/modules/speedBumpChallenges.js
 // =============================
 // Functions and classes:
+//   - getDefaultPrompts()
 //   - getRandomSpeedBumpPrompt()
 // Exported members:
+//   - getDefaultPrompts
 //   - getRandomSpeedBumpPrompt
 //   - speedBumpPrompts
 
@@ -723,27 +729,33 @@
 // File: routeriot-vite-main/modules/speedBumpManager.js
 // =============================
 // Functions and classes:
-//   - buildMailto()
+//   - applyProofSent()
+//   - applySpeedBump()
+//   - clearValidationTimer()
 //   - ensureCommsListener()
 //   - getActiveBump()
 //   - getCooldownRemaining()
 //   - isTeamBumped()
+//   - markProofSent()
 //   - notify()
-//   - openDirectMessage()
 //   - parseBroadcast()
 //   - releaseSpeedBump()
 //   - sanitize()
 //   - scheduleTicker()
+//   - scheduleValidationTimer()
 //   - sendSpeedBump()
 //   - startCooldown()
+//   - startValidationTimer()
 //   - subscribeSpeedBumps()
 // Exported members:
 //   - getActiveBump
 //   - getCooldownRemaining
 //   - isTeamBumped
+//   - markProofSent
 //   - releaseSpeedBump
 //   - sendSpeedBump
 //   - startCooldown
+//   - startValidationTimer
 //   - subscribeSpeedBumps
 
 // =============================

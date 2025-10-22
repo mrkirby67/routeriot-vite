@@ -4,7 +4,6 @@
 // NOTE: Uses broadcasts (communications collection) to sync state across clients.
 // ============================================================================
 
-import { allTeams } from '../data.js';
 import { broadcastEvent } from './zonesFirestore.js';
 import { db } from './config.js';
 import {
@@ -15,11 +14,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const COOLDOWN_MS = 60_000;
+const VALIDATION_MS = 5 * 60_000;
 
-const activeBumps = new Map(); // teamName -> { by, challenge, startedAt }
+const activeBumps = new Map(); // teamName -> { by, challenge, startedAt, proofSentAt, countdownEndsAt }
 const cooldowns = new Map(); // `${team}:${type}` -> expiresAt
 const subscribers = new Set();
 const processedMessages = new Set();
+const validationTimers = new Map(); // teamName -> { expiresAt, timerId }
 
 let commsUnsub = null;
 let tickerId = null;
@@ -42,24 +43,33 @@ function ensureCommsListener() {
 
 function parseBroadcast(message) {
   if (!message) return;
-  const speedBumpMatch = message.match(/Speed Bump: ([^]+?) challenged ([^!]+)! Challenge: ([^]+)/);
+  const speedBumpMatch = message.match(/Speed Bump: ([^]+?) challenged ([^!]+)! Challenge: ([^]+?)(?: —|\.|$)/);
   if (speedBumpMatch) {
     const [, fromTeam, toTeam, challengeRaw] = speedBumpMatch;
     const challenge = challengeRaw.trim();
-    activeBumps.set(toTeam.trim(), {
+    applySpeedBump(toTeam.trim(), {
       by: fromTeam.trim(),
       challenge,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      proofSentAt: null,
+      countdownEndsAt: null
     });
-    notify();
     return;
   }
 
   const releaseMatch = message.match(/Speed Bump Cleared: ([^]+?) is/);
   if (releaseMatch) {
     const [, team] = releaseMatch;
+    clearValidationTimer(team.trim());
     activeBumps.delete(team.trim());
     notify();
+    return;
+  }
+
+  const proofMatch = message.match(/Proof Sent: ([^|]+)\|([0-9]+)\|([0-9]+)/);
+  if (proofMatch) {
+    const [, team, expires, proofAt] = proofMatch;
+    applyProofSent(team.trim(), Number(expires), Number(proofAt));
   }
 }
 
@@ -69,27 +79,6 @@ function sanitize(text) {
     .replace(/</g, '')
     .replace(/>/g, '')
     .trim();
-}
-
-function buildMailto(toTeam, fromTeam, challenge) {
-  const target = allTeams.find(t => t.name === toTeam) || {};
-  const email = target.email || '';
-  const subject = encodeURIComponent('Route Riot Speed Bump!');
-  const body = encodeURIComponent(
-    `Team ${fromTeam} just hit you with a Speed Bump!\n\nYour photo challenge: ${challenge}\n\nSend proof back to control to get released. Good luck!`
-  );
-  const base = email ? `mailto:${email}` : 'mailto:';
-  return `${base}?subject=${subject}&body=${body}`;
-}
-
-function openDirectMessage(url) {
-  try {
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank', 'noopener');
-    }
-  } catch (err) {
-    console.warn('⚠️ Unable to launch mailto window:', err);
-  }
 }
 
 export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override = false } = {}) {
@@ -102,24 +91,41 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
     return { ok: false, reason: Math.ceil(remaining / 1000) };
   }
 
-  const mailtoUrl = buildMailto(toTeam, fromTeam, challenge);
-  openDirectMessage(mailtoUrl);
-
-  const message = `🚧 Speed Bump: ${fromTeam} challenged ${toTeam}! Challenge: ${challenge}`;
+  const message = `🚧 Speed Bump: ${fromTeam} challenged ${toTeam}! Challenge: ${challenge} — wait for their proof photo before releasing.`;
   await broadcastEvent('Game Master', message, true);
 
-  activeBumps.set(toTeam, { by: fromTeam, challenge, startedAt: now });
+  applySpeedBump(toTeam, {
+    by: fromTeam,
+    challenge,
+    startedAt: now,
+    proofSentAt: null,
+    countdownEndsAt: null
+  });
   startCooldown(fromTeam, 'bump', override ? 0 : COOLDOWN_MS);
-  notify();
   return { ok: true };
 }
 
 export async function releaseSpeedBump(teamName, releasedBy = 'Game Master') {
   ensureCommsListener();
+  clearValidationTimer(teamName);
   activeBumps.delete(teamName);
   const message = `🟢 Speed Bump Cleared: ${teamName} is back on the road! (Released by ${releasedBy})`;
   await broadcastEvent('Game Master', message, true);
   notify();
+}
+
+export async function markProofSent(teamName) {
+  await startValidationTimer(teamName, VALIDATION_MS);
+}
+
+export async function startValidationTimer(teamName, durationMs = VALIDATION_MS) {
+  const entry = activeBumps.get(teamName);
+  if (!entry) return;
+  const proofAt = Date.now();
+  const expiresAt = proofAt + durationMs;
+  applyProofSent(teamName, expiresAt, proofAt);
+  const message = `📸 Proof Sent: ${teamName}|${expiresAt}|${proofAt}`;
+  await broadcastEvent('Game Master', message, true);
 }
 
 export function startCooldown(teamName, type, durationMs = COOLDOWN_MS) {
@@ -143,7 +149,10 @@ export function isTeamBumped(teamName) {
 }
 
 export function getActiveBump(teamName) {
-  return activeBumps.get(teamName) || null;
+  const bump = activeBumps.get(teamName);
+  if (!bump) return null;
+  const countdownMs = bump.countdownEndsAt ? Math.max(bump.countdownEndsAt - Date.now(), 0) : null;
+  return { ...bump, countdownMs };
 }
 
 export function subscribeSpeedBumps(callback) {
@@ -156,11 +165,50 @@ export function subscribeSpeedBumps(callback) {
 function notify() {
   const payload = {
     activeBumps: Array.from(activeBumps.entries()),
-    cooldowns: Array.from(cooldowns.entries())
+    cooldowns: Array.from(cooldowns.entries()),
+    validationTimers: Array.from(validationTimers.entries())
   };
   subscribers.forEach(fn => {
     try { fn(payload); } catch (err) { console.warn('speedBump subscriber error:', err); }
   });
+}
+
+function applySpeedBump(teamName, data) {
+  clearValidationTimer(teamName);
+  activeBumps.set(teamName, { ...data });
+  notify();
+}
+
+function applyProofSent(teamName, expiresAt, proofTimestamp = Date.now()) {
+  const current = activeBumps.get(teamName);
+  if (!current) return;
+  clearValidationTimer(teamName);
+  const updated = {
+    ...current,
+    proofSentAt: proofTimestamp,
+    countdownEndsAt: expiresAt
+  };
+  activeBumps.set(teamName, updated);
+  scheduleValidationTimer(teamName, expiresAt);
+  notify();
+}
+
+function scheduleValidationTimer(teamName, expiresAt) {
+  if (!expiresAt) return;
+  const remaining = Math.max(0, expiresAt - Date.now());
+  const existing = validationTimers.get(teamName);
+  if (existing?.timerId) clearTimeout(existing.timerId);
+  const timerId = setTimeout(() => {
+    validationTimers.delete(teamName);
+    releaseSpeedBump(teamName, 'Auto Timer');
+  }, remaining);
+  validationTimers.set(teamName, { expiresAt, timerId });
+}
+
+function clearValidationTimer(teamName) {
+  const entry = validationTimers.get(teamName);
+  if (entry?.timerId) clearTimeout(entry.timerId);
+  validationTimers.delete(teamName);
 }
 
 function scheduleTicker() {

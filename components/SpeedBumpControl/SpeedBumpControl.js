@@ -23,7 +23,11 @@ export function SpeedBumpControlComponent() {
       </div>
 
       <div class="${styles.promptLegend}">
-        <button type="button" id="speedbump-shuffle-all" class="${styles.secondaryBtn}">🔁 Shuffle All Prompts</button>
+        <div class="${styles.legendControls}">
+          <button type="button" id="speedbump-shuffle-all" class="${styles.secondaryBtn}">🔁 Shuffle All</button>
+          <button type="button" id="speedbump-save-prompts" class="${styles.secondaryBtn}">💾 Save Prompts</button>
+          <button type="button" id="speedbump-reset-prompts" class="${styles.secondaryBtn}">♻️ Reset to Defaults</button>
+        </div>
         <span class="${styles.legendNote}">⚠️ Release when you are sent a photo of the Speed Bump Photo Fix.</span>
       </div>
 

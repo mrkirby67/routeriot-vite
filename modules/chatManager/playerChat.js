@@ -161,7 +161,15 @@ function updateSpeedBumpButtons(currentTeamName) {
 
     const activeState = getActiveBump(targetTeam);
     const isOwner = activeState && activeState.by === currentTeamName;
-    releaseBtn.disabled = !isOwner;
-    releaseBtn.title = isOwner ? 'Release speed bump' : 'Only the team who set the bump can release.';
+    const selfReleaseReady = activeState && targetTeam === currentTeamName && (!!activeState.countdownMs ? activeState.countdownMs <= 0 : Boolean(activeState.proofSentAt));
+    const canRelease = Boolean(activeState) && (isOwner || selfReleaseReady);
+    releaseBtn.disabled = !canRelease;
+    if (isOwner) {
+      releaseBtn.title = 'Release speed bump';
+    } else if (selfReleaseReady) {
+      releaseBtn.title = 'Countdown finished — self-release available.';
+    } else {
+      releaseBtn.title = 'Release becomes available after the proof timer finishes.';
+    }
   });
 }

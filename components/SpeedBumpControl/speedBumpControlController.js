@@ -5,7 +5,7 @@
 
 import styles from './SpeedBumpControl.module.css';
 import { allTeams } from '../../data.js';
-import { getRandomSpeedBumpPrompt } from '../../modules/speedBumpChallenges.js';
+import { getRandomSpeedBumpPrompt, getDefaultPrompts } from '../../modules/speedBumpChallenges.js';
 import {
   sendSpeedBump,
   releaseSpeedBump,
@@ -18,8 +18,12 @@ const DEFAULT_PROMPTS = new Map();
 
 function initPrompts() {
   if (DEFAULT_PROMPTS.size) return;
+  const defaults = getDefaultPrompts();
+  let idx = 0;
   allTeams.forEach(team => {
-    DEFAULT_PROMPTS.set(team.name, getRandomSpeedBumpPrompt());
+    const prompt = defaults[idx % defaults.length];
+    DEFAULT_PROMPTS.set(team.name, prompt);
+    idx++;
   });
 }
 
@@ -49,6 +53,15 @@ function persistPrompts(map) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function createSpeedBumpControlController() {
   initPrompts();
   return new SpeedBumpControlController();
@@ -59,13 +72,17 @@ class SpeedBumpControlController {
     this.dom = {
       tableBody: null,
       overrideToggle: null,
-      shuffleAllBtn: null
+      shuffleAllBtn: null,
+      saveBtn: null,
+      resetBtn: null
     };
     this.promptByTeam = new Map(DEFAULT_PROMPTS);
     this.loadSavedPrompts();
     this.unsubscribe = null;
     this.handleStatePush = this.handleStatePush.bind(this);
     this.onOverrideChange = this.renderRows.bind(this);
+    this.handleSave = this.handleSave.bind(this);
+    this.handleReset = this.handleReset.bind(this);
   }
 
   loadSavedPrompts() {
@@ -81,13 +98,17 @@ class SpeedBumpControlController {
     const tableBody = document.getElementById('speedbump-table-body');
     const overrideToggle = document.getElementById('speedbump-admin-override');
     const shuffleAllBtn = document.getElementById('speedbump-shuffle-all');
-    if (!tableBody || !overrideToggle || !shuffleAllBtn) {
+    const saveBtn = document.getElementById('speedbump-save-prompts');
+    const resetBtn = document.getElementById('speedbump-reset-prompts');
+    if (!tableBody || !overrideToggle || !shuffleAllBtn || !saveBtn || !resetBtn) {
       console.warn('⚠️ Speed Bump control DOM not ready.');
       return () => {};
     }
 
-    this.dom = { tableBody, overrideToggle, shuffleAllBtn };
+    this.dom = { tableBody, overrideToggle, shuffleAllBtn, saveBtn, resetBtn };
     overrideToggle.addEventListener('change', this.onOverrideChange);
+    saveBtn.addEventListener('click', this.handleSave);
+    resetBtn.addEventListener('click', this.handleReset);
     this.renderInitialRows();
 
     shuffleAllBtn.addEventListener('click', () => {
@@ -95,7 +116,6 @@ class SpeedBumpControlController {
         this.promptByTeam.set(team.name, getRandomSpeedBumpPrompt([this.promptByTeam.get(team.name)]));
       });
       this.renderRows();
-      persistPrompts(this.promptByTeam);
     });
 
     this.unsubscribe = subscribeSpeedBumps(this.handleStatePush);
@@ -109,10 +129,16 @@ class SpeedBumpControlController {
     if (this.dom.overrideToggle) {
       this.dom.overrideToggle.removeEventListener('change', this.onOverrideChange);
     }
+    if (this.dom.saveBtn) {
+      this.dom.saveBtn.removeEventListener('click', this.handleSave);
+    }
+    if (this.dom.resetBtn) {
+      this.dom.resetBtn.removeEventListener('click', this.handleReset);
+    }
     if (this.dom.shuffleAllBtn) {
       this.dom.shuffleAllBtn.replaceWith(this.dom.shuffleAllBtn.cloneNode(true));
     }
-    this.dom = { tableBody: null, overrideToggle: null, shuffleAllBtn: null };
+    this.dom = { tableBody: null, overrideToggle: null, shuffleAllBtn: null, saveBtn: null, resetBtn: null };
     console.info(`🧹 [speedBumpControl] destroyed (${reason})`);
   }
 
@@ -132,7 +158,7 @@ class SpeedBumpControlController {
           <span>${team.slogan || ''}</span>
         </td>
         <td class="${styles.promptCell}">
-          <input type="text" class="${styles.promptInput}" data-role="prompt-input" value="${this.promptByTeam.get(team.name) || ''}" autocomplete="off" spellcheck="false" />
+          <input type="text" class="${styles.promptInput}" data-role="prompt-input" value="${escapeHtml(this.promptByTeam.get(team.name) || '')}" autocomplete="off" spellcheck="false" />
           <div class="${styles.inlineActions}">
             <button type="button" class="${styles.shuffleBtn}" data-role="shuffle">🔁 Shuffle</button>
           </div>
@@ -155,7 +181,6 @@ class SpeedBumpControlController {
       const role = actionBtn.dataset.role;
       if (role === 'shuffle') {
         this.promptByTeam.set(teamName, getRandomSpeedBumpPrompt([this.promptByTeam.get(teamName)]));
-        persistPrompts(this.promptByTeam);
         this.updateRow(teamName);
       } else if (role === 'send') {
         this.handleSend(teamName);
@@ -172,7 +197,6 @@ class SpeedBumpControlController {
       const teamName = tr.dataset.team;
       const value = target.value;
       this.promptByTeam.set(teamName, value);
-      persistPrompts(this.promptByTeam);
     });
   }
 
@@ -198,6 +222,18 @@ class SpeedBumpControlController {
     this.updateRow(teamName);
   }
 
+  handleSave() {
+    persistPrompts(this.promptByTeam);
+    alert('💾 Speed Bump prompts saved to this browser.');
+  }
+
+  handleReset() {
+    if (!window.confirm('Reset all Speed Bump prompts to their default suggestions?')) return;
+    this.promptByTeam = new Map(DEFAULT_PROMPTS);
+    persistPrompts(this.promptByTeam);
+    this.renderRows();
+  }
+
   renderRows() {
     allTeams.forEach(team => this.updateRow(team.name));
   }
@@ -215,7 +251,6 @@ class SpeedBumpControlController {
     if (!prompt) {
       prompt = getRandomSpeedBumpPrompt();
       this.promptByTeam.set(teamName, prompt);
-      persistPrompts(this.promptByTeam);
     }
     if (inputEl && inputEl.value !== prompt) inputEl.value = prompt;
 
@@ -235,9 +270,19 @@ class SpeedBumpControlController {
 
     if (statusEl) {
       if (active) {
+        const proofSent = Boolean(active.proofSentAt);
+        const countdownMsActive = active.countdownMs ?? null;
+        let detail = '📸 Awaiting proof from the sabotaged team.';
+        if (proofSent) {
+          if (countdownMsActive && countdownMsActive > 0) {
+            detail = `📸 Proof timer: ${formatSeconds(Math.ceil(countdownMsActive / 1000))}`;
+          } else {
+            detail = '📸 Proof timer finished. Release when ready.';
+          }
+        }
         statusEl.innerHTML = `
           <span class="${styles.statusBadge} ${styles.statusActive}">🚧 Active — from ${active.by}</span><br>
-          <span>${active.challenge}</span>
+          <span class="${styles.statusDetail}">${detail}</span>
         `;
       } else if (onCooldown) {
         statusEl.innerHTML = `

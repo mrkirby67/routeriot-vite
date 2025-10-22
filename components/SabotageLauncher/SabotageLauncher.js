@@ -134,6 +134,7 @@ async function launchSpeedBump(targetTeam, override) {
     alert(`🚧 Speed Bump cooldown active (${result.reason}s remaining).`);
     return;
   }
+  alert(`🚧 Speed Bump launched on ${targetTeam}! Wait for their proof photo before releasing.`);
   renderRows();
 }
 
@@ -183,7 +184,23 @@ function updateSpeedBumpUI(row, teamName) {
   }
 
   const bumpState = getActiveBump(teamName);
-  summaryCell.textContent = bumpState ? `🚧 Active from ${bumpState.by}` : 'Clear';
+  if (bumpState) {
+    const proofSent = Boolean(bumpState.proofSentAt);
+    const countdownMs = bumpState.countdownMs ?? null;
+    let summary = `🚧 Active from ${bumpState.by}`;
+    if (proofSent) {
+      if (countdownMs && countdownMs > 0) {
+        summary += ` — proof timer ${formatSeconds(Math.ceil(countdownMs / 1000))}`;
+      } else {
+        summary += ' — proof timer finished';
+      }
+    } else {
+      summary += ' — awaiting proof';
+    }
+    summaryCell.textContent = summary;
+  } else {
+    summaryCell.textContent = 'Clear';
+  }
 }
 
 function formatSeconds(totalSeconds) {

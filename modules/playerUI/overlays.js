@@ -42,7 +42,16 @@ export function hidePausedOverlay() {
   }
 }
 
-export function showSpeedBumpOverlay({ by, challenge, onRelease } = {}) {
+let speedBumpCountdownInterval = null;
+
+export function showSpeedBumpOverlay({
+  by,
+  challenge,
+  countdownMs,
+  proofSent,
+  onProof,
+  onRelease
+} = {}) {
   let overlay = document.getElementById('speedbump-overlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -50,7 +59,7 @@ export function showSpeedBumpOverlay({ by, challenge, onRelease } = {}) {
     Object.assign(overlay.style, {
       position: 'fixed',
       inset: '0',
-      background: 'rgba(0,0,0,0.88)',
+      background: 'rgba(0,0,0,0.9)',
       color: '#fff',
       display: 'flex',
       flexDirection: 'column',
@@ -58,57 +67,181 @@ export function showSpeedBumpOverlay({ by, challenge, onRelease } = {}) {
       justifyContent: 'center',
       gap: '18px',
       zIndex: '6000',
-      padding: '20px',
+      padding: '24px',
       textAlign: 'center',
-      fontFamily: 'Montserrat, sans-serif'
+      fontFamily: 'Montserrat, "Segoe UI", sans-serif'
     });
+
     const message = document.createElement('div');
     message.id = 'speedbump-overlay-message';
-    message.style.maxWidth = '480px';
-    message.style.fontSize = '1.1rem';
+    message.style.maxWidth = '520px';
+    message.style.fontSize = '1.2rem';
+    message.style.lineHeight = '1.6';
     overlay.appendChild(message);
+
+    const challengeEl = document.createElement('div');
+    challengeEl.id = 'speedbump-overlay-challenge';
+    challengeEl.style.fontWeight = '600';
+    challengeEl.style.fontSize = '1rem';
+    challengeEl.style.background = 'rgba(255, 183, 77, 0.1)';
+    challengeEl.style.border = '1px solid rgba(255, 183, 77, 0.35)';
+    challengeEl.style.borderRadius = '10px';
+    challengeEl.style.padding = '12px 16px';
+    challengeEl.style.maxWidth = '520px';
+    overlay.appendChild(challengeEl);
+
+    const countdown = document.createElement('div');
+    countdown.id = 'speedbump-overlay-countdown';
+    countdown.style.fontSize = '1.5rem';
+    countdown.style.fontWeight = '700';
+    countdown.style.color = '#ffeb3b';
+    overlay.appendChild(countdown);
+
+    const buttonRow = document.createElement('div');
+    buttonRow.id = 'speedbump-overlay-actions';
+    buttonRow.style.display = 'flex';
+    buttonRow.style.gap = '12px';
+    buttonRow.style.flexWrap = 'wrap';
+    buttonRow.style.justifyContent = 'center';
+
+    const proofBtn = document.createElement('button');
+    proofBtn.id = 'speedbump-proof-btn';
+    proofBtn.textContent = '📸 Proof Sent';
+    Object.assign(proofBtn.style, primaryButtonStyle('#66bb6a', '#0c2d10'));
+    buttonRow.appendChild(proofBtn);
 
     const releaseBtn = document.createElement('button');
     releaseBtn.id = 'speedbump-release-btn';
-    releaseBtn.textContent = 'Release Me';
-    Object.assign(releaseBtn.style, {
-      padding: '10px 20px',
-      borderRadius: '999px',
-      border: 'none',
-      background: '#ffb74d',
-      color: '#1a1200',
-      fontWeight: '700',
-      cursor: 'pointer',
-      fontSize: '1rem'
-    });
-    overlay.appendChild(releaseBtn);
+    releaseBtn.textContent = '🟢 Release Me';
+    Object.assign(releaseBtn.style, primaryButtonStyle('#ffb74d', '#1a1200'));
+    buttonRow.appendChild(releaseBtn);
+
+    overlay.appendChild(buttonRow);
+
+    const note = document.createElement('div');
+    note.id = 'speedbump-overlay-note';
+    note.style.fontSize = '0.9rem';
+    note.style.color = '#bbb';
+    overlay.appendChild(note);
+
     document.body.appendChild(overlay);
   }
 
+  const senderLabel = by ? `by ${by}` : 'by another team';
   const message = document.getElementById('speedbump-overlay-message');
+  const challengeEl = document.getElementById('speedbump-overlay-challenge');
+  const countdownEl = document.getElementById('speedbump-overlay-countdown');
+  const proofBtn = document.getElementById('speedbump-proof-btn');
   const releaseBtn = document.getElementById('speedbump-release-btn');
+  const note = document.getElementById('speedbump-overlay-note');
+
   if (message) {
-    const sender = by ? `by ${by}` : 'by another team';
-    message.innerHTML = `🚧 You're Speed Bumped ${sender}!<br><br><strong>Challenge:</strong> ${challenge || 'Complete your photo challenge!'}`;
+    message.textContent = `🚧 You're Speed Bumped ${senderLabel}!`;
   }
+
+  if (challengeEl) {
+    challengeEl.innerHTML = `<strong>Challenge:</strong> ${challenge || 'Complete your photo challenge!'}`;
+  }
+
+  if (note) {
+    note.textContent = `Send your proof photo to ${by || 'the sending team'} via text or email, then confirm below.`;
+  }
+
+  if (proofBtn) {
+    proofBtn.disabled = !!proofSent;
+    proofBtn.style.opacity = proofBtn.disabled ? '0.6' : '1';
+    proofBtn.onclick = async () => {
+      if (proofBtn.disabled) return;
+      proofBtn.disabled = true;
+      proofBtn.style.opacity = '0.6';
+      try {
+        await onProof?.();
+      } catch (err) {
+        console.error('Speed bump proof action failed:', err);
+        proofBtn.disabled = false;
+        proofBtn.style.opacity = '1';
+      }
+    };
+  }
+
   if (releaseBtn) {
+    const canRelease = !!proofSent && (!countdownMs || countdownMs <= 0);
+    releaseBtn.disabled = !canRelease;
+    releaseBtn.style.opacity = canRelease ? '1' : '0.6';
     releaseBtn.onclick = async () => {
+      if (releaseBtn.disabled) return;
       releaseBtn.disabled = true;
+      releaseBtn.style.opacity = '0.6';
       try {
         await onRelease?.();
       } catch (err) {
         console.error('Speed bump release failed:', err);
-      } finally {
         releaseBtn.disabled = false;
+        releaseBtn.style.opacity = canRelease ? '1' : '0.6';
       }
     };
   }
+
+  if (speedBumpCountdownInterval) {
+    clearInterval(speedBumpCountdownInterval);
+    speedBumpCountdownInterval = null;
+  }
+
+  if (countdownEl) {
+    if (proofSent && countdownMs && countdownMs > 0) {
+      const target = Date.now() + countdownMs;
+      const updateCountdown = () => {
+        const remaining = Math.max(0, target - Date.now());
+        countdownEl.textContent = `📸 Proof timer: ${formatMMSS(Math.ceil(remaining / 1000))}`;
+        if (remaining <= 0) {
+          clearInterval(speedBumpCountdownInterval);
+          speedBumpCountdownInterval = null;
+          countdownEl.textContent = '📸 Proof timer finished. You may self-release if not already freed.';
+          if (releaseBtn) {
+            releaseBtn.disabled = false;
+            releaseBtn.style.opacity = '1';
+          }
+        }
+      };
+      updateCountdown();
+      speedBumpCountdownInterval = setInterval(updateCountdown, 1000);
+    } else if (proofSent && (!countdownMs || countdownMs <= 0)) {
+      countdownEl.textContent = '📸 Proof timer finished. You may self-release if not already freed.';
+    } else {
+      countdownEl.textContent = '📸 Awaiting photo proof to begin the countdown.';
+    }
+  }
+
   overlay.style.display = 'flex';
 }
 
 export function hideSpeedBumpOverlay() {
   const overlay = document.getElementById('speedbump-overlay');
   if (overlay) overlay.style.display = 'none';
+  if (speedBumpCountdownInterval) {
+    clearInterval(speedBumpCountdownInterval);
+    speedBumpCountdownInterval = null;
+  }
+}
+
+function primaryButtonStyle(background, textColor) {
+  return {
+    padding: '10px 22px',
+    borderRadius: '999px',
+    border: 'none',
+    background,
+    color: textColor,
+    fontWeight: '700',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    transition: 'transform 0.1s ease, box-shadow 0.1s ease'
+  };
+}
+
+function formatMMSS(totalSeconds) {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
 
