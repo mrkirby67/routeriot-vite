@@ -20,7 +20,27 @@ import {
 
 const ASSIGNMENT_CONTAINER_ID = 'flat-tire-panel';
 
-let unsubscribe = null;
+const flatTireListeners = new Set();
+
+function registerFlatListener(label, unsub) {
+  if (typeof unsub !== 'function') return;
+  flatTireListeners.add({ label, unsub });
+  console.info(`📡 [flatTireUI] attached listener → ${label}`);
+}
+
+export function detachFlatTireUIListeners(reason = 'manual') {
+  if (!flatTireListeners.size) return;
+  console.info(`🧹 [flatTireUI] detaching ${flatTireListeners.size} listener(s) (${reason})`);
+  for (const entry of flatTireListeners) {
+    try {
+      entry.unsub?.();
+    } catch (err) {
+      console.warn(`⚠️ [flatTireUI] failed to detach listener ${entry.label}:`, err);
+    }
+  }
+  flatTireListeners.clear();
+  hidePanel();
+}
 
 // ----------------------------------------------------------------------------
 // 🎛️ Initialize listener for a team
@@ -28,13 +48,13 @@ let unsubscribe = null;
 export function initializeFlatTireUI(teamName) {
   if (!teamName) {
     console.warn('⚠️ Flat Tire UI not initialized (missing team name).');
-    return;
+    return () => {};
   }
 
   const assignmentRef = doc(db, 'flatTireAssignments', teamName);
-  unsubscribe?.();
+  detachFlatTireUIListeners('reinitialize');
 
-  unsubscribe = onSnapshot(assignmentRef, async (snap) => {
+  const unsub = onSnapshot(assignmentRef, async (snap) => {
     if (!snap.exists()) {
       hidePanel();
       return;
@@ -55,6 +75,9 @@ export function initializeFlatTireUI(teamName) {
     console.error('❌ Flat Tire assignment listener failed:', err);
     hidePanel();
   });
+  registerFlatListener(`flatTireAssignments:${teamName}`, unsub);
+
+  return (reason = 'player-cleanup') => detachFlatTireUIListeners(reason);
 }
 
 // ----------------------------------------------------------------------------

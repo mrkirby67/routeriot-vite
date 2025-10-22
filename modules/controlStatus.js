@@ -19,11 +19,17 @@ import {
 import { db } from './config.js';
 import { broadcastTopThree, resetScores } from './scoreboardManager.js';
 
+let liveStatusUnsub = null;
+let teamStatusUnsub = null;
+
 // ---------------------------------------------------------------------------
 // 🔹 Main Game Status Watcher
 // ---------------------------------------------------------------------------
 export function watchLiveGameStatus() {
-  listenForGameStatus(async (state) => {
+  liveStatusUnsub?.();
+  teamStatusUnsub?.();
+
+  liveStatusUnsub = listenForGameStatus(async (state) => {
     const { status = 'waiting', zonesReleased = false } = state || {};
     const statusEl = document.getElementById('live-game-status');
     const zonesEl = document.getElementById('live-zones-status');
@@ -49,7 +55,13 @@ export function watchLiveGameStatus() {
     }
   });
 
-  watchTeamStatuses();
+  teamStatusUnsub = watchTeamStatuses();
+  return () => {
+    liveStatusUnsub?.();
+    teamStatusUnsub?.();
+    liveStatusUnsub = null;
+    teamStatusUnsub = null;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -57,10 +69,10 @@ export function watchLiveGameStatus() {
 // ---------------------------------------------------------------------------
 function watchTeamStatuses() {
   const teamTable = document.getElementById('control-team-status-tbody');
-  if (!teamTable) return;
+  if (!teamTable) return null;
 
   const teamStatusRef = collection(db, 'teamStatus');
-  onSnapshot(teamStatusRef, (snapshot) => {
+  const unsub = onSnapshot(teamStatusRef, (snapshot) => {
     teamTable.innerHTML = '';
 
     snapshot.forEach((docSnap) => {
@@ -78,8 +90,8 @@ function watchTeamStatuses() {
       teamTable.appendChild(tr);
     });
   });
-
-  console.log('📡 Watching live teamStatus updates...');
+  console.info('📡 [controlStatus] watching teamStatus updates');
+  return unsub;
 }
 
 // ---------------------------------------------------------------------------

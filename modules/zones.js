@@ -25,20 +25,36 @@ import { allTeams } from '../data.js';
 
 let zonesLocked = true;
 let currentTeamName = null;
-let zonesListeners = [];
+const zoneListenerRegistry = new Set();
 
-function clearZoneListeners() {
-  zonesListeners.forEach(unsub => {
-    try { unsub?.(); } catch {}
-  });
-  zonesListeners = [];
+function registerZoneListener(label, unsub) {
+  if (typeof unsub !== 'function') return;
+  zoneListenerRegistry.add({ label, unsub });
+  console.info(`📡 [zones] attached listener → ${label}`);
+}
+
+function clearZoneListeners(reason = 'manual') {
+  if (!zoneListenerRegistry.size) return;
+  console.info(`🧹 [zones] detaching ${zoneListenerRegistry.size} listener(s) (${reason})`);
+  for (const entry of zoneListenerRegistry) {
+    try {
+      entry.unsub?.();
+    } catch (err) {
+      console.warn(`⚠️ [zones] failed to detach listener ${entry.label}:`, err);
+    }
+  }
+  zoneListenerRegistry.clear();
+}
+
+export function teardownZonesListeners(reason = 'teardown') {
+  clearZoneListeners(reason);
 }
 
 /* ---------------------------------------------------------------------------
  * 🧭 INITIALIZE ZONES (Player View)
  * ------------------------------------------------------------------------ */
 export async function initializeZones(teamName) {
-  clearZoneListeners();
+  clearZoneListeners('reinitialize');
   // Normalize team name
   const teamObj = allTeams.find(t => t.name === teamName);
   currentTeamName = teamObj ? teamObj.name : teamName;
@@ -50,7 +66,7 @@ export async function initializeZones(teamName) {
   /* -------------------------------------------------------------------------
    * 🔔 LISTEN TO GAME STATE (lock/unlock zones + detect ending)
    * ---------------------------------------------------------------------- */
-  zonesListeners.push(onSnapshot(doc(db, 'game', 'gameState'), (gameSnap) => {
+  registerZoneListener('gameState', onSnapshot(doc(db, 'game', 'gameState'), (gameSnap) => {
     const data = gameSnap.data();
     if (!data?.status) return;
 
@@ -73,7 +89,7 @@ export async function initializeZones(teamName) {
   /* -------------------------------------------------------------------------
    * 🗺️ LISTEN TO ALL ZONES (re-render player zone table)
    * ---------------------------------------------------------------------- */
-  zonesListeners.push(onSnapshot(zonesCollection, (snapshot) => {
+  registerZoneListener('zonesCollection', onSnapshot(zonesCollection, (snapshot) => {
     tableBody.innerHTML = '';
 
     snapshot.forEach(docSnap => {
@@ -159,6 +175,9 @@ export async function initializeZones(teamName) {
 
     tableBody._listenerAttached = true;
   }
+
+  console.info('✅ [zones] initialization complete');
+  return (reason = 'player-cleanup') => clearZoneListeners(reason);
 }
 
 /* ---------------------------------------------------------------------------

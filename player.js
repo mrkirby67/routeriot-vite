@@ -20,15 +20,47 @@ import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
 import { initializeBugStrikeListener } from './modules/playerBugStrikeUI.js'; // 🪰 chaos overlay
 import { WildCardLauncherComponent, initializeWildCardLauncher } from './components/WildCardLauncher/WildCardLauncher.js'; // 🎮 new launcher
-import { initializeFlatTireUI } from './modules/flatTireUI.js';
+import { initializeFlatTireUI, detachFlatTireUIListeners } from './modules/flatTireUI.js';
 
 let gameStatusUnsub = null;
 let chatCleanup = null;
+let zonesCleanup = null;
+let flatTireCleanup = null;
+let bugStrikeCleanup = null;
+let unloadHandler = null;
+
+function teardownPlayerListeners(reason = 'manual') {
+  chatCleanup?.(reason);
+  chatCleanup = null;
+
+  zonesCleanup?.(reason);
+  zonesCleanup = null;
+
+  const hadFlatCleanup = Boolean(flatTireCleanup);
+  flatTireCleanup?.(reason);
+  flatTireCleanup = null;
+
+  bugStrikeCleanup?.(reason);
+  bugStrikeCleanup = null;
+
+  gameStatusUnsub?.(reason);
+  gameStatusUnsub = null;
+
+  if (!hadFlatCleanup) {
+    detachFlatTireUIListeners(reason);
+  }
+
+  if (unloadHandler) {
+    window.removeEventListener('beforeunload', unloadHandler);
+    unloadHandler = null;
+  }
+}
 
 // ============================================================================
 // MAIN INITIALIZATION
 // ============================================================================
 export async function initializePlayerPage() {
+  teardownPlayerListeners('reinitialize');
   console.log('🚀 Initializing player page...');
 
   // 1️⃣ Identify team
@@ -59,10 +91,10 @@ export async function initializePlayerPage() {
     initializePlayerUI(team, currentTeamName);
     chatCleanup?.();
     chatCleanup = setupPlayerChat(currentTeamName);
-    initializeZones(currentTeamName);
+    zonesCleanup = initializeZones(currentTeamName);
     initializePlayerScoreboard();
-    initializeBugStrikeListener(currentTeamName); // 🪰
-    initializeFlatTireUI(currentTeamName);
+    bugStrikeCleanup = initializeBugStrikeListener(currentTeamName); // 🪰
+    flatTireCleanup = initializeFlatTireUI(currentTeamName);
   } catch (err) {
     console.error('🔥 Error initializing player modules:', err);
     alert('Error initializing player. Check console.');
@@ -103,6 +135,12 @@ export async function initializePlayerPage() {
   // 7️⃣ Live game state sync (pause/resume/end)
   gameStatusUnsub?.();
   gameStatusUnsub = listenForGameStatus((state) => handleLiveGameState(state));
+
+  if (unloadHandler) {
+    window.removeEventListener('beforeunload', unloadHandler);
+  }
+  unloadHandler = () => teardownPlayerListeners('page-unload');
+  window.addEventListener('beforeunload', unloadHandler, { once: true });
 
   console.log('✅ Player initialized for team:', currentTeamName);
 }

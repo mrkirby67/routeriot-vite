@@ -52,12 +52,16 @@ function shouldRenderRaw(msg) {
 
 function clearRegistry(key) {
   if (Array.isArray(listenerRegistry[key])) {
+    if (!listenerRegistry[key].length) return;
+    console.info(`🧹 [chatManager] detaching ${listenerRegistry[key].length} listener(s) for ${key}`);
     listenerRegistry[key].forEach(unsub => {
       try { unsub?.(); } catch {}
     });
     listenerRegistry[key] = [];
   } else if (listenerRegistry.others instanceof Map && listenerRegistry.others.has(key)) {
     const arr = listenerRegistry.others.get(key) || [];
+    if (!arr.length) return;
+    console.info(`🧹 [chatManager] detaching ${arr.length} listener(s) for group ${key}`);
     arr.forEach(unsub => {
       try { unsub?.(); } catch {}
     });
@@ -148,7 +152,7 @@ export async function listenToAllMessages() {
   registerListener('control', onSnapshot(publicCommsQuery, processSnapshot));
   registerListener('control', onSnapshot(controlAllQuery, processSnapshot));
 
-  return () => clearRegistry('control');
+  return (reason = 'control-cleanup') => clearRegistry('control');
 }
 
 // ============================================================================

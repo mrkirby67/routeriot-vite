@@ -41,6 +41,9 @@ let currentGameState = null;
 let lastGameStatus = null;
 let gameStatusUnsub = null;
 let assignmentsUnsub = null;
+let unloadHandler = null;
+let countdownFrame = null;
+let countdownTargetMs = null;
 
 // ============================================================================
 // 🧱 COMPONENT MARKUP
@@ -107,7 +110,7 @@ export function FlatTireControlComponent() {
 // 🚀 INITIALIZER
 // ============================================================================
 export async function initializeFlatTireControl() {
-  cleanupListeners();
+  cleanupListeners('reinitialize');
 
   zonesMap = new Map();
   zoneGroups = { north: [], east: [], south: [], west: [] };
@@ -124,7 +127,7 @@ export async function initializeFlatTireControl() {
 
   if (!strategySelect || !planButton || !zonesContainer) {
     console.warn('⚠️ Flat Tire control not mounted.');
-    return;
+    return () => cleanupListeners('missing-dom');
   }
 
   try {
@@ -216,7 +219,15 @@ export async function initializeFlatTireControl() {
   });
 
   gameStatusUnsub = listenForGameStatus((state) => handleGameStateChange(state, { planButton, pauseButton, resumeButton }));
-  window.addEventListener('beforeunload', cleanupListeners, { once: true });
+
+  if (unloadHandler) {
+    window.removeEventListener('beforeunload', unloadHandler);
+  }
+  unloadHandler = () => cleanupListeners('page-unload');
+  window.addEventListener('beforeunload', unloadHandler, { once: true });
+
+  console.info('✅ [flatTireControl] initialization complete');
+  return (reason = 'control-cleanup') => cleanupListeners(reason);
 }
 
 // ============================================================================
@@ -316,6 +327,7 @@ function watchAssignments(zonesMapRef) {
     console.error('⚠️ Failed to listen for assignments:', err);
     tbody.innerHTML = `<tr><td colspan="5" class="${styles.loading}">Failed to load assignments.</td></tr>`;
   });
+  console.info('📡 [flatTireControl] attached assignments listener');
 }
 
 function renderZoneTiles(container, groups) {
@@ -460,12 +472,14 @@ function updateCountdown(state) {
 
   const windowFrame = computeGameWindow(state);
   if (!state || !windowFrame) {
+    cancelCountdownLoop();
     label.textContent = state?.status === 'paused' ? 'PAUSED' : '--:--:--';
     return;
   }
 
-  const remaining = Math.max(windowFrame.endMs - Date.now(), 0);
-  label.textContent = remaining > 0 ? formatDuration(remaining) : 'LIVE';
+  if (!countdownTargetMs || Math.abs(countdownTargetMs - windowFrame.endMs) > 1000) {
+    startCountdownLoop(windowFrame.endMs);
+  }
 }
 
 function updateControlStates(state, controls) {
@@ -488,12 +502,62 @@ function updateControlStates(state, controls) {
   }
 }
 
-function cleanupListeners() {
-  gameStatusUnsub?.();
-  assignmentsUnsub?.();
+function startCountdownLoop(endMs) {
+  cancelCountdownLoop();
+  countdownTargetMs = endMs;
+  const step = () => {
+    if (!countdownTargetMs) return;
+    const label = document.getElementById('flat-tire-countdown');
+    if (!label) return;
+
+    const remaining = countdownTargetMs - Date.now();
+    if (remaining <= 0) {
+      label.textContent = 'LIVE';
+      cancelCountdownLoop();
+      return;
+    }
+
+    label.textContent = formatDuration(remaining);
+    countdownFrame = requestAnimationFrame(step);
+  };
+  countdownFrame = requestAnimationFrame(step);
+}
+
+function cancelCountdownLoop() {
+  if (countdownFrame) {
+    cancelAnimationFrame(countdownFrame);
+    countdownFrame = null;
+  }
+  countdownTargetMs = null;
+}
+
+function cleanupListeners(reason = 'manual') {
+  if (gameStatusUnsub) {
+    try {
+      gameStatusUnsub();
+      console.info(`🧹 [flatTireControl] detached game status listener (${reason})`);
+    } catch (err) {
+      console.warn('⚠️ Failed to detach game status listener:', err);
+    }
+  }
+  if (assignmentsUnsub) {
+    try {
+      assignmentsUnsub();
+      console.info(`🧹 [flatTireControl] detached assignments listener (${reason})`);
+    } catch (err) {
+      console.warn('⚠️ Failed to detach assignments listener:', err);
+    }
+  }
   gameStatusUnsub = null;
   assignmentsUnsub = null;
   lastGameStatus = null;
+
+  if (unloadHandler) {
+    window.removeEventListener('beforeunload', unloadHandler);
+    unloadHandler = null;
+  }
+
+  cancelCountdownLoop();
 }
 
 // ============================================================================

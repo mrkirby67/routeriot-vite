@@ -26,6 +26,7 @@ import {
 
 const gameStateRef = doc(db, "game", "gameState");
 let countdownShown = false;
+const gameStateListeners = new Set();
 
 // ---------------------------------------------------------------------------
 // 🔹 Initialize / Set Game State
@@ -192,7 +193,7 @@ function handleGameStateUpdate({
 // 📡 Real-time Firestore Listener (Control + Player)
 // ---------------------------------------------------------------------------
 export function listenForGameStatus(callback) {
-  return onSnapshot(gameStateRef, (docSnap) => {
+  const unsub = onSnapshot(gameStateRef, (docSnap) => {
     if (!docSnap.exists()) {
       const defaultState = {
         status: 'waiting',
@@ -220,6 +221,31 @@ export function listenForGameStatus(callback) {
     handleGameStateUpdate(state);
     callback?.(state);
   });
+  gameStateListeners.add(unsub);
+  console.info('📡 [gameState] attached status listener');
+  return (reason = 'manual') => {
+    if (gameStateListeners.delete(unsub)) {
+      try {
+        unsub();
+        console.info(`🧹 [gameState] detached status listener (${reason})`);
+      } catch (err) {
+        console.warn('⚠️ [gameState] failed to detach listener:', err);
+      }
+    }
+  };
+}
+
+export function clearGameStatusListeners(reason = 'manual') {
+  if (!gameStateListeners.size) return;
+  console.info(`🧹 [gameState] detaching ${gameStateListeners.size} listener(s) (${reason})`);
+  for (const unsub of Array.from(gameStateListeners)) {
+    try {
+      unsub();
+    } catch (err) {
+      console.warn('⚠️ [gameState] failed to detach listener:', err);
+    }
+  }
+  gameStateListeners.clear();
 }
 
 // ---------------------------------------------------------------------------

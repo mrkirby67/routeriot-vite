@@ -21,6 +21,7 @@ let bugStrikeTimer = null;
 let timeRemaining = 0;
 let lastProcessedTime = 0;
 let lastBugStrikeTime = 0; // ⏱️ Cooldown between Bug Strikes (ms)
+let bugStrikeUnsub = null;
 
 // ---------------------------------------------------------------------------
 // 🎯 Start listening for Bug Strike messages (for this team only)
@@ -28,7 +29,7 @@ let lastBugStrikeTime = 0; // ⏱️ Cooldown between Bug Strikes (ms)
 export function initializeBugStrikeListener(teamName) {
   if (!teamName) {
     console.warn('⚠️ BugStrike listener not initialized: Missing teamName.');
-    return;
+    return () => {};
   }
 
   const commRef = collection(db, 'communications');
@@ -43,7 +44,8 @@ export function initializeBugStrikeListener(teamName) {
     orderBy('timestamp', 'desc')
   );
 
-  onSnapshot(q, (snapshot) => {
+  bugStrikeUnsub?.();
+  bugStrikeUnsub = onSnapshot(q, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
       if (change.type !== 'added') return;
 
@@ -67,7 +69,20 @@ export function initializeBugStrikeListener(teamName) {
     });
   });
 
-  console.log(`📡 Listening for Bug Strikes for team: ${teamName}`);
+  console.info(`📡 [bugStrike] listening for strikes → ${teamName}`);
+  return (reason = 'player-cleanup') => disposeBugStrikeListener(reason);
+}
+
+export function disposeBugStrikeListener(reason = 'manual') {
+  if (bugStrikeUnsub) {
+    try {
+      bugStrikeUnsub();
+      console.info(`🧹 [bugStrike] listener detached (${reason})`);
+    } catch (err) {
+      console.warn('⚠️ [bugStrike] failed to detach listener:', err);
+    }
+    bugStrikeUnsub = null;
+  }
 }
 
 // ---------------------------------------------------------------------------

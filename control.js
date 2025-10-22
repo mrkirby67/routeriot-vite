@@ -47,25 +47,52 @@ import { db } from './modules/config.js';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const GAME_STATE_REF = doc(db, "game", "gameState");
+const controlCleanups = [];
+
+function registerCleanup(fn, label = 'anonymous') {
+  if (typeof fn !== 'function') return;
+  controlCleanups.push({ fn, label });
+  console.info(`🗂️ [control] registered cleanup → ${label}`);
+}
+
+function teardownControlListeners(reason = 'manual') {
+  if (!controlCleanups.length) return;
+  console.info(`🧹 [control] running ${controlCleanups.length} cleanup handler(s) (${reason})`);
+  while (controlCleanups.length) {
+    const { fn, label } = controlCleanups.pop();
+    try {
+      fn(reason);
+      console.info(`🧼 [control] cleanup completed for ${label}`);
+    } catch (err) {
+      console.warn(`⚠️ [control] cleanup failed for ${label}:`, err);
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // 🧠 MAIN INITIALIZATION
 // ---------------------------------------------------------------------------
 async function main() {
+  teardownControlListeners('reinitialize');
   renderAllSections();
 
-  initializeScoreboardListener();
-  initializeGameControlsLogic();
-  initializeRacerManagementLogic();
-  initializeGameChallengesLogic();
-  initializeBroadcastLogic();
-  initializeBugStrikeControl();
-  initializeFlatTireControl();
-  listenToAllMessages();
+  registerCleanup(initializeScoreboardListener() || null, 'scoreboard');
+  registerCleanup(initializeGameControlsLogic() || null, 'gameControls');
+  registerCleanup(initializeRacerManagementLogic() || null, 'racerManagement');
+  registerCleanup(initializeGameChallengesLogic() || null, 'gameChallenges');
+  registerCleanup(initializeBroadcastLogic() || null, 'broadcast');
+  registerCleanup(initializeBugStrikeControl() || null, 'bugStrikeControl');
+
+  const flatTireCleanup = await initializeFlatTireControl();
+  registerCleanup(flatTireCleanup, 'flatTireControl');
+
+  const chatCleanup = await listenToAllMessages();
+  registerCleanup(chatCleanup, 'communications');
 
   try {
     await loadGoogleMapsApi();
-    initializeZoneManagementLogic(true);
+    const zoneMgmtCleanup = await initializeZoneManagementLogic(true);
+    registerCleanup(zoneMgmtCleanup, 'zoneManagement');
   } catch (err) {
     console.error('❌ Google Maps API load failed:', err);
     showFlashMessage('Map failed to load. Check API key.', '#c62828', 3000);
@@ -73,7 +100,8 @@ async function main() {
 
   // 🧩 Initialize the Zone Questions module after Firestore is ready
   try {
-    await initializeZoneQuestionsUI();
+    const zoneQuestionsCleanup = await initializeZoneQuestionsUI();
+    registerCleanup(zoneQuestionsCleanup, 'zoneQuestions');
     console.log('✅ Zone Questions initialized.');
   } catch (err) {
     console.error('⚠️ Zone Questions init failed:', err);
@@ -84,10 +112,10 @@ async function main() {
   wireGameControls();
 
   // 🧭 Watch status updates (standard UI elements)
-  watchLiveGameStatus();
+  registerCleanup(watchLiveGameStatus(), 'liveGameStatus');
 
   // ⏱️ Synced countdown display
-  listenForGameStatus((state) => handleControlTimer(state));
+  registerCleanup(listenForGameStatus((state) => handleControlTimer(state)), 'controlTimer');
 }
 
 // ---------------------------------------------------------------------------
@@ -212,3 +240,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   // After check (and optional cleanup), start the app
   main();
 });
+
+window.addEventListener('beforeunload', () => teardownControlListeners('page-unload'), { once: true });

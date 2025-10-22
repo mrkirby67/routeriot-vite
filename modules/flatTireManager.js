@@ -165,6 +165,7 @@ export async function pauseAllAssignments(now = Date.now()) {
   });
 
   await Promise.all(updates);
+  console.info(`⏸️ [flatTireManager] paused ${updates.length} assignment(s).`);
 }
 
 export async function resumeAllAssignments(now = Date.now()) {
@@ -188,6 +189,7 @@ export async function resumeAllAssignments(now = Date.now()) {
   });
 
   await Promise.all(updates);
+  console.info(`▶️ [flatTireManager] resumed ${updates.length} assignment(s).`);
 }
 
 export async function cancelAllAssignments() {
@@ -207,6 +209,7 @@ export async function cancelAllAssignments() {
   });
 
   await Promise.all(updates);
+  console.info(`🛑 [flatTireManager] cancelled ${updates.length} assignment(s).`);
 }
 
 // ----------------------------------------------------------------------------
