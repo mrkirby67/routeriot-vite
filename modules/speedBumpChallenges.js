@@ -1,9 +1,9 @@
 // ============================================================================
 // FILE: modules/speedBumpChallenges.js
-// PURPOSE: Speed Bump photo challenge prompts and helpers
+// PURPOSE: Speed Bump photo challenge prompts with editable bank helpers
 // ============================================================================
 
-export const speedBumpPrompts = [
+const DEFAULT_PROMPTS = [
   'Pose with a city landmark making your best victory face.',
   'Grab a photo with a stranger wearing your team color.',
   'Stage a slow-motion action shot crossing a finish line.',
@@ -16,13 +16,39 @@ export const speedBumpPrompts = [
   'Take a selfie with everyone making the same goofy expression.'
 ];
 
+let promptBank = [...DEFAULT_PROMPTS];
+
+function normalizeBank(prompts = []) {
+  if (!Array.isArray(prompts)) return [...DEFAULT_PROMPTS];
+  const cleaned = prompts
+    .map(value => (typeof value === 'string' ? value.trim() : ''))
+    .filter(Boolean);
+  return cleaned.length ? cleaned : [...DEFAULT_PROMPTS];
+}
+
+export function setSpeedBumpPromptBank(prompts = []) {
+  promptBank = normalizeBank(prompts);
+  return getSpeedBumpPromptBank();
+}
+
+export function resetPromptBankToDefault() {
+  promptBank = [...DEFAULT_PROMPTS];
+  return getSpeedBumpPromptBank();
+}
+
+export function getSpeedBumpPromptBank() {
+  return [...promptBank];
+}
+
 export function getRandomSpeedBumpPrompt(exclusions = []) {
-  const pool = speedBumpPrompts.filter(prompt => !exclusions.includes(prompt));
-  const source = pool.length ? pool : speedBumpPrompts;
+  const exclusionSet = new Set(exclusions || []);
+  const pool = promptBank.filter(prompt => !exclusionSet.has(prompt));
+  const source = pool.length ? pool : promptBank;
+  if (!source.length) return '';
   const index = Math.floor(Math.random() * source.length);
   return source[index];
 }
 
 export function getDefaultPrompts() {
-  return [...speedBumpPrompts];
+  return [...DEFAULT_PROMPTS];
 }

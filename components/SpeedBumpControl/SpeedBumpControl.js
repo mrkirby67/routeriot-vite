@@ -24,9 +24,8 @@ export function SpeedBumpControlComponent() {
 
       <div class="${styles.promptLegend}">
         <div class="${styles.legendControls}">
-          <button type="button" id="speedbump-shuffle-all" class="${styles.secondaryBtn}">🔁 Shuffle All</button>
-          <button type="button" id="speedbump-save-prompts" class="${styles.secondaryBtn}">💾 Save Prompts</button>
-          <button type="button" id="speedbump-reset-prompts" class="${styles.secondaryBtn}">♻️ Reset to Defaults</button>
+          <button type="button" id="speedbump-shuffle-all" class="${styles.secondaryBtn}">🔁 Shuffle</button>
+          <button type="button" id="speedbump-save-prompts" class="${styles.secondaryBtn}">💾 Save Team Prompts</button>
         </div>
         <span class="${styles.legendNote}">⚠️ Release when you are sent a photo of the Speed Bump Photo Fix.</span>
       </div>
@@ -46,6 +45,21 @@ export function SpeedBumpControlComponent() {
           </tr>
         </tbody>
       </table>
+
+      <div class="${styles.challengeBankSection}">
+        <div class="${styles.bankHeader}">
+          <h3>📸 Speed Bump Challenge Bank</h3>
+          <p class="${styles.bankHint}">Edit the live challenge bank below. Shuffles pull from this list.</p>
+        </div>
+        <div id="speedbump-bank-list" class="${styles.challengeList}">
+          <div class="${styles.loading}">Loading challenge bank…</div>
+        </div>
+        <div class="${styles.bankControls}">
+          <button type="button" id="speedbump-bank-add" class="${styles.secondaryBtn}">➕ Add New Challenge</button>
+          <button type="button" id="speedbump-save-bank" class="${styles.primaryBtn}">💾 Save Speed Bump Bank</button>
+        </div>
+        <div id="speedbump-bank-status" class="${styles.bankStatus}" role="status" aria-live="polite"></div>
+      </div>
     </div>
   `;
 }
