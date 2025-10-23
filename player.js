@@ -20,12 +20,14 @@ import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
 import { initializeBugStrikeListener } from './modules/playerBugStrikeUI.js'; // 🪰 chaos overlay
 import { initializeSpeedBumpPlayer } from './modules/speedBumpPlayer.js';
+import { initializeFlatTireUI } from './modules/flatTireUI.js';
 
 let gameStatusUnsub = null;
 let chatCleanup = null;
 let zonesCleanup = null;
 let speedBumpCleanup = null;
 let bugStrikeCleanup = null;
+let flatTireCleanup = null;
 let unloadHandler = null;
 
 function teardownPlayerListeners(reason = 'manual') {
@@ -40,6 +42,9 @@ function teardownPlayerListeners(reason = 'manual') {
 
   bugStrikeCleanup?.(reason);
   bugStrikeCleanup = null;
+
+  flatTireCleanup?.(reason);
+  flatTireCleanup = null;
 
   gameStatusUnsub?.(reason);
   gameStatusUnsub = null;
@@ -90,6 +95,7 @@ export async function initializePlayerPage() {
     initializePlayerScoreboard();
     bugStrikeCleanup = initializeBugStrikeListener(currentTeamName); // 🪰
     speedBumpCleanup = initializeSpeedBumpPlayer(currentTeamName);
+    flatTireCleanup = initializeFlatTireUI(currentTeamName);
   } catch (err) {
     console.error('🔥 Error initializing player modules:', err);
     alert('Error initializing player. Check console.');

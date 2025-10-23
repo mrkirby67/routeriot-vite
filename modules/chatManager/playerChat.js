@@ -9,7 +9,9 @@ import {
   collection,
   doc,
   getDoc,
-  onSnapshot
+  onSnapshot,
+  addDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { clearRegistry, registerListener } from './registry.js';
 import { sendMessage, listenForMyMessages } from './messageService.js';
@@ -18,8 +20,19 @@ import {
   releaseSpeedBumpFromPlayer
 } from '../speedBumpPlayer.js';
 import { getCooldownRemaining, getActiveBump, subscribeSpeedBumps } from '../speedBumpManager.js';
+import {
+  subscribeTeamSurprises,
+  decrementSurprise,
+  SurpriseTypes
+} from '../teamSurpriseManager.js';
+import {
+  loadFlatTireConfig,
+  assignFlatTireTeam
+} from '../flatTireManager.js';
 
 const speedBumpSubscriptions = { unsubscribe: null, current: null };
+const surpriseSubscriptions = { unsubscribe: null, counts: new Map() };
+const SURPRISE_TYPES = [SurpriseTypes.FLAT_TIRE, SurpriseTypes.BUG_SPLAT, SurpriseTypes.WILD_CARD];
 
 export async function setupPlayerChat(currentTeamName) {
   const opponentsTbody = document.getElementById('opponents-tbody');
@@ -48,6 +61,11 @@ export async function setupPlayerChat(currentTeamName) {
         <input type="text" class="chat-input" data-recipient-input="${teamName}"
                placeholder="Message ${teamName}...">
         <button class="send-btn" data-recipient="${teamName}">Send</button>
+        <div class="surprise-counters">
+          ${renderSurpriseCounter(SurpriseTypes.FLAT_TIRE)}
+          ${renderSurpriseCounter(SurpriseTypes.BUG_SPLAT)}
+          ${renderSurpriseCounter(SurpriseTypes.WILD_CARD)}
+        </div>
         <div class="speedbump-actions">
           <button class="speedbump-send-btn" data-target="${teamName}" data-role="speedbump-send">🚧 Send Speed Bump</button>
           <button class="speedbump-release-btn" data-target="${teamName}" data-role="speedbump-release">🟢 Release Team</button>
@@ -123,12 +141,32 @@ export async function setupPlayerChat(currentTeamName) {
       await releaseSpeedBumpFromPlayer(target, currentTeamName);
       updateSpeedBumpButtons(currentTeamName);
     }
+
+    const surpriseBtn = event.target.closest('button[data-action="use-surprise"]');
+    if (surpriseBtn) {
+      const type = surpriseBtn.dataset.type;
+      const row = surpriseBtn.closest('tr[data-team]');
+      if (!row) return;
+      const targetTeam = row.dataset.team;
+      await handleUseSurprise(currentTeamName, targetTeam, type);
+    }
   });
 
   speedBumpSubscriptions.unsubscribe?.();
   speedBumpSubscriptions.current = currentTeamName;
   speedBumpSubscriptions.unsubscribe = subscribeSpeedBumps(() => updateSpeedBumpButtons(currentTeamName));
   updateSpeedBumpButtons(currentTeamName);
+
+  surpriseSubscriptions.unsubscribe?.();
+  surpriseSubscriptions.counts = new Map();
+  surpriseSubscriptions.unsubscribe = subscribeTeamSurprises((entries = []) => {
+    const map = new Map();
+    entries.forEach(entry => {
+      map.set(entry.teamName, entry.counts || {});
+    });
+    surpriseSubscriptions.counts = map;
+    updateSurpriseCounters(currentTeamName);
+  });
 
   const messagesCleanup = listenForMyMessages(currentTeamName, chatLog);
 
@@ -139,6 +177,8 @@ export async function setupPlayerChat(currentTeamName) {
     speedBumpSubscriptions.unsubscribe?.();
     speedBumpSubscriptions.unsubscribe = null;
     speedBumpSubscriptions.current = null;
+    surpriseSubscriptions.unsubscribe?.();
+    surpriseSubscriptions.unsubscribe = null;
   };
 }
 
@@ -171,5 +211,111 @@ function updateSpeedBumpButtons(currentTeamName) {
     } else {
       releaseBtn.title = 'Release becomes available after the proof timer finishes.';
     }
+  });
+}
+
+function renderSurpriseCounter(type) {
+  const icon = type === SurpriseTypes.FLAT_TIRE ? '🚗' : type === SurpriseTypes.BUG_SPLAT ? '🐞' : '🎲';
+  const label =
+    type === SurpriseTypes.FLAT_TIRE ? 'Flat Tire' :
+    type === SurpriseTypes.BUG_SPLAT ? 'Bug Splat' : 'Wild Card';
+  return `
+    <div class="surprise-counter" data-type="${type}">
+      <span class="surprise-icon">${icon}</span>
+      <span class="surprise-label">${label}</span>
+      <span class="surprise-count" data-role="surprise-count-${type}">0</span>
+      <button type="button" class="surprise-use-btn" data-action="use-surprise" data-type="${type}" disabled>Use</button>
+    </div>
+  `;
+}
+
+function updateSurpriseCounters(currentTeamName) {
+  const counts = surpriseSubscriptions.counts.get(currentTeamName) || {};
+  document.querySelectorAll('#opponents-tbody tr[data-team]').forEach(row => {
+    SURPRISE_TYPES.forEach(type => {
+      const span = row.querySelector(`[data-role="surprise-count-${type}"]`);
+      const button = row.querySelector(`button[data-action="use-surprise"][data-type="${type}"]`);
+      const value = Number(counts[type] || 0);
+      if (span) span.textContent = String(value);
+      if (button) button.disabled = value <= 0;
+    });
+  });
+}
+
+async function handleUseSurprise(fromTeam, targetTeam, type) {
+  if (!type || !SURPRISE_TYPES.includes(type)) return;
+  if (fromTeam === targetTeam) {
+    alert('Cannot use a surprise on your own team.');
+    return;
+  }
+  const counts = surpriseSubscriptions.counts.get(fromTeam) || {};
+  if ((counts[type] || 0) <= 0) {
+    alert('No surprises remaining. Control can issue more.');
+    return;
+  }
+
+  try {
+    if (type === SurpriseTypes.FLAT_TIRE) {
+      await triggerFlatTireSurprise(fromTeam, targetTeam);
+    } else if (type === SurpriseTypes.BUG_SPLAT) {
+      await triggerBugSplatSurprise(fromTeam, targetTeam);
+    } else if (type === SurpriseTypes.WILD_CARD) {
+      await triggerWildCardSurprise(fromTeam, targetTeam);
+    }
+    await decrementSurprise(fromTeam, type);
+  } catch (err) {
+    console.error('❌ Failed to use surprise:', err);
+    alert(`Surprise failed: ${err.message || err}`);
+  }
+}
+
+async function triggerFlatTireSurprise(fromTeam, targetTeam) {
+  const config = await loadFlatTireConfig();
+  const zones = Object.entries(config.zones || {}).filter(([, zone]) => zone?.gps);
+  if (!zones.length) {
+    throw new Error('No tow zones are configured yet. Ping Control.');
+  }
+  const [zoneKey, zone] = zones[Math.floor(Math.random() * zones.length)];
+  await assignFlatTireTeam(targetTeam, {
+    zoneKey,
+    zoneName: zone.name,
+    gps: zone.gps,
+    assignedAt: Date.now(),
+    autoReleaseMinutes: 20,
+    status: 'player-surprise'
+  });
+  await broadcastSurprise(`${fromTeam} deployed a Flat Tire surprise on ${targetTeam}!`, {
+    type: 'flatTire',
+    from: fromTeam,
+    to: targetTeam
+  });
+}
+
+async function triggerBugSplatSurprise(fromTeam, targetTeam) {
+  await broadcastSurprise(`🪰 ${fromTeam} splatted ${targetTeam} with a Bug Splat!`, {
+    type: 'bugStrike',
+    from: fromTeam,
+    to: targetTeam,
+    isBroadcast: true
+  });
+}
+
+async function triggerWildCardSurprise(fromTeam, targetTeam) {
+  await broadcastSurprise(`🎲 ${fromTeam} played a Wild Card on ${targetTeam}! Expect the unexpected.`, {
+    type: 'wildCard',
+    from: fromTeam,
+    to: targetTeam,
+    isBroadcast: true
+  });
+}
+
+async function broadcastSurprise(message, extras = {}) {
+  await addDoc(collection(db, 'communications'), {
+    teamName: extras.from || 'Game Master',
+    sender: extras.from || 'Game Master',
+    senderDisplay: extras.from || 'Game Master',
+    message,
+    timestamp: serverTimestamp(),
+    ...extras
   });
 }

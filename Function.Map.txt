@@ -42,3 +42,44 @@ echo "✅ Codex rebuild complete. Function.Map.txt refreshed and rebuild guide p
 #   - updateTeamsUsingPrompt(): helper to reflect in-place edits/removals across active team prompts.
 #   - ensurePromptsAgainstBank(): guarantee every active team retains a valid challenge from the bank.
 #   - ResetDefaults() — deprecated; replaced by saveChallengeBank() and editable prompt bank workflow.
+
+# ---------------------------------------------------------------------------
+# Flat Tire Control – Function Reference (2025-02-05)
+# ---------------------------------------------------------------------------
+# components/FlatTireControl/flatTireControlController.js
+#   - initialize(): hydrate config, subscribe to assignments, and prime auto scheduler state.
+#   - startAutoScheduler(): begins interval-based dispatch of Flat Tire assignments.
+#   - runAutoCycle(): selects the next unassigned team and least-busy tow zone.
+#   - assignTeam(): persists a Flat Tire assignment with 20-minute auto-release fallback.
+#   - renderRows(): renders registered teams, countdowns, and action controls.
+# modules/flatTireManager.js
+#   - subscribeFlatTireAssignments(): live stream Firestore tow assignments.
+#   - subscribeFlatTireConfig(): monitor tow zone GPS + auto-interval settings.
+#   - assignFlatTireTeam(): create/update a team’s Flat Tire dispatch record.
+#   - updateFlatTireAssignment(): merge distance/status updates from players.
+#   - releaseFlatTireTeam(): remove a team’s Flat Tire assignment document.
+# modules/flatTireUI.js
+#   - initializeFlatTireUI(): player-side subscriber that manages Tow Time overlays.
+# modules/playerUI/overlays.js
+#   - showFlatTireOverlay(): render player overlay with map, countdown, and buttons.
+#   - hideFlatTireOverlay(): tear down Flat Tire overlay and timers.
+#
+# Re-index tip: run `codex build --plan "Flat Tire Rebuild and Control Integration"` after major Flat Tire updates.
+
+# ---------------------------------------------------------------------------
+# Surprise Selector – Function Reference (2025-02-05)
+# ---------------------------------------------------------------------------
+# components/SurpriseSelector/SurpriseSelector.js
+#   - SurpriseSelectorComponent(): renders the control panel table for per-team surprise counters.
+#   - initializeSurpriseSelector(): wires Firestore subscription and button listeners.
+#   - renderRows(): updates counter cells, totals, and live status badges.
+# modules/teamSurpriseManager.js
+#   - subscribeTeamSurprises(): watch the `teamSurprises` collection for real-time counter updates.
+#   - incrementSurprise() / decrementSurprise(): adjust a team’s surprise inventory atomically via transactions.
+#   - getTeamSurpriseCounts(): helper to fetch a team’s stored counts on demand.
+# modules/chatManager/playerChat.js
+#   - renderSurpriseCounter(): builds per-opponent surprise controls for players.
+#   - handleUseSurprise(): routes Flat Tire, Bug Splat, and Wild Card usage to the proper game systems.
+#   - updateSurpriseCounters(): keeps player UI in sync with Firestore counts.
+# modules/speedBumpManager.js
+#   - getAllActiveBumps(): expose the current active speed bump entries for dashboards.

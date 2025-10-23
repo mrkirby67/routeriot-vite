@@ -3,6 +3,8 @@
 // PURPOSE: Pause/Game Over overlays + confetti animation
 // ============================================================================
 
+import { generateMiniMap } from '../zonesMap.js';
+
 function $(id) {
   return document.getElementById(id);
 }
@@ -43,6 +45,8 @@ export function hidePausedOverlay() {
 }
 
 let speedBumpCountdownInterval = null;
+let flatTireCountdownInterval = null;
+let flatTireAutoReleaseTriggered = false;
 
 export function showSpeedBumpOverlay({
   by,
@@ -238,10 +242,195 @@ function primaryButtonStyle(background, textColor) {
   };
 }
 
+function ensureFlatTireOverlay() {
+  let overlay = document.getElementById('flat-tire-overlay');
+  if (overlay) return overlay;
+
+  overlay = document.createElement('div');
+  overlay.id = 'flat-tire-overlay';
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.92)',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+    zIndex: '6100',
+    opacity: '0',
+    transition: 'opacity 0.25s ease'
+  });
+
+  const panel = document.createElement('div');
+  panel.id = 'flat-tire-panel';
+  Object.assign(panel.style, {
+    background: 'rgba(18,18,18,0.9)',
+    borderRadius: '16px',
+    border: '1px solid rgba(129, 212, 250, 0.35)',
+    padding: '24px',
+    maxWidth: '520px',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    boxShadow: '0 14px 32px rgba(0,0,0,0.45)',
+    fontFamily: 'Montserrat, "Segoe UI", sans-serif'
+  });
+
+  panel.innerHTML = `
+    <h2 style="margin:0;font-size:1.4rem;color:#81d4fa;">🚗 Flat Tire — Tow Time</h2>
+    <p id="flat-tire-message" style="margin:0;color:#e0f7fa;font-size:1rem;line-height:1.5;"></p>
+    <div id="flat-tire-map" style="border-radius:12px;overflow:hidden;border:1px solid rgba(255,183,77,0.35);min-height:160px;"></div>
+    <div id="flat-tire-countdown" style="font-size:1.4rem;font-weight:700;color:#ffeb3b;text-align:center;"></div>
+    <div id="flat-tire-distance" style="font-size:0.95rem;color:#b0bec5;text-align:center;"></div>
+    <div id="flat-tire-actions" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+      <button id="flat-tire-checkin-btn" style="padding:10px 18px;border-radius:999px;border:none;font-weight:600;background:#64b5f6;color:#032b44;cursor:pointer;">📍 Check-In</button>
+      <button id="flat-tire-release-btn" style="padding:10px 18px;border-radius:999px;border:none;font-weight:600;background:#a5d6a7;color:#09311a;cursor:pointer;">✅ Tow Complete</button>
+    </div>
+    <small id="flat-tire-note" style="text-align:center;color:#90a4ae;">Tow crews auto-release 20 minutes after dispatch.</small>
+  `;
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => (overlay.style.opacity = '1'));
+  return overlay;
+}
+
+export function showFlatTireOverlay({
+  zoneName = 'Tow Zone',
+  gps = '',
+  status = 'assigned',
+  distanceRemainingKm = null,
+  autoReleaseAtMs = null,
+  assignedAtMs = null,
+  onCheckIn,
+  onManualRelease,
+  onAutoRelease
+} = {}) {
+  const overlay = ensureFlatTireOverlay();
+  const message = overlay.querySelector('#flat-tire-message');
+  const mapWrapper = overlay.querySelector('#flat-tire-map');
+  const countdownEl = overlay.querySelector('#flat-tire-countdown');
+  const distanceEl = overlay.querySelector('#flat-tire-distance');
+  const checkInBtn = overlay.querySelector('#flat-tire-checkin-btn');
+  const releaseBtn = overlay.querySelector('#flat-tire-release-btn');
+
+  flatTireAutoReleaseTriggered = false;
+
+  if (message) {
+    const statusCopy = status?.toLowerCase().startsWith('enroute')
+      ? 'Support crew is tracking your approach.'
+      : 'Repair crews are rolling out. Stay put!';
+    message.innerHTML = `${statusCopy}<br><strong>Assigned Zone:</strong> ${escapeHtml(zoneName)}`;
+  }
+
+  if (mapWrapper) {
+    if (gps) {
+      mapWrapper.innerHTML = generateMiniMap({
+        name: zoneName,
+        gps,
+        diameter: 0.2
+      });
+    } else {
+      mapWrapper.innerHTML = `<div style="padding:24px;text-align:center;color:#b0bec5;">No GPS configured for this tow zone.</div>`;
+    }
+  }
+
+  if (distanceEl) {
+    distanceEl.textContent = typeof distanceRemainingKm === 'number'
+      ? `Distance remaining: ${distanceRemainingKm.toFixed(1)} km`
+      : 'Tap “Check-In” to report how far you are from the tow zone.';
+  }
+
+  if (checkInBtn) {
+    checkInBtn.disabled = false;
+    checkInBtn.onclick = () => {
+      if (checkInBtn.disabled) return;
+      checkInBtn.disabled = true;
+      Promise.resolve(onCheckIn?.())
+        .catch(() => {})
+        .finally(() => { checkInBtn.disabled = false; });
+    };
+  }
+
+  const triggerAutoRelease = () => {
+    if (flatTireAutoReleaseTriggered) return;
+    flatTireAutoReleaseTriggered = true;
+    Promise.resolve(onAutoRelease?.()).catch(err => {
+      console.error('Flat Tire auto-release failed:', err);
+    });
+  };
+
+  if (releaseBtn) {
+    releaseBtn.disabled = true;
+    releaseBtn.onclick = () => {
+      if (releaseBtn.disabled) return;
+      releaseBtn.disabled = true;
+      Promise.resolve(onManualRelease?.())
+        .then(() => hideFlatTireOverlay())
+        .catch(err => {
+          console.error('Flat Tire release failed:', err);
+          releaseBtn.disabled = false;
+        });
+    };
+  }
+
+  if (flatTireCountdownInterval) {
+    clearInterval(flatTireCountdownInterval);
+    flatTireCountdownInterval = null;
+  }
+
+  const fallbackAutoRelease = assignedAtMs
+    ? assignedAtMs + 20 * 60_000
+    : Date.now() + 20 * 60_000;
+  const targetMs = autoReleaseAtMs || fallbackAutoRelease;
+
+  const updateCountdown = () => {
+    const remaining = targetMs - Date.now();
+    if (!countdownEl) return;
+
+    if (remaining <= 0) {
+      countdownEl.textContent = 'Tow window complete — you may rejoin the race!';
+      if (releaseBtn) releaseBtn.disabled = false;
+      triggerAutoRelease();
+      clearInterval(flatTireCountdownInterval);
+      flatTireCountdownInterval = null;
+      return;
+    }
+
+    countdownEl.textContent = `Auto release in ${formatMMSS(Math.ceil(remaining / 1000))}`;
+    if (releaseBtn) releaseBtn.disabled = true;
+  };
+
+  updateCountdown();
+  flatTireCountdownInterval = setInterval(updateCountdown, 1000);
+}
+
+export function hideFlatTireOverlay() {
+  const overlay = document.getElementById('flat-tire-overlay');
+  if (!overlay) return;
+  if (flatTireCountdownInterval) {
+    clearInterval(flatTireCountdownInterval);
+    flatTireCountdownInterval = null;
+  }
+  overlay.style.opacity = '0';
+  setTimeout(() => overlay.remove(), 250);
+}
+
 function formatMMSS(totalSeconds) {
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 

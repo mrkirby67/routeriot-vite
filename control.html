@@ -33,8 +33,11 @@
     <!-- 🚧 Speed Bump Control -->
     <div id="speedbump-control-container"></div>
 
-    <!-- 🐞 Sabotage Launcher -->
-    <div id="sabotage-launcher-container"></div>
+    <!-- 🚗 Flat Tire Control -->
+    <div id="flat-tire-control-container"></div>
+
+    <!-- 🎉 Surprise Selector -->
+    <div id="surprise-selector-container"></div>
 
     <!-- ❓ Zone Questions (new) -->
     <div id="zone-questions-container"></div>
@@ -73,8 +76,8 @@
       SpeedBumpControlComponent, initializeSpeedBumpControl
     } from './components/SpeedBumpControl/SpeedBumpControl.js';
     import {
-      SabotageLauncherComponent, initializeSabotageLauncher
-    } from './components/SabotageLauncher/SabotageLauncher.js';
+      SurpriseSelectorComponent, initializeSurpriseSelector
+    } from './components/SurpriseSelector/SurpriseSelector.js';
     import {
       RacerManagementComponent, initializeRacerManagementLogic
     } from './components/RacerManagement/RacerManagement.js';
@@ -98,7 +101,7 @@
       document.getElementById('game-controls-container').innerHTML   = GameControlsComponent();
       document.getElementById('bugstrike-control-container').innerHTML = BugStrikeControlComponent();
       document.getElementById('speedbump-control-container').innerHTML = SpeedBumpControlComponent();
-      document.getElementById('sabotage-launcher-container').innerHTML = SabotageLauncherComponent();
+      document.getElementById('surprise-selector-container').innerHTML = SurpriseSelectorComponent();
       document.getElementById('scoreboard-container').innerHTML      = ScoreboardComponent();
       document.getElementById('team-links-container').innerHTML      = TeamLinksComponent();
       document.getElementById('racer-management-container').innerHTML= RacerManagementComponent();
@@ -110,7 +113,7 @@
       initializeGameControlsLogic();
       initializeBugStrikeControl();
       initializeSpeedBumpControl();
-      initializeSabotageLauncher();
+      initializeSurpriseSelector();
       initializeRacerManagementLogic();
       initializeBroadcastLogic();
       listenToAllMessages();

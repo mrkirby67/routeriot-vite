@@ -162,6 +162,13 @@ export function subscribeSpeedBumps(callback) {
   return () => subscribers.delete(callback);
 }
 
+export function getAllActiveBumps() {
+  return Array.from(activeBumps.entries()).map(([teamName, data]) => ({
+    teamName,
+    ...data
+  }));
+}
+
 function notify() {
   const payload = {
     activeBumps: Array.from(activeBumps.entries()),
