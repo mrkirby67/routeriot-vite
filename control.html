@@ -39,9 +39,6 @@
     <!-- 🎉 Surprise Selector -->
     <div id="surprise-selector-container"></div>
 
-    <!-- ❓ Zone Questions -->
-    <div id="zone-questions-container"></div>
-
     <!-- 🪰 Bug Strike Control -->
     <div id="bugstrike-control-container"></div>
 
@@ -84,9 +81,6 @@
       ZoneManagementComponent, initializeZoneManagementLogic
     } from './components/ZoneManagement/ZoneManagement.js';
     import {
-      ZoneQuestionsComponent, initializeZoneQuestionsUI
-    } from './components/ZoneQuestions/ZoneQuestions.js';
-    import {
       ScoreboardComponent, initializeScoreboardListener
     } from './components/Scoreboard/Scoreboard.js';
     import {
@@ -105,7 +99,6 @@
       document.getElementById('team-links-container').innerHTML      = TeamLinksComponent();
       document.getElementById('racer-management-container').innerHTML= RacerManagementComponent();
       document.getElementById('zone-management-container').innerHTML = ZoneManagementComponent();
-      document.getElementById('zone-questions-container').innerHTML  = ZoneQuestionsComponent();
       document.getElementById('broadcast-container').innerHTML       = BroadcastComponent();
 
       initializeScoreboardListener();
@@ -120,9 +113,8 @@
       try {
         await loadGoogleMapsApi();
         initializeZoneManagementLogic(true);
-        await initializeZoneQuestionsUI();
       } catch (err) {
-        console.error('❌ Failed to load Maps or Questions:', err);
+        console.error('❌ Failed to load Maps:', err);
       }
     }
 

@@ -52,14 +52,18 @@ echo "✅ Codex rebuild complete. Function.Map.txt refreshed and rebuild guide p
 #   - runAutoCycle(): selects the next unassigned team and least-busy tow zone.
 #   - assignTeam(): persists a Flat Tire assignment with 20-minute auto-release fallback.
 #   - renderRows(): renders registered teams, countdowns, and action controls.
+#   - onRefreshClick(): manually re-render the depot map from current GPS/diameter inputs.
 # modules/flatTireManager.js
 #   - subscribeFlatTireAssignments(): live stream Firestore tow assignments.
 #   - subscribeFlatTireConfig(): monitor tow zone GPS + auto-interval settings.
 #   - assignFlatTireTeam(): create/update a team’s Flat Tire dispatch record.
 #   - updateFlatTireAssignment(): merge distance/status updates from players.
 #   - releaseFlatTireTeam(): remove a team’s Flat Tire assignment document.
+#   - getDistanceMetersToDepot(): utility to compute player distance from depot GPS.
+#   - isWithinCaptureRadius(): validates whether the player is inside the 100 m capture zone.
 # modules/flatTireUI.js
 #   - initializeFlatTireUI(): player-side subscriber that manages Tow Time overlays.
+#   - onCheckIn(): requests geolocation and enforces the 100 m capture radius before marking arrival.
 # modules/playerUI/overlays.js
 #   - showFlatTireOverlay(): render player overlay with map, countdown, and buttons.
 #   - hideFlatTireOverlay(): tear down Flat Tire overlay and timers.

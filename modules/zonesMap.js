@@ -98,7 +98,10 @@ export function generateMiniMap(zoneData = {}) {
   const [lat, lng] = zoneData.gps.split(',').map(n => parseFloat(n.trim()));
   const diameterKm = parseFloat(zoneData.diameter) || FALLBACK_DIAMETER_KM;
   const zoomLevel = calculateZoomFromDiameter(diameterKm);
-  const radiusMeters = Math.max((diameterKm / 2) * 1000, 5);
+  const captureRadius = Number(zoneData.captureRadiusMeters);
+  const radiusMeters = Number.isFinite(captureRadius) && captureRadius > 0
+    ? captureRadius
+    : Math.max((diameterKm / 2) * 1000, 5);
 
   // Build Static Map URL
   const mapUrl = new URL('https://maps.googleapis.com/maps/api/staticmap');

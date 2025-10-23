@@ -6,7 +6,10 @@
 import {
   subscribeFlatTireAssignments,
   updateFlatTireAssignment,
-  releaseFlatTireTeam
+  releaseFlatTireTeam,
+  CAPTURE_RADIUS_METERS,
+  isWithinCaptureRadius,
+  getDistanceMetersToDepot
 } from './flatTireManager.js';
 import {
   showFlatTireOverlay,
@@ -35,26 +38,56 @@ export function initializeFlatTireUI(teamName) {
     } = assignment;
 
     const onCheckIn = async () => {
-      const defaultValue = typeof distanceRemainingKm === 'number' ? distanceRemainingKm.toFixed(1) : '';
-      const response = window.prompt(
-        'Approximate kilometers remaining before you reach the tow zone (e.g. 1.5):',
-        defaultValue
-      );
-      if (response === null) return;
-      const numeric = parseFloat(response);
-      if (!Number.isFinite(numeric) || numeric < 0) {
-        alert('Enter a valid non-negative number.');
+      if (!gps) {
+        alert('Tow zone GPS is missing. Contact Control.');
+        return;
+      }
+
+      if (!('geolocation' in navigator)) {
+        alert('Geolocation is not supported in this browser.');
         return;
       }
 
       try {
-        await updateFlatTireAssignment(teamName, {
-          status: 'enroute',
-          distanceRemainingKm: numeric
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 5000
+          });
         });
+
+        const coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        const distanceMeters = getDistanceMetersToDepot(gps, coords);
+        if (!Number.isFinite(distanceMeters)) {
+          throw new Error('Unable to calculate distance to tow zone.');
+        }
+
+        const distanceKm = distanceMeters / 1000;
+        if (!isWithinCaptureRadius(gps, coords)) {
+          alert(`You're ${Math.round(distanceMeters)}m away. Move within ${CAPTURE_RADIUS_METERS}m before checking in.`);
+          await updateFlatTireAssignment(teamName, {
+            status: 'enroute',
+            distanceRemainingKm: distanceKm
+          });
+          return;
+        }
+
+        await updateFlatTireAssignment(teamName, {
+          status: 'arrived',
+          distanceRemainingKm: 0,
+          arrivalLat: coords.lat,
+          arrivalLng: coords.lng,
+          arrivedAt: Date.now()
+        });
+        alert('✅ Tow crew confirmed! You are inside the capture radius.');
       } catch (err) {
         console.error('❌ Failed to submit Flat Tire check-in:', err);
-        alert('Failed to submit your check-in. Try again.');
+        const message = err?.message || 'Unable to capture your location. Please enable GPS and try again.';
+        alert(message);
       }
     };
 

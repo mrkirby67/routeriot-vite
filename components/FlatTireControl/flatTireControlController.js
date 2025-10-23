@@ -12,9 +12,10 @@ import {
   saveFlatTireConfig,
   subscribeFlatTireAssignments,
   subscribeFlatTireConfig,
-  __flatTireDefaults
+  __flatTireDefaults,
+  CAPTURE_RADIUS_METERS
 } from '../../modules/flatTireManager.js';
-import { calculateZoomFromDiameter, generateMiniMap } from '../../modules/zonesMap.js';
+import { generateMiniMap } from '../../modules/zonesMap.js';
 import { db } from '../../modules/config.js';
 import {
   collection,
@@ -68,7 +69,8 @@ class FlatTireControlController {
       autoToggleBtn: null,
       zoneInputs: new Map(),
       zoneMaps: new Map(),
-      zoneDiameterInputs: new Map()
+      zoneDiameterInputs: new Map(),
+      zoneRefreshButtons: new Map()
     };
     this.config = {
       zones: JSON.parse(JSON.stringify(__flatTireDefaults.DEFAULT_ZONES)),
@@ -86,6 +88,7 @@ class FlatTireControlController {
     this.handleTeamRegistry = this.handleTeamRegistry.bind(this);
     this.onZoneInputChange = this.onZoneInputChange.bind(this);
     this.onDiameterInputChange = this.onDiameterInputChange.bind(this);
+    this.onRefreshClick = this.onRefreshClick.bind(this);
     this.onTableClick = this.onTableClick.bind(this);
     this.onZoneSelectChange = this.onZoneSelectChange.bind(this);
     this.onAutoToggle = this.onAutoToggle.bind(this);
@@ -153,19 +156,25 @@ class FlatTireControlController {
       const input = document.getElementById(`flat-tire-zone-gps-${key}`);
       const map = document.getElementById(`flat-tire-zone-map-${key}`);
       const diameterInput = document.getElementById(`flat-tire-zone-diameter-${key}`);
+      const refreshBtn = document.querySelector(`button[data-role="refresh"][data-zone="${key}"]`);
       if (input) this.dom.zoneInputs.set(key, input);
       if (map) this.dom.zoneMaps.set(key, map);
       if (diameterInput) this.dom.zoneDiameterInputs.set(key, diameterInput);
+      if (refreshBtn) this.dom.zoneRefreshButtons.set(key, refreshBtn);
     });
   }
 
   attachListeners() {
     this.dom.zoneInputs.forEach((input) => {
       input.addEventListener('input', this.onZoneInputChange);
+      input.addEventListener('change', this.onZoneInputChange);
     });
     this.dom.zoneDiameterInputs.forEach((input) => {
       input.addEventListener('input', this.onDiameterInputChange);
       input.addEventListener('change', this.onDiameterInputChange);
+    });
+    this.dom.zoneRefreshButtons.forEach((button) => {
+      button.addEventListener('click', this.onRefreshClick);
     });
     this.dom.tableBody?.addEventListener('click', this.onTableClick);
     this.dom.tableBody?.addEventListener('change', this.onZoneSelectChange);
@@ -176,10 +185,14 @@ class FlatTireControlController {
   detachListeners() {
     this.dom.zoneInputs.forEach((input) => {
       input.removeEventListener('input', this.onZoneInputChange);
+      input.removeEventListener('change', this.onZoneInputChange);
     });
     this.dom.zoneDiameterInputs.forEach((input) => {
       input.removeEventListener('input', this.onDiameterInputChange);
       input.removeEventListener('change', this.onDiameterInputChange);
+    });
+    this.dom.zoneRefreshButtons.forEach((button) => {
+      button.removeEventListener('click', this.onRefreshClick);
     });
     this.dom.tableBody?.removeEventListener('click', this.onTableClick);
     this.dom.tableBody?.removeEventListener('change', this.onZoneSelectChange);
@@ -310,12 +323,11 @@ class FlatTireControlController {
       const diameterKm = typeof zone.diameter === 'number' && zone.diameter > 0
         ? zone.diameter
         : DEFAULT_DIAMETER_METERS / 1000;
-      const zoomLevel = calculateZoomFromDiameter(diameterKm);
-      map.dataset.zoomLevel = String(zoomLevel);
       map.innerHTML = generateMiniMap({
         name: zone.name || `Zone ${zoneKey.toUpperCase()}`,
         gps: zone.gps,
-        diameter: diameterKm
+        diameter: diameterKm,
+        captureRadiusMeters: CAPTURE_RADIUS_METERS
       });
     } else {
       map.innerHTML = `<div class="${styles.mapPlaceholder}">Waiting for GPS...</div>`;
@@ -331,7 +343,6 @@ class FlatTireControlController {
         ...existing,
         gps: input.value.trim()
       };
-      this.updateZonePreview(zoneKey);
     }
     this.queueConfigSave();
   }
@@ -347,8 +358,35 @@ class FlatTireControlController {
         ...existing,
         diameter: meters / 1000
       };
-      this.updateZonePreview(zoneKey);
     }
+    this.queueConfigSave();
+  }
+
+  onRefreshClick(event) {
+    const button = event?.target?.closest('button[data-role="refresh"]');
+    if (!button) return;
+    const zoneKey = button.dataset.zone;
+    if (!zoneKey) return;
+
+    const gpsInput = this.dom.zoneInputs.get(zoneKey);
+    const diameterInput = this.dom.zoneDiameterInputs.get(zoneKey);
+    const meters = Math.max(
+      MIN_DIAMETER_METERS,
+      Number.parseFloat(diameterInput?.value) || DEFAULT_DIAMETER_METERS
+    );
+    if (diameterInput) {
+      diameterInput.value = String(Math.round(meters));
+    }
+
+    const existing = this.config.zones[zoneKey] || {};
+    this.config.zones[zoneKey] = {
+      ...existing,
+      gps: gpsInput?.value.trim() || '',
+      diameter: meters / 1000,
+      name: existing.name || `Zone ${zoneKey.toUpperCase()}`
+    };
+
+    this.updateZonePreview(zoneKey);
     this.queueConfigSave();
   }
 
