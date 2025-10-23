@@ -25,7 +25,13 @@ const FALLBACK_FIREBASE_KEY = "AIzaSyDxpd_n3RY7M6hEqMh3BAZLAgzPTTfUQXc";
 const FALLBACK_MAPS_KEY = "AIzaSyDxpd_n3RY7M6hEqMh3BAZLAgzPTTfUQXc";
 
 export const FIREBASE_API_KEY = getEnv("VITE_FIREBASE_API_KEY", FALLBACK_FIREBASE_KEY);
-export const GOOGLE_MAPS_API_KEY = getEnv("VITE_GOOGLE_MAPS_API_KEY", FALLBACK_MAPS_KEY);
+export const GOOGLE_MAPS_API_KEY =
+  getEnv("VITE_GOOGLE_MAPS_API_KEY", FALLBACK_MAPS_KEY) ||
+  (typeof window !== "undefined" ? window.__VITE_GOOGLE_MAPS_API_KEY : "");
+
+if (!GOOGLE_MAPS_API_KEY) {
+  console.warn("⚠️ Google Maps API key missing – set VITE_GOOGLE_MAPS_API_KEY or inject window.__VITE_GOOGLE_MAPS_API_KEY.");
+}
 
 // ---------------------------------------------------------------------------
 // 🧩 Firebase configuration
