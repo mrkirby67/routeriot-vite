@@ -33,6 +33,11 @@ export async function sendMessage(sender, recipient, text) {
   }
 }
 
+export async function sendPrivateSystemMessage(recipient, text) {
+  if (!recipient || !text) return;
+  return sendMessage(GAME_MASTER_NAME, recipient, text);
+}
+
 export function listenForMyMessages(myTeamName, logBox) {
   clearRegistry('playerMessages');
   const messagesRef = collectionGroup(db, 'messages');

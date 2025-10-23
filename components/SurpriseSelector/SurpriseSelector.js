@@ -17,6 +17,37 @@ const ACTIVE_TYPES = [SurpriseTypes.FLAT_TIRE, SurpriseTypes.BUG_SPLAT, Surprise
 
 let controllerInstance = null;
 
+const SHIELD_DURATION_STORAGE_KEY = 'shieldDuration';
+const DEFAULT_SHIELD_MINUTES = 15;
+
+function clampShieldDuration(value) {
+  if (!Number.isFinite(value)) return DEFAULT_SHIELD_MINUTES;
+  return Math.min(60, Math.max(1, value));
+}
+
+function readShieldDurationMinutes() {
+  if (typeof window === 'undefined') return DEFAULT_SHIELD_MINUTES;
+  const stored = Number.parseInt(window.localStorage.getItem(SHIELD_DURATION_STORAGE_KEY), 10);
+  if (!Number.isFinite(stored) || stored <= 0) return DEFAULT_SHIELD_MINUTES;
+  return clampShieldDuration(stored);
+}
+
+let shieldDurationMinutes = readShieldDurationMinutes();
+
+function getShieldDurationMinutes() {
+  shieldDurationMinutes = readShieldDurationMinutes();
+  return shieldDurationMinutes;
+}
+
+function setShieldDurationMinutes(nextValue) {
+  const normalized = clampShieldDuration(nextValue);
+  shieldDurationMinutes = normalized;
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(SHIELD_DURATION_STORAGE_KEY, String(normalized));
+  }
+  return normalized;
+}
+
 export function SurpriseSelectorComponent() {
   return `
     <div class="${styles.selectorSection}">
@@ -28,8 +59,20 @@ export function SurpriseSelectorComponent() {
         <div class="${styles.legend}">
           <span class="${styles.legendBadge} ${styles.flatTire}">🚗 Flat Tire</span>
           <span class="${styles.legendBadge} ${styles.bugSplat}">🐞 Bug Splat</span>
-          <span class="${styles.legendBadge} ${styles.wildCard}">🎲 Wild Card</span>
+          <span class="${styles.legendBadge} ${styles.shieldWax}">🛡️ Super SHIELD Wax</span>
         </div>
+      </div>
+
+      <div class="${styles.shieldDurationControl}">
+        <label for="shield-duration-input">🛡️ Shield Wax Duration (min)</label>
+        <input
+          id="shield-duration-input"
+          data-role="shield-duration-input"
+          type="number"
+          min="1"
+          max="60"
+          value="${getShieldDurationMinutes()}"
+        />
       </div>
 
       <table class="${styles.dataTable}">
@@ -38,7 +81,7 @@ export function SurpriseSelectorComponent() {
             <th>Team</th>
             <th>Flat Tire</th>
             <th>Bug Splat</th>
-            <th>Wild Card</th>
+            <th>Super SHIELD Wax</th>
             <th>Total</th>
             <th>Status</th>
           </tr>
@@ -67,8 +110,10 @@ class SurpriseSelectorController {
     this.tableBody = null;
     this.unsubscribe = null;
     this.state = new Map();
+    this.durationInput = null;
     this.onData = this.onData.bind(this);
     this.handleClick = this.handleClick.bind(this);
+    this.handleDurationChange = this.handleDurationChange.bind(this);
   }
 
   initialize() {
@@ -81,6 +126,13 @@ class SurpriseSelectorController {
     this.renderSkeleton();
     this.unsubscribe = subscribeTeamSurprises(this.onData);
     this.tableBody.addEventListener('click', this.handleClick);
+
+    this.durationInput = document.querySelector('[data-role="shield-duration-input"]');
+    if (this.durationInput) {
+      this.durationInput.value = String(getShieldDurationMinutes());
+      this.durationInput.addEventListener('change', this.handleDurationChange);
+    }
+
     return (reason) => this.destroy(reason);
   }
 
@@ -89,6 +141,10 @@ class SurpriseSelectorController {
     this.unsubscribe = null;
     this.tableBody?.removeEventListener('click', this.handleClick);
     this.tableBody = null;
+    if (this.durationInput) {
+      this.durationInput.removeEventListener('change', this.handleDurationChange);
+      this.durationInput = null;
+    }
     console.info(`🧹 [SurpriseSelector] destroyed (${reason})`);
   }
 
@@ -158,7 +214,7 @@ class SurpriseSelectorController {
   renderCounterCell(type) {
     const icon = type === SurpriseTypes.FLAT_TIRE ? '🚗'
       : type === SurpriseTypes.BUG_SPLAT ? '🐞'
-      : '🎲';
+      : '🛡️';
     return `
       <td class="${styles.counterCell}" data-role="counter-${type}">
         <div class="${styles.counterLabel}">${icon}</div>
@@ -188,5 +244,14 @@ class SurpriseSelectorController {
         console.error('❌ Failed to decrement surprise:', err);
       });
     }
+  }
+
+  handleDurationChange(event) {
+    const next = Number.parseInt(event?.target?.value, 10);
+    const normalized = setShieldDurationMinutes(Number.isFinite(next) ? next : DEFAULT_SHIELD_MINUTES);
+    if (this.durationInput) {
+      this.durationInput.value = String(normalized);
+    }
+    console.log(`🛡️ Shield duration set to ${normalized} minutes`);
   }
 }

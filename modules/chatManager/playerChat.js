@@ -11,10 +11,12 @@ import {
   getDoc,
   onSnapshot,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { clearRegistry, registerListener } from './registry.js';
-import { sendMessage, listenForMyMessages } from './messageService.js';
+import { sendMessage, sendPrivateSystemMessage, listenForMyMessages } from './messageService.js';
 import {
   sendSpeedBumpFromPlayer,
   releaseSpeedBumpFromPlayer
@@ -23,7 +25,10 @@ import { getCooldownRemaining, getActiveBump, subscribeSpeedBumps } from '../spe
 import {
   subscribeTeamSurprises,
   decrementSurprise,
-  SurpriseTypes
+  SurpriseTypes,
+  isShieldActive,
+  activateShield,
+  getShieldDurationMs
 } from '../teamSurpriseManager.js';
 import {
   loadFlatTireConfig,
@@ -33,6 +38,13 @@ import {
 const speedBumpSubscriptions = { unsubscribe: null, current: null };
 const surpriseSubscriptions = { unsubscribe: null, counts: new Map() };
 const SURPRISE_TYPES = [SurpriseTypes.FLAT_TIRE, SurpriseTypes.BUG_SPLAT, SurpriseTypes.WILD_CARD];
+const SHIELD_BLOCK_MESSAGE = '🧼 Attack washed away — that fancy new SHIELD Wax held strong!';
+
+function getShieldDurationMinutes() {
+  const durationMs = getShieldDurationMs();
+  const minutes = Math.round(durationMs / 60000);
+  return Math.max(1, minutes || 0);
+}
 
 export async function setupPlayerChat(currentTeamName) {
   const opponentsTbody = document.getElementById('opponents-tbody');
@@ -168,6 +180,23 @@ export async function setupPlayerChat(currentTeamName) {
     updateSurpriseCounters(currentTeamName);
   });
 
+  const shieldQuery = query(collection(db, 'communications'), where('type', '==', 'shieldWax'));
+  const shieldUnsub = onSnapshot(shieldQuery, (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'removed') return;
+      const data = change.doc.data() || {};
+      const targetTeam = data.to || data.targetTeam || data.recipient || data.teamName;
+      let expiresAt = data.shieldExpiresAt;
+      if (expiresAt && typeof expiresAt.toMillis === 'function') {
+        expiresAt = expiresAt.toMillis();
+      }
+      if (targetTeam) {
+        activateShield(targetTeam, expiresAt);
+      }
+    });
+  });
+  registerListener('player', shieldUnsub);
+
   const messagesCleanup = listenForMyMessages(currentTeamName, chatLog);
 
   return () => {
@@ -215,10 +244,10 @@ function updateSpeedBumpButtons(currentTeamName) {
 }
 
 function renderSurpriseCounter(type) {
-  const icon = type === SurpriseTypes.FLAT_TIRE ? '🚗' : type === SurpriseTypes.BUG_SPLAT ? '🐞' : '🎲';
+  const icon = type === SurpriseTypes.FLAT_TIRE ? '🚗' : type === SurpriseTypes.BUG_SPLAT ? '🐞' : '🛡️';
   const label =
     type === SurpriseTypes.FLAT_TIRE ? 'Flat Tire' :
-    type === SurpriseTypes.BUG_SPLAT ? 'Bug Splat' : 'Wild Card';
+    type === SurpriseTypes.BUG_SPLAT ? 'Bug Splat' : 'Super SHIELD Wax';
   return `
     <div class="surprise-counter" data-type="${type}">
       <span class="surprise-icon">${icon}</span>
@@ -254,13 +283,20 @@ async function handleUseSurprise(fromTeam, targetTeam, type) {
     return;
   }
 
+  const isOffensive = type !== SurpriseTypes.WILD_CARD;
+  if (isOffensive && isShieldActive(targetTeam)) {
+    console.log(`🧼 Attack from ${fromTeam} blocked — ${targetTeam} is shielded.`);
+    await sendPrivateSystemMessage(fromTeam, SHIELD_BLOCK_MESSAGE);
+    return;
+  }
+
   try {
     if (type === SurpriseTypes.FLAT_TIRE) {
       await triggerFlatTireSurprise(fromTeam, targetTeam);
     } else if (type === SurpriseTypes.BUG_SPLAT) {
       await triggerBugSplatSurprise(fromTeam, targetTeam);
     } else if (type === SurpriseTypes.WILD_CARD) {
-      await triggerWildCardSurprise(fromTeam, targetTeam);
+      await triggerShieldWaxSurprise(fromTeam, targetTeam);
     }
     await decrementSurprise(fromTeam, type);
   } catch (err) {
@@ -300,12 +336,16 @@ async function triggerBugSplatSurprise(fromTeam, targetTeam) {
   });
 }
 
-async function triggerWildCardSurprise(fromTeam, targetTeam) {
-  await broadcastSurprise(`🎲 ${fromTeam} played a Wild Card on ${targetTeam}! Expect the unexpected.`, {
-    type: 'wildCard',
+async function triggerShieldWaxSurprise(fromTeam, targetTeam) {
+  const expiresAt = activateShield(targetTeam);
+  const durationMinutes = getShieldDurationMinutes();
+  await broadcastSurprise(`🛡️ ${fromTeam} coated ${targetTeam} in Super SHIELD Wax! Attacks bounce off for ${durationMinutes} minute${durationMinutes === 1 ? '' : 's'}.`, {
+    type: 'shieldWax',
     from: fromTeam,
     to: targetTeam,
-    isBroadcast: true
+    isBroadcast: true,
+    shieldExpiresAt: expiresAt,
+    shieldDurationMinutes: durationMinutes
   });
 }
 

@@ -1,7 +1,7 @@
 // ============================================================================
 // FILE: player.js
 // PURPOSE: Player-side entry point with synced countdown + pause/resume logic
-// UPDATED: Added 🪰 Bug Strike listener + 🎮 Wild Card Launcher support
+// UPDATED: Added 🪰 Bug Strike listener + 🛡️ Super SHIELD Wax launcher support
 // ============================================================================
 import { allTeams } from './data.js';
 import { db } from './modules/config.js';
@@ -21,6 +21,7 @@ import { showFlashMessage } from './modules/gameUI.js';
 import { initializeBugStrikeListener } from './modules/playerBugStrikeUI.js'; // 🪰 chaos overlay
 import { initializeSpeedBumpPlayer } from './modules/speedBumpPlayer.js';
 import { initializeFlatTireUI } from './modules/flatTireUI.js';
+import { subscribeTeamSurprises, SurpriseTypes } from './modules/teamSurpriseManager.js';
 
 let gameStatusUnsub = null;
 let chatCleanup = null;
@@ -28,6 +29,7 @@ let zonesCleanup = null;
 let speedBumpCleanup = null;
 let bugStrikeCleanup = null;
 let flatTireCleanup = null;
+let surpriseScoreCleanup = null;
 let unloadHandler = null;
 
 function teardownPlayerListeners(reason = 'manual') {
@@ -45,6 +47,9 @@ function teardownPlayerListeners(reason = 'manual') {
 
   flatTireCleanup?.(reason);
   flatTireCleanup = null;
+
+  surpriseScoreCleanup?.(reason);
+  surpriseScoreCleanup = null;
 
   gameStatusUnsub?.(reason);
   gameStatusUnsub = null;
@@ -77,6 +82,9 @@ export async function initializePlayerPage() {
     return;
   }
   localStorage.setItem('teamName', currentTeamName);
+  if (typeof window !== 'undefined') {
+    window.currentPlayerTeam = currentTeamName;
+  }
 
   // 2️⃣ Validate team
   const team = allTeams.find(t => t.name === currentTeamName);
@@ -96,6 +104,7 @@ export async function initializePlayerPage() {
     bugStrikeCleanup = initializeBugStrikeListener(currentTeamName); // 🪰
     speedBumpCleanup = initializeSpeedBumpPlayer(currentTeamName);
     flatTireCleanup = initializeFlatTireUI(currentTeamName);
+    surpriseScoreCleanup = initializeSurpriseScoreboard(currentTeamName);
   } catch (err) {
     console.error('🔥 Error initializing player modules:', err);
     alert('Error initializing player. Check console.');
@@ -134,6 +143,45 @@ export async function initializePlayerPage() {
   window.addEventListener('beforeunload', unloadHandler, { once: true });
 
   console.log('✅ Player initialized for team:', currentTeamName);
+}
+
+function initializeSurpriseScoreboard(teamName) {
+  const flatEl = document.getElementById('sb-flatTire');
+  const bugEl = document.getElementById('sb-bugSplat');
+  const shieldEl = document.getElementById('sb-wildCard');
+
+  if (!flatEl || !bugEl || !shieldEl) {
+    console.warn('⚠️ Surprise scoreboard container missing.');
+    return () => {};
+  }
+
+  const applyCounts = (counts = {}) => {
+    const flat = Number(counts?.[SurpriseTypes.FLAT_TIRE] ?? counts?.flatTire ?? 0);
+    const bug = Number(counts?.[SurpriseTypes.BUG_SPLAT] ?? counts?.bugSplat ?? 0);
+    const shield = Number(counts?.[SurpriseTypes.WILD_CARD] ?? counts?.wildCard ?? 0);
+    flatEl.textContent = String(flat);
+    bugEl.textContent = String(bug);
+    shieldEl.textContent = String(shield);
+  };
+
+  applyCounts({});
+
+  const unsubscribe = subscribeTeamSurprises((entries = [], byTeam = {}) => {
+    let counts = null;
+    if (byTeam && typeof byTeam === 'object') {
+      counts = byTeam[teamName];
+    }
+    if (!counts && Array.isArray(entries)) {
+      counts = entries.find(entry => entry.teamName === teamName)?.counts;
+    }
+    applyCounts(counts || {});
+  });
+
+  return (reason = 'manual') => {
+    unsubscribe?.();
+    applyCounts({});
+    console.info(`🧹 [SurpriseScoreboard] detached (${reason})`);
+  };
 }
 
 // ============================================================================

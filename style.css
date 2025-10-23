@@ -441,3 +441,55 @@ button:hover,
   opacity: 0.55;
   cursor: default;
 }
+
+/* === Surprise Scoreboard === */
+#surprise-scoreboard {
+  background: #1b1f27;
+  border: 1px solid #2f343f;
+}
+
+#surprise-scoreboard h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.surprise-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.surprise-chip {
+  min-width: 170px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(29, 32, 41, 0.9);
+  border: 1px solid rgba(102, 102, 102, 0.4);
+  font-size: 0.95em;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+
+.surprise-chip span {
+  font-weight: 600;
+  color: #fff;
+}
+
+.surprise-chip.flat-tire {
+  border-left: 4px solid #ff6f61;
+}
+
+.surprise-chip.bug-splat {
+  border-left: 4px solid #fdd835;
+}
+
+.surprise-chip.shield-wax {
+  border-left: 4px solid #64b5f6;
+}
