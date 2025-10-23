@@ -18,11 +18,12 @@ import {
 const ASSIGNMENTS_COLLECTION = collection(db, 'flatTireAssignments');
 const CONFIG_DOCUMENT = doc(db, 'settings', 'flatTireConfig');
 
+const DEFAULT_DIAMETER_KM = 0.2; // 200 meters
 const DEFAULT_ZONES = {
-  north: { name: 'North Repair Depot', gps: '' },
-  south: { name: 'South Repair Depot', gps: '' },
-  east: { name: 'East Repair Depot', gps: '' },
-  west: { name: 'West Repair Depot', gps: '' }
+  north: { name: 'North Repair Depot', gps: '', diameter: DEFAULT_DIAMETER_KM },
+  south: { name: 'South Repair Depot', gps: '', diameter: DEFAULT_DIAMETER_KM },
+  east: { name: 'East Repair Depot', gps: '', diameter: DEFAULT_DIAMETER_KM },
+  west: { name: 'West Repair Depot', gps: '', diameter: DEFAULT_DIAMETER_KM }
 };
 
 function encodeTeamId(teamName = '') {
@@ -62,7 +63,7 @@ function normalizeConfig(raw = {}) {
     zones[key] = {
       name: typeof zone.name === 'string' && zone.name.trim() ? zone.name.trim() : DEFAULT_ZONES[key]?.name || `Zone ${key.toUpperCase()}`,
       gps: typeof zone.gps === 'string' ? zone.gps.trim() : '',
-      diameter: typeof zone.diameter === 'number' && zone.diameter > 0 ? zone.diameter : 0.1
+      diameter: typeof zone.diameter === 'number' && zone.diameter > 0 ? zone.diameter : DEFAULT_DIAMETER_KM
     };
   });
 

@@ -150,6 +150,30 @@
   box-shadow: 0 0 6px rgba(255, 183, 77, 0.4);
 }
 
+.diameterLabel {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #90a4ae;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.diameterInput {
+  background: #101010;
+  border: 1px solid rgba(129, 212, 250, 0.4);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+}
+
+.diameterInput:focus {
+  outline: none;
+  border-color: #81d4fa;
+  box-shadow: 0 0 6px rgba(129, 212, 250, 0.35);
+}
+
 .mapPreview {
   height: 150px;
   border-radius: 8px;

@@ -31,7 +31,9 @@ export function FlatTireControlComponent() {
             <h3>North Repair Depot</h3>
             <small>GPS (lat, lng)</small>
           </div>
-          <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-north" placeholder="45.0123,-93.1234" spellcheck="false" />
+          <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-north" placeholder="45.0123,-93.1234" spellcheck="false" data-zone="north" />
+          <label class="${styles.diameterLabel}" for="flat-tire-zone-diameter-north">Map Diameter (m)</label>
+          <input type="number" class="${styles.diameterInput}" id="flat-tire-zone-diameter-north" min="50" step="10" value="200" data-zone="north" />
           <div class="${styles.mapPreview}" id="flat-tire-zone-map-north">
             <div class="${styles.mapPlaceholder}">Waiting for GPS...</div>
           </div>
@@ -42,7 +44,9 @@ export function FlatTireControlComponent() {
             <h3>South Repair Depot</h3>
             <small>GPS (lat, lng)</small>
           </div>
-          <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-south" placeholder="44.9876,-93.2100" spellcheck="false" />
+          <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-south" placeholder="44.9876,-93.2100" spellcheck="false" data-zone="south" />
+          <label class="${styles.diameterLabel}" for="flat-tire-zone-diameter-south">Map Diameter (m)</label>
+          <input type="number" class="${styles.diameterInput}" id="flat-tire-zone-diameter-south" min="50" step="10" value="200" data-zone="south" />
           <div class="${styles.mapPreview}" id="flat-tire-zone-map-south">
             <div class="${styles.mapPlaceholder}">Waiting for GPS...</div>
           </div>
@@ -53,7 +57,9 @@ export function FlatTireControlComponent() {
             <h3>East Repair Depot</h3>
             <small>GPS (lat, lng)</small>
           </div>
-          <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-east" placeholder="44.9980,-93.0456" spellcheck="false" />
+          <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-east" placeholder="44.9980,-93.0456" spellcheck="false" data-zone="east" />
+          <label class="${styles.diameterLabel}" for="flat-tire-zone-diameter-east">Map Diameter (m)</label>
+          <input type="number" class="${styles.diameterInput}" id="flat-tire-zone-diameter-east" min="50" step="10" value="200" data-zone="east" />
           <div class="${styles.mapPreview}" id="flat-tire-zone-map-east">
             <div class="${styles.mapPlaceholder}">Waiting for GPS...</div>
           </div>
@@ -64,7 +70,9 @@ export function FlatTireControlComponent() {
             <h3>West Repair Depot</h3>
             <small>GPS (lat, lng)</small>
           </div>
-          <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-west" placeholder="45.0456,-93.2901" spellcheck="false" />
+          <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-west" placeholder="45.0456,-93.2901" spellcheck="false" data-zone="west" />
+          <label class="${styles.diameterLabel}" for="flat-tire-zone-diameter-west">Map Diameter (m)</label>
+          <input type="number" class="${styles.diameterInput}" id="flat-tire-zone-diameter-west" min="50" step="10" value="200" data-zone="west" />
           <div class="${styles.mapPreview}" id="flat-tire-zone-map-west">
             <div class="${styles.mapPlaceholder}">Waiting for GPS...</div>
           </div>
