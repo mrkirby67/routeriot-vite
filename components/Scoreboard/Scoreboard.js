@@ -5,6 +5,7 @@
 
 import { db } from '../../modules/config.js';
 import { addPointsToTeam } from '../../modules/scoreboardManager.js';
+import { getZoneDisplayName } from '../../modules/zoneManager.js';
 import {
   onSnapshot,
   collection,
@@ -75,12 +76,23 @@ export function initializeScoreboardListener({ editable = true } = {}) {
 
     scoreboardBody.innerHTML = '';
 
-    activeTeams.forEach(teamName => {
+    for (const teamName of activeTeams) {
       const scoreInfo = scoresData[teamName] || {};
       const statusInfo = statusData[teamName] || {};
       const score = scoreInfo.score ?? 0;
       const zones = scoreInfo.zonesControlled ?? '—';
-      const loc = statusInfo.lastKnownLocation || '—';
+      const lastZoneId = typeof statusInfo.lastKnownLocation === 'string'
+        ? statusInfo.lastKnownLocation.trim()
+        : '';
+      let zoneLabel = '—';
+      if (lastZoneId) {
+        try {
+          zoneLabel = await getZoneDisplayName(lastZoneId);
+        } catch (err) {
+          console.warn('⚠️ Falling back to raw zone id for', lastZoneId, err);
+          zoneLabel = lastZoneId;
+        }
+      }
       const ts = statusInfo.timestamp;
       const time = ts
         ? formatTimestamp(ts)
@@ -98,7 +110,7 @@ export function initializeScoreboardListener({ editable = true } = {}) {
                    class="${styles.scoreInput}">
           </td>
           <td>${zones}</td>
-          <td>${loc}</td>
+          <td>${zoneLabel}</td>
           <td>
             <button class="${styles.adjustBtn}" data-team="${teamName}" data-change="+1">+1</button>
             <button class="${styles.adjustBtn}" data-team="${teamName}" data-change="-1">-1</button>
@@ -108,12 +120,12 @@ export function initializeScoreboardListener({ editable = true } = {}) {
           <td>${teamName}</td>
           <td>${score}</td>
           <td>${zones}</td>
-          <td>${loc}</td>
+          <td>${zoneLabel}</td>
           <td>${time}</td>`;
       }
 
       scoreboardBody.appendChild(row);
-    });
+    }
 
     if (editable) attachHandlers();
   }

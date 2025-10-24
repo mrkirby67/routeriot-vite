@@ -5,6 +5,7 @@
 
 import { db } from '../config.js';
 import { allTeams } from '../../data.js';
+import { getZoneDisplayName } from '../zoneManager.js';
 import {
   collection,
   doc,
@@ -96,7 +97,7 @@ export function initializePlayerUI(teamInput) {
       opponentsTbody.appendChild(tr);
 
       const teamRef = doc(db, 'teamStatus', opp.name);
-      onSnapshot(teamRef, (docSnap) => {
+      onSnapshot(teamRef, async (docSnap) => {
         const locCell = $(`opp-loc-${safeName}`);
         if (!locCell) return;
         if (!docSnap.exists()) {
@@ -105,11 +106,22 @@ export function initializePlayerUI(teamInput) {
         }
 
         const data = docSnap.data();
-        const zone = data.lastKnownLocation || '--';
+        const zoneId = typeof data.lastKnownLocation === 'string'
+          ? data.lastKnownLocation.trim()
+          : '';
         const timeStr = fmtTime(data.timestamp);
+        let zoneLabel = '--';
+        if (zoneId) {
+          try {
+            zoneLabel = await getZoneDisplayName(zoneId);
+          } catch (err) {
+            console.warn('⚠️ Zone label fallback for', zoneId, err);
+            zoneLabel = zoneId;
+          }
+        }
         locCell.textContent =
-          zone !== '--'
-            ? `📍 ${zone}${timeStr ? ` (updated ${timeStr})` : ''}`
+          zoneLabel !== '--'
+            ? `📍 ${zoneLabel}${timeStr ? ` (updated ${timeStr})` : ''}`
             : '--';
 
         locCell.style.background = '#f0c420';

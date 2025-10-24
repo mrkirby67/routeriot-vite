@@ -17,12 +17,25 @@ import { validateAnswer } from './zonesUtils.js';
 import { broadcastChallenge, broadcastWin, updateTeamLocation } from './zonesFirestore.js';
 import { addPointsToTeam, updateControlledZones } from './scoreboardManager.js';
 import { allTeams } from '../data.js';
+import {
+  hydrateZoneCooldown,
+  isZoneOnCooldown,
+  startZoneCooldown,
+  getZoneCooldownRemaining
+} from './zoneManager.js';
 
 // ---------------------------------------------------------------------------
 // 🧭 Context State
 // ---------------------------------------------------------------------------
 let currentTeamName = null;
-let challengeState = { zoneId: null, questionId: null, attemptsLeft: 3 };
+const DEFAULT_ZONE_COOLDOWN_MINUTES = 15;
+let challengeState = {
+  zoneId: null,
+  zoneName: null,
+  questionId: null,
+  attemptsLeft: 3,
+  cooldownMinutes: DEFAULT_ZONE_COOLDOWN_MINUTES
+};
 
 export function setTeamContext(teamName) {
   currentTeamName = allTeams.find(t => t.name === teamName)?.name || teamName;
@@ -33,12 +46,38 @@ export function setTeamContext(teamName) {
 // 🎮 DISPLAY CHALLENGE QUESTIONS INLINE (UNDER ZONE)
 // ---------------------------------------------------------------------------
 export async function displayZoneQuestions(zoneId, zoneName) {
-  challengeState = { zoneId, questionId: null, attemptsLeft: 3 };
+  challengeState = {
+    zoneId,
+    zoneName,
+    questionId: null,
+    attemptsLeft: 3,
+    cooldownMinutes: DEFAULT_ZONE_COOLDOWN_MINUTES
+  };
 
   // 🧱 Find the zone row
   const zoneRow = document.querySelector(`[data-zone-id="${zoneId}"]`);
   if (!zoneRow) {
     console.warn(`⚠️ Zone row not found for ${zoneId}`);
+    return;
+  }
+
+  try {
+    const zoneSnap = await getDoc(doc(db, 'zones', zoneId));
+    if (zoneSnap.exists()) {
+      const zoneData = zoneSnap.data() || {};
+      hydrateZoneCooldown(zoneId, zoneData.cooldownUntil);
+      const storedCooldown = Number(zoneData.cooldownMinutes);
+      if (Number.isFinite(storedCooldown) && storedCooldown > 0) {
+        challengeState.cooldownMinutes = storedCooldown;
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ Failed to load zone metadata for cooldown check:', err);
+  }
+
+  if (isZoneOnCooldown(zoneId)) {
+    const remainingMinutes = Math.max(1, Math.ceil(getZoneCooldownRemaining(zoneId) / 60000));
+    alert(`⏳ Zone cooling down — try again in ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'}.`);
     return;
   }
 
@@ -170,6 +209,7 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
     alert(`✅ CORRECT! ${zoneId} captured (+${points} pts)`);
 
     try {
+      const cooldownMinutes = challengeState.cooldownMinutes || DEFAULT_ZONE_COOLDOWN_MINUTES;
       await updateTeamLocation(currentTeamName, zoneId);
       await broadcastWin(currentTeamName, zoneId);
       await setDoc(
@@ -183,6 +223,7 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
       );
       await addPointsToTeam(currentTeamName, points);
       await updateControlledZones(currentTeamName, zoneId);
+      await startZoneCooldown(zoneId, cooldownMinutes);
     } catch (err) {
       console.error('❌ Error finalizing win:', err);
     }
@@ -197,7 +238,13 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
     if (challengeState.attemptsLeft > 0) {
       alert(`❌ Incorrect. ${challengeState.attemptsLeft} attempt(s) left.`);
     } else {
-      alert('😓 Out of attempts. Time for a PitStop!');
+      const cooldownMinutes = challengeState.cooldownMinutes || DEFAULT_ZONE_COOLDOWN_MINUTES;
+      try {
+        await startZoneCooldown(zoneId, cooldownMinutes);
+      } catch (err) {
+        console.warn('⚠️ Failed to start cooldown after failed attempts:', err);
+      }
+      alert(`😓 Out of attempts. Zone cooling down for ${cooldownMinutes} minute${cooldownMinutes === 1 ? '' : 's'}.`);
       document.getElementById(`inline-question-${zoneId}`)?.remove();
     }
   }

@@ -6,6 +6,7 @@
 
 import { listenForGameStatus } from './gameStateManager.js';
 import { showFlashMessage } from './gameUI.js';
+import { getZoneDisplayName } from './zoneManager.js';
 import {
   collection,
   getDocs,
@@ -72,13 +73,24 @@ function watchTeamStatuses() {
   if (!teamTable) return null;
 
   const teamStatusRef = collection(db, 'teamStatus');
-  const unsub = onSnapshot(teamStatusRef, (snapshot) => {
+  const unsub = onSnapshot(teamStatusRef, async (snapshot) => {
     teamTable.innerHTML = '';
 
-    snapshot.forEach((docSnap) => {
+    const rows = await Promise.all(snapshot.docs.map(async (docSnap) => {
       const teamName = docSnap.id;
       const data = docSnap.data() || {};
-      const location = data.lastKnownLocation || '--';
+      const zoneId = typeof data.lastKnownLocation === 'string'
+        ? data.lastKnownLocation.trim()
+        : '';
+      let location = '--';
+      if (zoneId) {
+        try {
+          location = await getZoneDisplayName(zoneId);
+        } catch (err) {
+          console.warn('⚠️ Zone label fallback for', zoneId, err);
+          location = zoneId;
+        }
+      }
       const time = formatTimestamp(data.timestamp);
 
       const tr = document.createElement('tr');
@@ -87,8 +99,10 @@ function watchTeamStatuses() {
         <td>${location !== '--' ? '📍 ' + location : '--'}</td>
         <td>${time || '--'}</td>
       `;
-      teamTable.appendChild(tr);
-    });
+      return tr;
+    }));
+
+    rows.forEach(row => teamTable.appendChild(row));
   });
   console.info('📡 [controlStatus] watching teamStatus updates');
   return unsub;

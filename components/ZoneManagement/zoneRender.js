@@ -3,6 +3,7 @@
 // PURPOSE: Pure rendering for the Zone Management table (no event listeners).
 // Depends only on Firestore reads and firebaseConfig for Static Maps.
 // ============================================================================
+import styles from './ZoneManagement.module.css';
 import { db, firebaseConfig } from '../../modules/config.js';
 import {
   collection,
@@ -12,6 +13,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { allTeams } from '../../data.js';
 import { allowedQuestionTypes, questionTypeLabels } from '../ZoneQuestions/ZoneQuestionsTypes.js';
+import {
+  hydrateZoneCooldown,
+  isZoneOnCooldown,
+  getZoneCooldownRemaining
+} from '../../modules/zoneManager.js';
 
 /* ---------------------------------------------------------------------------
  * 🔍 Helper: Dynamic Zoom from Diameter
@@ -82,10 +88,52 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
       zoneData.controllingTeam ||
       '—';
 
-    // 🕓 Format timestamp
-    const lastUpdated = zoneData.updatedAt?.toDate
-      ? zoneData.updatedAt.toDate().toLocaleString()
-      : '—';
+    // 🕓 Format timestamp + hydrate cooldown cache
+    const updatedAtMs = zoneData.updatedAt?.toMillis
+      ? zoneData.updatedAt.toMillis()
+      : zoneData.updatedAt?.seconds
+        ? zoneData.updatedAt.seconds * 1000
+        : typeof zoneData.updatedAt === 'number'
+          ? zoneData.updatedAt
+          : null;
+    const updatedLabel = updatedAtMs ? new Date(updatedAtMs).toLocaleString() : '—';
+
+    const cooldownUntilMs = zoneData.cooldownUntil?.toMillis
+      ? zoneData.cooldownUntil.toMillis()
+      : typeof zoneData.cooldownUntil === 'number'
+        ? zoneData.cooldownUntil
+        : null;
+
+    if (cooldownUntilMs) {
+      hydrateZoneCooldown(zoneId, cooldownUntilMs);
+    }
+
+    const onCooldown = isZoneOnCooldown(zoneId);
+    const remainingMinutes = onCooldown
+      ? Math.max(1, Math.ceil(getZoneCooldownRemaining(zoneId) / 60000))
+      : 0;
+
+    const statusCellClass = [
+      styles?.zoneStatusCell,
+      'zone-status-cell'
+    ].filter(Boolean).join(' ');
+    const cooldownClass = styles?.cooldownActive || 'cooldown-active';
+    const ownedClass = styles?.ownedBy || 'owned-by';
+    const availableClass = styles?.available || 'zone-available';
+    const updatedClass = styles?.statusUpdated || 'status-updated';
+    const zoneStatus = zoneData.status || 'Available';
+
+    const ownerLabel = controllingTeam !== '—' ? controllingTeam : '';
+    let statusHtml = `<span class="${availableClass}">${zoneStatus}</span>`;
+    if (ownerLabel) {
+      statusHtml = onCooldown
+        ? `<span class="${cooldownClass}">${ownerLabel} ⏳ (${remainingMinutes} min left)</span>`
+        : `<span class="${ownedClass}">${ownerLabel}</span>`;
+    } else if (onCooldown) {
+      statusHtml = `<span class="${cooldownClass}">Cooldown ⏳ (${remainingMinutes} min left)</span>`;
+    }
+
+    const datasetCooldown = onCooldown ? cooldownUntilMs : '';
 
     // 🎨 Data row
     const dataRow = document.createElement('tr');
@@ -105,10 +153,20 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
         <button class="force-capture-btn" data-zone-id="${zoneId}" 
           style="background:#2E7D32;color:white;margin-left:6px;">Force Capture</button>
       </td>
-      <td>
-        ${zoneData.status || 'Available'}<br>
-        <small style="color:#8bc34a;">${controllingTeam}</small><br>
-        <small style="color:#ccc;font-size:0.75em;">Updated: ${lastUpdated}</small>
+      <td
+        class="${statusCellClass}"
+        data-zone-id="${zoneId}"
+        data-team="${ownerLabel}"
+        data-zone-status="${zoneStatus}"
+        data-updated-ts="${updatedAtMs || ''}"
+        data-cooldown-until="${datasetCooldown || ''}"
+        data-class-cooldown="${cooldownClass}"
+        data-class-owned="${ownedClass}"
+        data-class-available="${availableClass}"
+        data-class-updated="${updatedClass}"
+      >
+        ${statusHtml}<br>
+        <small class="${updatedClass}">Updated: ${updatedLabel}</small>
       </td>
     `;
 

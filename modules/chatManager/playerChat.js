@@ -34,6 +34,7 @@ import {
   loadFlatTireConfig,
   assignFlatTireTeam
 } from '../flatTireManager.js';
+import { getZoneDisplayName } from '../zoneManager.js';
 
 const speedBumpSubscriptions = { unsubscribe: null, current: null };
 const surpriseSubscriptions = { unsubscribe: null, counts: new Map() };
@@ -88,7 +89,7 @@ export async function setupPlayerChat(currentTeamName) {
   });
 
   const teamStatusCol = collection(db, 'teamStatus');
-  const teamStatusUnsub = onSnapshot(teamStatusCol, (snapshot) => {
+  const teamStatusUnsub = onSnapshot(teamStatusCol, async (snapshot) => {
     if (snapshot.empty) {
       opponentsTbody.querySelectorAll('.last-location').forEach(cell => {
         cell.textContent = '--';
@@ -96,7 +97,8 @@ export async function setupPlayerChat(currentTeamName) {
       return;
     }
 
-    snapshot.docChanges().forEach(change => {
+    const changes = snapshot.docChanges();
+    await Promise.all(changes.map(async change => {
       const team = change.doc.id;
       const row = opponentsTbody.querySelector(`[data-team="${team}"]`);
       if (!row) return;
@@ -108,10 +110,21 @@ export async function setupPlayerChat(currentTeamName) {
         cell.textContent = '--';
       } else if (change.type === 'added' || change.type === 'modified') {
         const data = change.doc.data();
-        const location = data.lastKnownLocation || '--';
+        const zoneId = typeof data.lastKnownLocation === 'string'
+          ? data.lastKnownLocation.trim()
+          : '';
+        let location = '--';
+        if (zoneId) {
+          try {
+            location = await getZoneDisplayName(zoneId);
+          } catch (err) {
+            console.warn('⚠️ Zone label fallback for', zoneId, err);
+            location = zoneId;
+          }
+        }
         cell.textContent = location;
       }
-    });
+    }));
   });
   registerListener('player', teamStatusUnsub);
 

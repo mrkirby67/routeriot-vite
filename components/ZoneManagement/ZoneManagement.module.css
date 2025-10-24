@@ -199,6 +199,39 @@ button:active {
 }
 
 /* -----------------------------
+   Status Cell Styling
+--------------------------------*/
+.zoneStatusCell {
+  line-height: 1.4;
+  font-size: 0.95rem;
+}
+
+.zoneStatusCell span {
+  display: inline-block;
+}
+
+.cooldownActive {
+  color: #ffb74d;
+  font-weight: 600;
+}
+
+.ownedBy {
+  color: #64b5f6;
+  font-weight: 600;
+}
+
+.available {
+  color: #81c784;
+  font-weight: 600;
+}
+
+.statusUpdated {
+  color: #9e9e9e;
+  font-size: 0.75rem;
+  letter-spacing: 0.3px;
+}
+
+/* -----------------------------
    Status Banner
 --------------------------------*/
 #zone-status-banner {

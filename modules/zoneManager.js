@@ -1,0 +1,169 @@
+// ============================================================================
+// FILE: modules/zoneManager.js
+// PURPOSE: Shared helpers for zone metadata (display names, caching)
+// ============================================================================
+
+import { db } from './config.js';
+import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const zoneNameCache = new Map();
+const activeCooldowns = new Map(); // zoneId -> expiresAt (ms)
+const cooldownTimers = new Map(); // zoneId -> timeout id
+
+function normalizeZoneId(zoneId) {
+  if (typeof zoneId !== 'string') return '';
+  return zoneId.trim();
+}
+
+/**
+ * Resolve a zone identifier to its human-friendly display name.
+ * Falls back to the raw identifier if the zone cannot be found.
+ */
+export async function getZoneDisplayName(zoneId) {
+  const normalized = normalizeZoneId(zoneId);
+  if (!normalized) return zoneId ?? '';
+
+  if (zoneNameCache.has(normalized)) {
+    return zoneNameCache.get(normalized);
+  }
+
+  try {
+    const ref = doc(db, 'zones', normalized);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const data = snap.data() || {};
+      const label = data.displayName || data.name || normalized;
+      zoneNameCache.set(normalized, label);
+      return label;
+    }
+  } catch (err) {
+    console.warn('⚠️ Zone name lookup failed for', normalized, err);
+  }
+
+  zoneNameCache.set(normalized, normalized);
+  return normalized;
+}
+
+function toMillis(input) {
+  if (!input) return null;
+  if (typeof input === 'number') return input;
+  if (typeof input === 'string') {
+    const num = Number(input);
+    return Number.isFinite(num) ? num : null;
+  }
+  if (typeof input.toMillis === 'function') return input.toMillis();
+  if (input.seconds) return input.seconds * 1000 + Math.floor((input.nanoseconds || 0) / 1e6);
+  return null;
+}
+
+function scheduleCooldownCleanup(zoneId, expiresAt) {
+  if (!zoneId || !Number.isFinite(expiresAt)) return;
+  const msRemaining = expiresAt - Date.now();
+  if (msRemaining <= 0) {
+    cooldownTimers.get(zoneId)?.();
+    cooldownTimers.delete(zoneId);
+    activeCooldowns.delete(zoneId);
+    return;
+  }
+  cooldownTimers.get(zoneId)?.();
+  const timeoutId = setTimeout(() => {
+    cooldownTimers.delete(zoneId);
+    const expiry = activeCooldowns.get(zoneId);
+    if (expiry && expiry <= Date.now()) {
+      activeCooldowns.delete(zoneId);
+    }
+  }, msRemaining + 25);
+  cooldownTimers.set(zoneId, () => clearTimeout(timeoutId));
+}
+
+export function hydrateZoneCooldown(zoneId, expiresAt) {
+  const normalized = normalizeZoneId(zoneId);
+  const expiry = toMillis(expiresAt);
+  if (!normalized || !expiry) return;
+  if (expiry <= Date.now()) {
+    activeCooldowns.delete(normalized);
+    cooldownTimers.get(normalized)?.();
+    cooldownTimers.delete(normalized);
+    return;
+  }
+  activeCooldowns.set(normalized, expiry);
+  scheduleCooldownCleanup(normalized, expiry);
+}
+
+export async function startZoneCooldown(zoneId, minutes = 15, { persist = true } = {}) {
+  const normalized = normalizeZoneId(zoneId);
+  const duration = Number.isFinite(minutes) ? Math.max(0, minutes) : 0;
+  if (!normalized || duration <= 0) return null;
+
+  const expiresAt = Date.now() + duration * 60 * 1000;
+  activeCooldowns.set(normalized, expiresAt);
+  scheduleCooldownCleanup(normalized, expiresAt);
+  console.log(`⏳ Cooldown started for ${normalized} (${duration} min)`);
+
+  if (persist) {
+    try {
+      await setDoc(
+        doc(db, 'zones', normalized),
+        {
+          cooldownUntil: expiresAt,
+          cooldownMinutes: duration
+        },
+        { merge: true }
+      );
+    } catch (err) {
+      console.warn('⚠️ Failed to persist cooldown for', normalized, err);
+    }
+  }
+
+  return expiresAt;
+}
+
+export function isZoneOnCooldown(zoneId) {
+  const normalized = normalizeZoneId(zoneId);
+  if (!normalized) return false;
+  const expiresAt = activeCooldowns.get(normalized);
+  if (!expiresAt) return false;
+  if (expiresAt <= Date.now()) {
+    activeCooldowns.delete(normalized);
+    cooldownTimers.get(normalized)?.();
+    cooldownTimers.delete(normalized);
+    return false;
+  }
+  return true;
+}
+
+export function getZoneCooldownRemaining(zoneId) {
+  const normalized = normalizeZoneId(zoneId);
+  if (!normalized) return 0;
+  const expiresAt = activeCooldowns.get(normalized);
+  if (!expiresAt) return 0;
+  const remaining = expiresAt - Date.now();
+  if (remaining <= 0) {
+    activeCooldowns.delete(normalized);
+    cooldownTimers.get(normalized)?.();
+    cooldownTimers.delete(normalized);
+    return 0;
+  }
+  return remaining;
+}
+
+export async function clearZoneCooldown(zoneId, { persist = true } = {}) {
+  const normalized = normalizeZoneId(zoneId);
+  if (!normalized) return;
+  activeCooldowns.delete(normalized);
+  cooldownTimers.get(normalized)?.();
+  cooldownTimers.delete(normalized);
+  if (persist) {
+    try {
+      await setDoc(
+        doc(db, 'zones', normalized),
+        {
+          cooldownUntil: null
+        },
+        { merge: true }
+      );
+    } catch (err) {
+      console.warn('⚠️ Failed to clear cooldown for', normalized, err);
+    }
+  }
+}
