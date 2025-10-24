@@ -528,3 +528,146 @@ button:hover,
   font-size: 0.85rem;
   color: #ffb74d;
 }
+
+/* =============================
+   🎉 Team Surprises Panel
+   ============================= */
+#team-surprises-section {
+  margin-top: 16px;
+}
+
+#team-surprises-section .team-surprises-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.team-surprises-shield {
+  background: rgba(88, 166, 255, 0.12);
+  border: 1px solid rgba(88, 166, 255, 0.35);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 600;
+  color: #58a6ff;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.team-surprises-shield.is-active {
+  background: rgba(45, 212, 191, 0.18);
+  border-color: rgba(45, 212, 191, 0.6);
+  color: #2dd4bf;
+}
+
+#team-surprises-section .team-surprises-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+#team-surprises-section .team-surprises-self h3,
+#team-surprises-section .team-surprises-inventory h3,
+#team-surprises-section .team-surprises-outgoing h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #8b949e;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.team-surprises-myteam {
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 12px;
+  background: #11161d;
+  min-height: 104px;
+}
+
+.team-surprises-placeholder {
+  color: #9baec8;
+  margin: 0;
+  text-align: center;
+}
+
+.team-surprises-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.team-surprises-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  background: #151b23;
+}
+
+.team-surprises-row.is-current-team {
+  border-color: rgba(63, 185, 80, 0.65);
+  background: rgba(45, 212, 191, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(63, 185, 80, 0.35);
+}
+
+.team-surprises-row .team-name {
+  font-weight: 600;
+  color: #e6edf3;
+  flex: 1;
+}
+
+.team-surprises-row .team-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #c9d1d9;
+  min-width: 70px;
+  justify-content: flex-end;
+}
+
+.team-surprises-row .team-count span[aria-hidden="true"] {
+  font-size: 1.05em;
+}
+
+.team-surprises-row .team-count.countdown {
+  color: #ffb74d;
+}
+
+.team-surprises-empty {
+  border: 1px dashed #30363d;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  color: #8b949e;
+  font-style: italic;
+}
+
+.team-surprises-outgoing {
+  border-top: 1px solid #30363d;
+  padding-top: 14px;
+}
+
+.team-surprises-outgoing .team-surprises-list {
+  grid-template-columns: 1fr;
+}
+
+.shield-timer-overlay {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  background: rgba(13, 17, 23, 0.92);
+  border: 2px solid rgba(88, 166, 255, 0.6);
+  border-radius: 12px;
+  padding: 8px 14px;
+  color: #58a6ff;
+  font-weight: 600;
+  z-index: 1100;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+}

@@ -38,13 +38,256 @@ import {
   assignFlatTireTeam
 } from '../flatTireManager.js';
 import { getZoneDisplayName } from '../zoneManager.js';
-import { showShieldHudTimer, hideShieldHudTimer } from '../playerUI/overlays.js';
+import { showShieldHudTimer, hideShieldHudTimer, showShieldTimer, hideShieldTimer } from '../playerUI/overlays.js';
 import { escapeHtml } from '../utils.js';
 
 const speedBumpSubscriptions = { unsubscribe: null, current: null };
 const surpriseSubscriptions = { unsubscribe: null, counts: new Map() };
 const SURPRISE_TYPES = [SurpriseTypes.FLAT_TIRE, SurpriseTypes.BUG_SPLAT, SurpriseTypes.WILD_CARD];
 const SHIELD_BLOCK_MESSAGE = '🧼 Attack washed away — that fancy new SHIELD Wax held strong!';
+
+const SURPRISE_PANEL_ICONS = {
+  [SurpriseTypes.FLAT_TIRE]: '🚗',
+  [SurpriseTypes.BUG_SPLAT]: '🐞',
+  [SurpriseTypes.WILD_CARD]: '🛡️'
+};
+
+const SURPRISE_PANEL_LABELS = {
+  [SurpriseTypes.FLAT_TIRE]: 'Flat Tire',
+  [SurpriseTypes.BUG_SPLAT]: 'Bug Splat',
+  [SurpriseTypes.WILD_CARD]: 'Shield Wax'
+};
+
+const teamSurprisesPanelState = {
+  teamName: null,
+  section: null,
+  inventoryList: null,
+  outgoingList: null,
+  shieldChip: null,
+  shieldTickerId: null
+};
+
+function ensureTeamSurprisesSection() {
+  const scoreboard = document.getElementById('scoreboard-container');
+  if (!scoreboard) return null;
+
+  let section = document.getElementById('team-surprises-section');
+  if (!section) {
+    section = document.createElement('section');
+    section.id = 'team-surprises-section';
+    section.className = 'control-section team-surprises-section';
+    section.innerHTML = `
+      <div class="team-surprises-header">
+        <h2>🎉 Team Surprises</h2>
+        <span class="team-surprises-shield" data-role="shield-status">🛡️ Shield inactive</span>
+      </div>
+      <div class="team-surprises-columns">
+        <div class="team-surprises-self">
+          <h3>Your Inventory</h3>
+          <div id="team-surprises-body" class="team-surprises-myteam">
+            <p class="team-surprises-placeholder">Loading your wild cards…</p>
+          </div>
+        </div>
+        <div class="team-surprises-inventory">
+          <h3>All Teams</h3>
+          <ul id="team-surprise-inventory" class="team-surprises-list"></ul>
+        </div>
+      </div>
+      <div class="team-surprises-outgoing" data-role="outgoing-speedbumps">
+        <h3>Outgoing Speed Bumps</h3>
+        <ul id="outgoing-speedbump-list" class="team-surprises-list"></ul>
+      </div>
+    `;
+    scoreboard.insertAdjacentElement('afterend', section);
+  }
+
+  // Ensure the panel lives directly after the scoreboard container.
+  if (section.previousElementSibling !== scoreboard) {
+    scoreboard.insertAdjacentElement('afterend', section);
+  }
+
+  const inventoryList = section.querySelector('#team-surprise-inventory');
+  if (inventoryList && !inventoryList.innerHTML.trim()) {
+    inventoryList.innerHTML = '<li class="team-surprises-empty">No surprise data yet.</li>';
+  }
+
+  const outgoingList = section.querySelector('#outgoing-speedbump-list');
+  if (outgoingList && !outgoingList.innerHTML.trim()) {
+    outgoingList.innerHTML = '<li class="team-surprises-empty">No active Speed Bumps.</li>';
+  }
+
+  const myBody = section.querySelector('#team-surprises-body');
+  if (myBody && !myBody.innerHTML.trim()) {
+    myBody.innerHTML = '<p class="team-surprises-placeholder">Loading your wild cards…</p>';
+  }
+
+  return section;
+}
+
+function extractSurpriseCount(counts = {}, ...keys) {
+  for (const key of keys) {
+    if (key in counts) {
+      const value = Number(counts[key]);
+      if (Number.isFinite(value) && value >= 0) {
+        return value;
+      }
+    }
+  }
+  return 0;
+}
+
+function renderTeamInventory(byTeam = {}) {
+  const list = teamSurprisesPanelState.inventoryList;
+  if (!list) return;
+
+  const entries = Object.entries(byTeam);
+  if (!entries.length) {
+    list.innerHTML = '<li class="team-surprises-empty">No surprise data yet.</li>';
+    return;
+  }
+
+  entries.sort((a, b) => a[0].localeCompare(b[0]));
+  const rows = entries.map(([teamName, counts = {}]) => {
+    const flat = extractSurpriseCount(counts, SurpriseTypes.FLAT_TIRE, 'flatTire');
+    const bug = extractSurpriseCount(counts, SurpriseTypes.BUG_SPLAT, 'bugSplat');
+    const shield = extractSurpriseCount(counts, SurpriseTypes.WILD_CARD, 'wildCard', 'superShieldWax');
+    const highlight = teamName === teamSurprisesPanelState.teamName ? ' is-current-team' : '';
+    return `
+      <li class="team-surprises-row${highlight}">
+        <span class="team-name">${escapeHtml(teamName)}</span>
+        <span class="team-count" data-type="${SurpriseTypes.FLAT_TIRE}" aria-label="${SURPRISE_PANEL_LABELS[SurpriseTypes.FLAT_TIRE]}">
+          <span aria-hidden="true">${SURPRISE_PANEL_ICONS[SurpriseTypes.FLAT_TIRE]}</span>
+          ${flat}
+        </span>
+        <span class="team-count" data-type="${SurpriseTypes.BUG_SPLAT}" aria-label="${SURPRISE_PANEL_LABELS[SurpriseTypes.BUG_SPLAT]}">
+          <span aria-hidden="true">${SURPRISE_PANEL_ICONS[SurpriseTypes.BUG_SPLAT]}</span>
+          ${bug}
+        </span>
+        <span class="team-count" data-type="${SurpriseTypes.WILD_CARD}" aria-label="${SURPRISE_PANEL_LABELS[SurpriseTypes.WILD_CARD]}">
+          <span aria-hidden="true">${SURPRISE_PANEL_ICONS[SurpriseTypes.WILD_CARD]}</span>
+          ${shield}
+        </span>
+      </li>
+    `;
+  }).join('');
+
+  list.innerHTML = rows;
+}
+
+function renderOutgoingList(entries = []) {
+  const list = teamSurprisesPanelState.outgoingList;
+  if (!list) return;
+
+  if (!Array.isArray(entries) || !entries.length) {
+    list.innerHTML = '<li class="team-surprises-empty">No active Speed Bumps.</li>';
+    return;
+  }
+
+  const rows = entries.map(({ toTeam, remainingMs }) => {
+    const seconds = Math.max(0, Math.ceil(Number(remainingMs || 0) / 1000));
+    const label = seconds > 0
+      ? `${seconds}s remaining`
+      : 'Awaiting release';
+    return `
+      <li class="team-surprises-row">
+        <span class="team-name">${escapeHtml(toTeam)}</span>
+        <span class="team-count countdown">⏳ ${label}</span>
+      </li>
+    `;
+  }).join('');
+
+  list.innerHTML = rows;
+}
+
+function formatShieldDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '0s';
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return remainder
+    ? `${minutes}m ${remainder.toString().padStart(2, '0')}s`
+    : `${minutes}m`;
+}
+
+function updateShieldChip() {
+  const { shieldChip, teamName } = teamSurprisesPanelState;
+  if (!shieldChip || !teamName) return;
+
+  const active = isShieldActive(teamName);
+  const remainingMs = Math.max(0, getShieldTimeRemaining(teamName));
+  if (active && remainingMs > 0) {
+    const seconds = Math.ceil(remainingMs / 1000);
+    shieldChip.classList.add('is-active');
+    shieldChip.textContent = `🛡️ Shield active — ${formatShieldDuration(seconds)}`;
+    showShieldTimer(teamName, remainingMs);
+  } else {
+    shieldChip.classList.remove('is-active');
+    shieldChip.textContent = '🛡️ Shield inactive';
+    hideShieldTimer();
+  }
+}
+
+function stopShieldTicker() {
+  if (teamSurprisesPanelState.shieldTickerId) {
+    clearInterval(teamSurprisesPanelState.shieldTickerId);
+    teamSurprisesPanelState.shieldTickerId = null;
+  }
+}
+
+function startShieldTicker() {
+  stopShieldTicker();
+  updateShieldChip();
+  const { teamName } = teamSurprisesPanelState;
+  if (!teamName || !isShieldActive(teamName)) return;
+  teamSurprisesPanelState.shieldTickerId = window.setInterval(() => {
+    if (!teamSurprisesPanelState.teamName) {
+      stopShieldTicker();
+      return;
+    }
+    if (!isShieldActive(teamSurprisesPanelState.teamName)) {
+      stopShieldTicker();
+      updateShieldChip();
+      return;
+    }
+    updateShieldChip();
+  }, 1000);
+}
+
+export function initializeTeamSurprisesPanel(teamName) {
+  const section = ensureTeamSurprisesSection();
+  if (!section) return null;
+
+  const inventoryList = section.querySelector('#team-surprise-inventory');
+  const outgoingList = section.querySelector('#outgoing-speedbump-list');
+  const shieldChip = section.querySelector('[data-role="shield-status"]');
+
+  teamSurprisesPanelState.teamName = teamName;
+  teamSurprisesPanelState.section = section;
+  teamSurprisesPanelState.inventoryList = inventoryList;
+  teamSurprisesPanelState.outgoingList = outgoingList;
+  teamSurprisesPanelState.shieldChip = shieldChip;
+
+  return {
+    renderInventory(byTeam = {}) {
+      renderTeamInventory(byTeam);
+    },
+    renderOutgoing(entries = []) {
+      renderOutgoingList(entries);
+    },
+    refreshShieldStatus() {
+      startShieldTicker();
+    },
+    teardown() {
+      stopShieldTicker();
+      hideShieldTimer();
+      teamSurprisesPanelState.teamName = null;
+      teamSurprisesPanelState.section = null;
+      teamSurprisesPanelState.inventoryList = null;
+      teamSurprisesPanelState.outgoingList = null;
+      teamSurprisesPanelState.shieldChip = null;
+    }
+  };
+}
 
 function getShieldDurationMinutes() {
   const durationMs = getShieldDurationMs();
@@ -58,6 +301,7 @@ export async function setupPlayerChat(currentTeamName) {
   if (!opponentsTbody || !chatLog) return console.warn("⚠️ Chat elements missing on player page.");
 
   const teamSurprisesPanel = document.getElementById('team-surprises-body');
+  const teamSurprisesController = initializeTeamSurprisesPanel(currentTeamName);
   let unsubscribeMySurprises = null;
   let unsubscribeOutgoingBumps = null;
 
@@ -141,6 +385,7 @@ export async function setupPlayerChat(currentTeamName) {
         activateShield(currentTeamName);
         const ms = getShieldTimeRemaining(currentTeamName);
         showShieldHudTimer(ms);
+        teamSurprisesController?.refreshShieldStatus();
       };
     }
 
@@ -149,6 +394,8 @@ export async function setupPlayerChat(currentTeamName) {
     } else if (!shieldActive) {
       hideShieldHudTimer();
     }
+
+    teamSurprisesController?.refreshShieldStatus();
   };
 
   if (teamSurprisesPanel) {
@@ -298,19 +545,24 @@ export async function setupPlayerChat(currentTeamName) {
 
   surpriseSubscriptions.unsubscribe?.();
   surpriseSubscriptions.counts = new Map();
-  surpriseSubscriptions.unsubscribe = subscribeTeamSurprises((entries = []) => {
+  surpriseSubscriptions.unsubscribe = subscribeTeamSurprises((entries = [], byTeam = null) => {
     const map = new Map();
     entries.forEach(entry => {
       map.set(entry.teamName, entry.counts || {});
     });
     surpriseSubscriptions.counts = map;
     updateSurpriseCounters(currentTeamName);
+    const aggregate = byTeam || Object.fromEntries(entries.map(entry => [entry.teamName, entry.counts || {}]));
+    teamSurprisesController?.renderInventory(aggregate);
+    teamSurprisesController?.refreshShieldStatus();
   });
 
   renderOutgoingBumpTimers([]);
+  teamSurprisesController?.renderOutgoing([]);
   unsubscribeOutgoingBumps?.();
   unsubscribeOutgoingBumps = subscribeSpeedBumpsForAttacker(currentTeamName, (list = []) => {
     renderOutgoingBumpTimers(list);
+    teamSurprisesController?.renderOutgoing(list);
   });
 
   const shieldQuery = query(collection(db, 'communications'), where('type', '==', 'shieldWax'));
@@ -325,6 +577,9 @@ export async function setupPlayerChat(currentTeamName) {
       }
       if (targetTeam) {
         activateShield(targetTeam, expiresAt);
+        if (targetTeam === currentTeamName) {
+          teamSurprisesController?.refreshShieldStatus();
+        }
       }
     });
   });
@@ -345,6 +600,7 @@ export async function setupPlayerChat(currentTeamName) {
     unsubscribeMySurprises = null;
     unsubscribeOutgoingBumps?.();
     unsubscribeOutgoingBumps = null;
+    teamSurprisesController?.teardown();
     hideShieldHudTimer();
   };
 }

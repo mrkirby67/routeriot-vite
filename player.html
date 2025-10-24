@@ -176,11 +176,31 @@
       <button id="submit-answer-btn">Submit Answer</button>
     </div>
 
-    <!-- 🎉 Team Surprises (Player View) -->
-    <section id="team-surprises-panel" class="control-section" style="margin-top:10px;">
-      <h3>🎉 Team Surprises</h3>
-      <div id="team-surprises-body">
-        <p style="color:#888;">Loading your wild cards…</p>
+    <!-- 🎉 Team Surprises -->
+    <section id="team-surprises-section" class="control-section">
+      <div class="team-surprises-header">
+        <h2>🎉 Team Surprises</h2>
+        <span class="team-surprises-shield" data-role="shield-status">🛡️ Shield inactive</span>
+      </div>
+      <div class="team-surprises-columns">
+        <div class="team-surprises-self">
+          <h3>Your Inventory</h3>
+          <div id="team-surprises-body" class="team-surprises-myteam">
+            <p class="team-surprises-placeholder">Loading your wild cards…</p>
+          </div>
+        </div>
+        <div class="team-surprises-inventory">
+          <h3>All Teams</h3>
+          <ul id="team-surprise-inventory" class="team-surprises-list">
+            <li class="team-surprises-empty">No surprise data yet.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="team-surprises-outgoing" data-role="outgoing-speedbumps">
+        <h3>Outgoing Speed Bumps</h3>
+        <ul id="outgoing-speedbump-list" class="team-surprises-list">
+          <li class="team-surprises-empty">No active Speed Bumps.</li>
+        </ul>
       </div>
     </section>
 

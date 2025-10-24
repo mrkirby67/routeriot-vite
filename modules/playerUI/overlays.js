@@ -602,3 +602,60 @@ function updateShieldHud(endAt) {
     hideShieldHudTimer();
   }
 }
+
+let floatingShieldOverlay = null;
+let floatingShieldInterval = null;
+let floatingShieldEndAt = 0;
+let floatingShieldTeam = null;
+
+function updateFloatingShieldOverlay(teamName, remainingMs) {
+  const seconds = Math.max(0, Math.ceil(remainingMs / 1000));
+  if (!floatingShieldOverlay) {
+    floatingShieldOverlay = document.createElement('div');
+    floatingShieldOverlay.className = 'shield-timer-overlay';
+    document.body.appendChild(floatingShieldOverlay);
+  }
+  floatingShieldOverlay.dataset.team = teamName || '';
+  floatingShieldOverlay.textContent = `🛡️ Shield Wax active – ${seconds}s remaining`;
+}
+
+export function showShieldTimer(teamName, msRemaining = 0) {
+  if (!teamName) return;
+  const duration = Math.max(0, Number(msRemaining) || 0);
+  if (duration <= 0) {
+    hideShieldTimer();
+    return;
+  }
+
+  const endAt = Date.now() + duration;
+  floatingShieldTeam = teamName;
+  floatingShieldEndAt = endAt;
+  updateFloatingShieldOverlay(teamName, duration);
+
+  if (floatingShieldInterval) {
+    clearInterval(floatingShieldInterval);
+    floatingShieldInterval = null;
+  }
+
+  floatingShieldInterval = window.setInterval(() => {
+    const remaining = Math.max(0, floatingShieldEndAt - Date.now());
+    if (remaining <= 0 || !floatingShieldTeam) {
+      hideShieldTimer();
+      return;
+    }
+    updateFloatingShieldOverlay(floatingShieldTeam, remaining);
+  }, 1000);
+}
+
+export function hideShieldTimer() {
+  if (floatingShieldInterval) {
+    clearInterval(floatingShieldInterval);
+    floatingShieldInterval = null;
+  }
+  floatingShieldTeam = null;
+  floatingShieldEndAt = 0;
+  if (floatingShieldOverlay) {
+    floatingShieldOverlay.remove();
+    floatingShieldOverlay = null;
+  }
+}
