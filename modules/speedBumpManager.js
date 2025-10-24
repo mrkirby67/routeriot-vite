@@ -63,18 +63,26 @@ function ensureCommsListener() {
   });
 }
 
-function parseBroadcast(message) {
+function parseBroadcast(message = '') {
   if (!message) return;
-  const speedBumpMatch = message.match(/Speed Bump: ([^]+?) challenged ([^!]+)! Challenge: ([^]+?)(?: —|\.|$)/);
+  const speedBumpMatch = message.match(/Speed Bump:\s*([^\n]+?)\s+challenged\s+([^\n!]+)!/);
   if (speedBumpMatch) {
-    const [, fromTeam, toTeam, challengeRaw] = speedBumpMatch;
-    const challenge = challengeRaw.trim();
-    applySpeedBump(toTeam.trim(), {
-      by: fromTeam.trim(),
+    const [, fromTeamRaw, toTeamRaw] = speedBumpMatch;
+    const challengeMatch = message.match(/Challenge:\s*([^\n]+)/);
+    const emailMatch = message.match(/Contact Email:\s*([^\n]+)/);
+    const phoneMatch = message.match(/Contact Phone:\s*([^\n]+)/);
+
+    const challenge = (challengeMatch?.[1] || '').trim();
+    const contactEmail = (emailMatch?.[1] || '').trim();
+    const contactPhone = (phoneMatch?.[1] || '').trim();
+    applySpeedBump(toTeamRaw.trim(), {
+      by: fromTeamRaw.trim(),
       challenge,
       startedAt: Date.now(),
       proofSentAt: null,
-      countdownEndsAt: null
+      countdownEndsAt: null,
+      contactEmail: contactEmail || null,
+      contactPhone: contactPhone || null
     });
     return;
   }
@@ -98,6 +106,13 @@ function parseBroadcast(message) {
 
 function normalizeChallenge(text) {
   return String(text || '')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/[<>]/g, '')
+    .trim();
+}
+
+function sanitizeForBroadcast(value) {
+  return String(value || '')
     .replace(/[\r\n]+/g, ' ')
     .replace(/[<>]/g, '')
     .trim();
@@ -223,7 +238,9 @@ function handleReversal(priorAttacker, priorVictim, newAttacker, challenge) {
       challenge,
       startedAt,
       proofSentAt: null,
-      countdownEndsAt: null
+      countdownEndsAt: null,
+      contactEmail: null,
+      contactPhone: null
     });
 
     sendPrivateMessage(priorAttacker, '🚧 You hit your own bump! Time to slow down.');
@@ -305,19 +322,24 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
   }
 
   const { email: senderEmail, phone: senderPhone } = formatSenderContact(attacker);
+  const contactEmail = senderEmail && senderEmail !== 'not provided' ? sanitizeForBroadcast(senderEmail) : '';
+  const contactPhone = senderPhone && senderPhone !== 'not provided' ? sanitizeForBroadcast(senderPhone) : '';
 
   const messageLines = [
-    `🚧 Speed Bump: ${escapeHtml(attacker)} challenged ${escapeHtml(defender)}!`,
+    `🚧 Speed Bump: ${sanitizeForBroadcast(attacker)} challenged ${sanitizeForBroadcast(defender)}!`,
     '',
-    `Challenge: ${escapeHtml(challenge)}`,
-    '',
-    '📇 CONTACT DETAILS:',
-    `• Email: ${escapeHtml(senderEmail)}`,
-    `• Phone: ${escapeHtml(senderPhone)}`,
-    '',
-    'Reply with a proof photo / video to clear your Speed Bump!'
+    `Challenge: ${challenge}`
   ];
-  const message = messageLines.join('<br>');
+
+  if (contactEmail) {
+    messageLines.push('', `Contact Email: ${contactEmail}`);
+  }
+  if (contactPhone) {
+    messageLines.push('', `Contact Phone: ${contactPhone}`);
+  }
+
+  messageLines.push('', 'Reply with a proof photo / video to clear your Speed Bump!');
+  const message = messageLines.join('\n');
 
   await broadcastEvent('Game Master', message, true);
 
@@ -326,7 +348,9 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
     challenge,
     startedAt: now,
     proofSentAt: null,
-    countdownEndsAt: null
+    countdownEndsAt: null,
+    contactEmail: contactEmail || null,
+    contactPhone: contactPhone || null
   });
   startCooldown(attacker, 'bump', override ? 0 : COOLDOWN_MS);
   commitInteractionCooldown(pairKey);
@@ -439,7 +463,13 @@ function notify() {
 
 function applySpeedBump(teamName, data) {
   clearValidationTimer(teamName);
-  activeBumps.set(teamName, { ...data });
+  const email = typeof data?.contactEmail === 'string' ? data.contactEmail.trim() : '';
+  const phone = typeof data?.contactPhone === 'string' ? data.contactPhone.trim() : '';
+  activeBumps.set(teamName, {
+    ...data,
+    contactEmail: email || null,
+    contactPhone: phone || null
+  });
   startWildCard(teamName, 'speedBump', WILD_CARD_DURATION_MS);
   notify();
 }

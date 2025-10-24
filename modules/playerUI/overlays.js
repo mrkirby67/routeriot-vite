@@ -55,7 +55,10 @@ export function showSpeedBumpOverlay({
   countdownMs,
   proofSent,
   onProof,
-  onRelease
+  onRelease,
+  onChirp,
+  contactEmail,
+  contactPhone
 } = {}) {
   let overlay = document.getElementById('speedbump-overlay');
   if (!overlay) {
@@ -94,6 +97,12 @@ export function showSpeedBumpOverlay({
     challengeEl.style.padding = '12px 16px';
     challengeEl.style.maxWidth = '520px';
     overlay.appendChild(challengeEl);
+
+    const contactWrap = document.createElement('div');
+    contactWrap.id = 'speedbump-overlay-contact';
+    contactWrap.className = 'speedbump-contact-info';
+    contactWrap.style.display = 'none';
+    overlay.appendChild(contactWrap);
 
     const countdown = document.createElement('div');
     countdown.id = 'speedbump-overlay-countdown';
@@ -157,6 +166,7 @@ export function showSpeedBumpOverlay({
   const proofBtn = document.getElementById('speedbump-proof-btn');
   const chirpInput = document.getElementById('sb-chirp-input');
   const chirpBtn = document.getElementById('sb-chirp-send');
+  const contactEl = document.getElementById('speedbump-overlay-contact');
   const note = document.getElementById('speedbump-overlay-note');
 
   if (message) {
@@ -171,6 +181,27 @@ export function showSpeedBumpOverlay({
   if (note) {
     const recipientLabel = escapeHtml(cleanSender || 'the sending team');
     note.innerHTML = `Send your proof photo to <strong>${recipientLabel}</strong>, then chirp them while you wait. Auto release follows the proof timer if they stall.`;
+  }
+
+  if (contactEl) {
+    const emailValue = typeof contactEmail === 'string' ? contactEmail.trim() : '';
+    const phoneValue = typeof contactPhone === 'string' ? contactPhone.trim() : '';
+    const hasEmail = Boolean(emailValue);
+    const hasPhone = Boolean(phoneValue);
+    if (hasEmail || hasPhone) {
+      let inner = '<h4 style="margin:0;font-size:1rem;">📇 Contact Info</h4>';
+      if (hasEmail) {
+        inner += `<p style="margin:6px 0 0;">Email: ${escapeHtml(emailValue)}</p>`;
+      }
+      if (hasPhone) {
+        inner += `<p style="margin:6px 0 0;">Phone: ${escapeHtml(phoneValue)}</p>`;
+      }
+      contactEl.innerHTML = inner;
+      contactEl.style.display = 'block';
+    } else {
+      contactEl.style.display = 'none';
+      contactEl.innerHTML = '';
+    }
   }
 
   if (chirpBtn) {
