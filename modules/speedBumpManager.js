@@ -6,6 +6,7 @@
 
 import { broadcastEvent } from './zonesFirestore.js';
 import { db } from './config.js';
+import { allTeams } from '../data.js';
 import {
   collection,
   onSnapshot,
@@ -15,6 +16,10 @@ import {
 
 const COOLDOWN_MS = 60_000;
 const VALIDATION_MS = 5 * 60_000;
+
+const TEAM_DIRECTORY = Array.isArray(allTeams)
+  ? new Map(allTeams.map(team => [String(team?.name || '').trim(), team]))
+  : new Map();
 
 const activeBumps = new Map(); // teamName -> { by, challenge, startedAt, proofSentAt, countdownEndsAt }
 const cooldowns = new Map(); // `${team}:${type}` -> expiresAt
@@ -81,6 +86,86 @@ function sanitize(text) {
     .trim();
 }
 
+function findTeamByName(name) {
+  if (!name) return null;
+  const key = String(name).trim();
+  const direct = TEAM_DIRECTORY.get(key);
+  if (direct) return direct;
+  const lower = key.toLowerCase();
+  for (const team of TEAM_DIRECTORY.values()) {
+    if (team?.name && team.name.toLowerCase() === lower) return team;
+  }
+  return null;
+}
+
+function formatSenderContact(senderTeamName) {
+  const team = findTeamByName(senderTeamName);
+  const email = team?.email ? String(team.email).trim() : 'not provided';
+  const phone = team?.phone ? String(team.phone).trim() : 'not provided';
+  return { email: email || 'not provided', phone: phone || 'not provided' };
+}
+
+function getRecipientContact(teamName) {
+  const team = findTeamByName(teamName);
+  const email = team?.email ? String(team.email).trim() : null;
+  const phone = team?.phone ? String(team.phone).trim() : null;
+  return { email: email || null, phone: phone || null };
+}
+
+function openDirectMessage({ fromTeam, toTeam, challengeText }) {
+  if (typeof window === 'undefined') return;
+
+  const safeFrom = String(fromTeam || 'Unknown Team');
+  const safeTo = String(toTeam || 'Recipient Team');
+  const challenge = String(challengeText || 'Take a photo or video of the challenge').trim();
+
+  const { email: senderEmail, phone: senderPhone } = formatSenderContact(safeFrom);
+  const { email: recipientEmail, phone: recipientPhone } = getRecipientContact(safeTo);
+
+  const bodyLines = [
+    'Route Riot Speed Bump!',
+    '',
+    `From: ${safeFrom}`,
+    `Sender email: ${senderEmail}`,
+    `Sender phone: ${senderPhone}`,
+    '',
+    'Challenge:',
+    challenge,
+    '',
+    'Please send the requested photo/video to the sender to release them.',
+    'If you have issues replying, use the in-app Release button once confirmed.'
+  ];
+
+  const encodedBody = encodeURIComponent(bodyLines.join('\n'));
+  const subject = encodeURIComponent('Route Riot Speed Bump!');
+
+  let opened = false;
+
+  if (recipientEmail) {
+    const mailto = `mailto:${recipientEmail}?subject=${subject}&body=${encodedBody}`;
+    try {
+      window.open(mailto, '_blank');
+      opened = true;
+    } catch (err) {
+      console.warn('⚠️ Failed to open mail client:', err);
+    }
+  } else if (recipientPhone) {
+    const smsLink = `sms:${recipientPhone}?body=${encodedBody}`;
+    try {
+      window.open(smsLink, '_blank');
+      opened = true;
+    } catch (err) {
+      console.warn('⚠️ Failed to open SMS client:', err);
+    }
+  }
+
+  if (!opened) {
+    const preview = bodyLines.join('\n');
+    const message = `No direct contact found for ${safeTo}. Copy the message below:\n\n${preview}`;
+    window.alert(message);
+  }
+}
+
 export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override = false } = {}) {
   ensureCommsListener();
   const challenge = sanitize(challengeText) || 'Complete a surprise photo challenge!';
@@ -102,6 +187,14 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
     countdownEndsAt: null
   });
   startCooldown(fromTeam, 'bump', override ? 0 : COOLDOWN_MS);
+
+  if (typeof window !== 'undefined') {
+    try {
+      openDirectMessage({ fromTeam, toTeam, challengeText: challengeText || challenge });
+    } catch (err) {
+      console.warn('⚠️ Could not open direct message for Speed Bump:', err);
+    }
+  }
   return { ok: true };
 }
 
