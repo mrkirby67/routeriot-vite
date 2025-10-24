@@ -10,7 +10,8 @@ import {
   subscribeSpeedBumps,
   getCooldownRemaining,
   getActiveBump,
-  markProofSent
+  markProofSent,
+  sendSpeedBumpChirp
 } from './speedBumpManager.js';
 import {
   showSpeedBumpOverlay,
@@ -43,7 +44,12 @@ function handleStateUpdate() {
       countdownMs: active.countdownMs,
       proofSent: Boolean(active.proofSentAt),
       onProof: () => markProofSent(currentTeamName),
-      onRelease: () => releaseSpeedBumpFromPlayer(currentTeamName, currentTeamName)
+      onRelease: () => releaseSpeedBumpFromPlayer(currentTeamName, currentTeamName),
+      onChirp: (value) => sendSpeedBumpChirp({
+        fromTeam: currentTeamName,
+        toTeam: active.by,
+        message: value
+      })
     });
   } else {
     hideSpeedBumpOverlay();

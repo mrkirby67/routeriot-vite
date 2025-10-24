@@ -21,12 +21,12 @@ const CONFIG_DOCUMENT = doc(db, 'settings', 'flatTireConfig');
 
 export const CAPTURE_RADIUS_METERS = 100;
 
-const DEFAULT_DIAMETER_KM = 0.2; // 200 meters
+const DEFAULT_DIAMETER_METERS = 200;
 const DEFAULT_ZONES = {
-  north: { name: 'North Repair Depot', gps: '', diameter: DEFAULT_DIAMETER_KM },
-  south: { name: 'South Repair Depot', gps: '', diameter: DEFAULT_DIAMETER_KM },
-  east: { name: 'East Repair Depot', gps: '', diameter: DEFAULT_DIAMETER_KM },
-  west: { name: 'West Repair Depot', gps: '', diameter: DEFAULT_DIAMETER_KM }
+  north: { name: 'North Repair Depot', gps: '', diameterMeters: DEFAULT_DIAMETER_METERS },
+  south: { name: 'South Repair Depot', gps: '', diameterMeters: DEFAULT_DIAMETER_METERS },
+  east: { name: 'East Repair Depot', gps: '', diameterMeters: DEFAULT_DIAMETER_METERS },
+  west: { name: 'West Repair Depot', gps: '', diameterMeters: DEFAULT_DIAMETER_METERS }
 };
 
 function encodeTeamId(teamName = '') {
@@ -66,17 +66,45 @@ function toTimestamp(value, fallback = Date.now()) {
 function serializeAssignmentInput(teamName, options = {}) {
   const assignedMs = options.assignedAt ?? Date.now();
   const autoReleaseMs = options.autoReleaseAt ?? (assignedMs + (options.autoReleaseMinutes ?? 20) * 60_000);
+  const preferredLat = Number.isFinite(options.lat) ? Number(options.lat) : null;
+  const preferredLng = Number.isFinite(options.lng) ? Number(options.lng) : null;
+  const parsedGps = parseGpsString(options.gps);
+  const lat = Number.isFinite(preferredLat) ? preferredLat : (parsedGps?.lat ?? null);
+  const lng = Number.isFinite(preferredLng) ? preferredLng : (parsedGps?.lng ?? null);
+  let diameterMeters = Number(options.diameterMeters);
+  if (!Number.isFinite(diameterMeters) || diameterMeters <= 0) {
+    const legacyKm = Number(options.diameter);
+    if (Number.isFinite(legacyKm) && legacyKm > 0) {
+      diameterMeters = legacyKm * 1000;
+    }
+  }
+  if (!Number.isFinite(diameterMeters) || diameterMeters <= 0) {
+    diameterMeters = DEFAULT_DIAMETER_METERS;
+  }
+  const assignedBy = typeof options.assignedBy === 'string' && options.assignedBy.trim()
+    ? options.assignedBy.trim()
+    : (typeof options.fromTeam === 'string' && options.fromTeam.trim()
+        ? options.fromTeam.trim()
+        : 'Game Control');
+  const depotId = options.depotId || options.zoneKey || null;
+
   return {
     teamName,
     zoneKey: options.zoneKey || null,
+    depotId,
     zoneName: options.zoneName || '',
     gps: options.gps || '',
+    lat,
+    lng,
+    diameterMeters,
     captureRadiusMeters: options.captureRadiusMeters || CAPTURE_RADIUS_METERS,
     status: options.status || 'assigned',
     notes: options.notes || '',
     distanceRemainingKm: typeof options.distanceRemainingKm === 'number'
       ? Math.max(0, options.distanceRemainingKm)
       : null,
+    assignedBy,
+    diameter: diameterMeters / 1000,
     assignedAt: toTimestamp(assignedMs, Date.now()),
     autoReleaseAt: toTimestamp(autoReleaseMs, assignedMs + 20 * 60_000),
     updatedAt: serverTimestamp()
@@ -87,11 +115,29 @@ function normalizeConfig(raw = {}) {
   const zones = { ...DEFAULT_ZONES, ...(raw.zones || {}) };
   Object.keys(zones).forEach((key) => {
     const zone = zones[key] || {};
-    zones[key] = {
-      name: typeof zone.name === 'string' && zone.name.trim() ? zone.name.trim() : DEFAULT_ZONES[key]?.name || `Zone ${key.toUpperCase()}`,
-      gps: typeof zone.gps === 'string' ? zone.gps.trim() : '',
-      diameter: typeof zone.diameter === 'number' && zone.diameter > 0 ? zone.diameter : DEFAULT_DIAMETER_KM
+    const safeName = typeof zone.name === 'string' && zone.name.trim()
+      ? zone.name.trim()
+      : DEFAULT_ZONES[key]?.name || `Zone ${key.toUpperCase()}`;
+    const safeGps = typeof zone.gps === 'string' ? zone.gps.trim() : '';
+    let diameterMeters = Number(zone.diameterMeters);
+    if (!Number.isFinite(diameterMeters) || diameterMeters <= 0) {
+      const legacyKm = Number(zone.diameter);
+      if (Number.isFinite(legacyKm) && legacyKm > 0) {
+        diameterMeters = legacyKm * 1000;
+      }
+    }
+    if (!Number.isFinite(diameterMeters) || diameterMeters <= 0) {
+      diameterMeters = DEFAULT_DIAMETER_METERS;
+    }
+    const normalized = {
+      name: safeName,
+      gps: safeGps,
+      diameterMeters,
+      diameter: diameterMeters / 1000
     };
+    if (Number.isFinite(zone.lat)) normalized.lat = Number(zone.lat);
+    if (Number.isFinite(zone.lng)) normalized.lng = Number(zone.lng);
+    zones[key] = normalized;
   });
 
   const autoIntervalMinutes =

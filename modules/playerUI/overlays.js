@@ -115,13 +115,30 @@ export function showSpeedBumpOverlay({
     Object.assign(proofBtn.style, primaryButtonStyle('#66bb6a', '#0c2d10'));
     buttonRow.appendChild(proofBtn);
 
-    const releaseBtn = document.createElement('button');
-    releaseBtn.id = 'speedbump-release-btn';
-    releaseBtn.textContent = '🟢 Release Me';
-    Object.assign(releaseBtn.style, primaryButtonStyle('#ffb74d', '#1a1200'));
-    buttonRow.appendChild(releaseBtn);
-
     overlay.appendChild(buttonRow);
+
+    const chirpRow = document.createElement('div');
+    chirpRow.id = 'speedbump-chirp-row';
+    chirpRow.className = 'chirp-row';
+
+    const chirpLabel = document.createElement('label');
+    chirpLabel.setAttribute('for', 'sb-chirp-input');
+    chirpLabel.textContent = '🗯 Express your opinion (1 msg/min)';
+    chirpRow.appendChild(chirpLabel);
+
+    const chirpInput = document.createElement('input');
+    chirpInput.id = 'sb-chirp-input';
+    chirpInput.type = 'text';
+    chirpInput.maxLength = 140;
+    chirpInput.placeholder = 'Roast the bumpers… or leave blank for a random zinger';
+    chirpRow.appendChild(chirpInput);
+
+    const chirpButton = document.createElement('button');
+    chirpButton.id = 'sb-chirp-send';
+    chirpButton.textContent = 'Send';
+    chirpRow.appendChild(chirpButton);
+
+    overlay.appendChild(chirpRow);
 
     const note = document.createElement('div');
     note.id = 'speedbump-overlay-note';
@@ -132,12 +149,14 @@ export function showSpeedBumpOverlay({
     document.body.appendChild(overlay);
   }
 
-  const senderLabel = by ? `by ${by}` : 'by another team';
+  const cleanSender = typeof by === 'string' ? by.trim() : '';
+  const senderLabel = cleanSender ? `by ${cleanSender}` : 'by another team';
   const message = document.getElementById('speedbump-overlay-message');
   const challengeEl = document.getElementById('speedbump-overlay-challenge');
   const countdownEl = document.getElementById('speedbump-overlay-countdown');
   const proofBtn = document.getElementById('speedbump-proof-btn');
-  const releaseBtn = document.getElementById('speedbump-release-btn');
+  const chirpInput = document.getElementById('sb-chirp-input');
+  const chirpBtn = document.getElementById('sb-chirp-send');
   const note = document.getElementById('speedbump-overlay-note');
 
   if (message) {
@@ -145,11 +164,64 @@ export function showSpeedBumpOverlay({
   }
 
   if (challengeEl) {
-    challengeEl.innerHTML = `<strong>Challenge:</strong> ${challenge || 'Complete your photo challenge!'}`;
+    const safeChallenge = escapeHtml(challenge || 'Complete your photo challenge!');
+    challengeEl.innerHTML = `<strong>Challenge:</strong> ${safeChallenge}`;
   }
 
   if (note) {
-    note.textContent = `Send your proof photo to ${by || 'the sending team'} via text or email, then confirm below.`;
+    const recipientLabel = escapeHtml(cleanSender || 'the sending team');
+    note.innerHTML = `Send your proof photo to <strong>${recipientLabel}</strong>, then chirp them while you wait. Auto release follows the proof timer if they stall.`;
+  }
+
+  if (chirpBtn) {
+    if (typeof onChirp !== 'function') {
+      chirpBtn.disabled = true;
+      chirpBtn.title = 'Chirp unavailable right now.';
+    } else {
+      chirpBtn.disabled = false;
+      chirpBtn.title = '';
+      chirpBtn.onclick = async () => {
+        if (chirpBtn.disabled) return;
+        const value = chirpInput?.value || '';
+        chirpBtn.disabled = true;
+        const reset = () => {
+          chirpBtn.textContent = 'Send';
+          chirpBtn.disabled = false;
+        };
+        try {
+          chirpBtn.textContent = 'Sending…';
+          const result = await onChirp(value);
+          if (result?.ok) {
+            if (chirpInput) chirpInput.value = '';
+            chirpBtn.textContent = 'Sent!';
+            setTimeout(reset, 1400);
+          } else if (result?.reason === 'rate_limited') {
+            chirpBtn.textContent = 'Too Soon';
+            chirpBtn.title = 'You can chirp once per minute.';
+            setTimeout(() => {
+              chirpBtn.title = '';
+              reset();
+            }, 1600);
+          } else {
+            chirpBtn.textContent = 'Try Again';
+            setTimeout(reset, 1400);
+          }
+        } catch (err) {
+          console.error('❌ Speed bump chirp failed:', err);
+          chirpBtn.textContent = 'Error';
+          setTimeout(reset, 1400);
+        }
+      };
+    }
+  }
+
+  if (chirpInput) {
+    chirpInput.onkeydown = (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        chirpBtn?.click();
+      }
+    };
   }
 
   if (proofBtn) {
@@ -169,24 +241,6 @@ export function showSpeedBumpOverlay({
     };
   }
 
-  if (releaseBtn) {
-    const canRelease = !!proofSent && (!countdownMs || countdownMs <= 0);
-    releaseBtn.disabled = !canRelease;
-    releaseBtn.style.opacity = canRelease ? '1' : '0.6';
-    releaseBtn.onclick = async () => {
-      if (releaseBtn.disabled) return;
-      releaseBtn.disabled = true;
-      releaseBtn.style.opacity = '0.6';
-      try {
-        await onRelease?.();
-      } catch (err) {
-        console.error('Speed bump release failed:', err);
-        releaseBtn.disabled = false;
-        releaseBtn.style.opacity = canRelease ? '1' : '0.6';
-      }
-    };
-  }
-
   if (speedBumpCountdownInterval) {
     clearInterval(speedBumpCountdownInterval);
     speedBumpCountdownInterval = null;
@@ -201,17 +255,13 @@ export function showSpeedBumpOverlay({
         if (remaining <= 0) {
           clearInterval(speedBumpCountdownInterval);
           speedBumpCountdownInterval = null;
-          countdownEl.textContent = '📸 Proof timer finished. You may self-release if not already freed.';
-          if (releaseBtn) {
-            releaseBtn.disabled = false;
-            releaseBtn.style.opacity = '1';
-          }
+          countdownEl.textContent = '📸 Proof timer finished. Auto release should trigger shortly.';
         }
       };
       updateCountdown();
       speedBumpCountdownInterval = setInterval(updateCountdown, 1000);
     } else if (proofSent && (!countdownMs || countdownMs <= 0)) {
-      countdownEl.textContent = '📸 Proof timer finished. You may self-release if not already freed.';
+      countdownEl.textContent = '📸 Proof timer finished. Auto release should trigger shortly.';
     } else {
       countdownEl.textContent = '📸 Awaiting photo proof to begin the countdown.';
     }
@@ -282,12 +332,17 @@ function ensureFlatTireOverlay() {
   panel.innerHTML = `
     <h2 style="margin:0;font-size:1.4rem;color:#81d4fa;">🚗 Flat Tire — Tow Time</h2>
     <p id="flat-tire-message" style="margin:0;color:#e0f7fa;font-size:1rem;line-height:1.5;"></p>
+    <p id="flat-tire-blurb" class="ft-blurb"></p>
     <div id="flat-tire-map" style="border-radius:12px;overflow:hidden;border:1px solid rgba(255,183,77,0.35);min-height:160px;"></div>
+    <div id="flat-tire-chirp-row" class="chirp-row">
+      <label for="ft-chirp-input">🗯 Express your opinion (1 msg/min)</label>
+      <input id="ft-chirp-input" type="text" maxlength="140" placeholder="Type a chirp… or leave blank for a random zinger" />
+      <button id="ft-chirp-send">Send</button>
+    </div>
     <div id="flat-tire-countdown" style="font-size:1.4rem;font-weight:700;color:#ffeb3b;text-align:center;"></div>
     <div id="flat-tire-distance" style="font-size:0.95rem;color:#b0bec5;text-align:center;"></div>
     <div id="flat-tire-actions" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
       <button id="flat-tire-checkin-btn" style="padding:10px 18px;border-radius:999px;border:none;font-weight:600;background:#64b5f6;color:#032b44;cursor:pointer;">📍 Check-In</button>
-      <button id="flat-tire-release-btn" style="padding:10px 18px;border-radius:999px;border:none;font-weight:600;background:#a5d6a7;color:#09311a;cursor:pointer;">✅ Tow Complete</button>
     </div>
     <small id="flat-tire-note" style="text-align:center;color:#90a4ae;">Tow crews auto-release 20 minutes after dispatch.</small>
   `;
@@ -300,38 +355,69 @@ function ensureFlatTireOverlay() {
 
 export function showFlatTireOverlay({
   zoneName = 'Tow Zone',
+  depotId = '',
   gps = '',
+  lat = null,
+  lng = null,
+  diameterMeters = 200,
   status = 'assigned',
   distanceRemainingKm = null,
   autoReleaseAtMs = null,
   assignedAtMs = null,
+  assignedBy = '',
   onCheckIn,
   onManualRelease,
-  onAutoRelease
+  onAutoRelease,
+  onChirp
 } = {}) {
   const overlay = ensureFlatTireOverlay();
   const message = overlay.querySelector('#flat-tire-message');
+  const blurbEl = overlay.querySelector('#flat-tire-blurb');
   const mapWrapper = overlay.querySelector('#flat-tire-map');
   const countdownEl = overlay.querySelector('#flat-tire-countdown');
   const distanceEl = overlay.querySelector('#flat-tire-distance');
   const checkInBtn = overlay.querySelector('#flat-tire-checkin-btn');
-  const releaseBtn = overlay.querySelector('#flat-tire-release-btn');
+  const noteEl = overlay.querySelector('#flat-tire-note');
+  const chirpInput = overlay.querySelector('#ft-chirp-input');
+  const chirpBtn = overlay.querySelector('#ft-chirp-send');
+  const cleanAssignedBy = typeof assignedBy === 'string' ? assignedBy.trim() : '';
 
   flatTireAutoReleaseTriggered = false;
 
   if (message) {
-    const statusCopy = status?.toLowerCase().startsWith('enroute')
+    const statusLabel = typeof status === 'string' ? status.toLowerCase() : '';
+    const statusCopy = statusLabel.startsWith('enroute')
       ? 'Support crew is tracking your approach.'
       : 'Repair crews are rolling out. Stay put!';
-    message.innerHTML = `${statusCopy}<br><strong>Assigned Zone:</strong> ${escapeHtml(zoneName)}`;
+    const zoneLabel = escapeHtml(zoneName);
+    const assignedLabel = cleanAssignedBy
+      ? `<br><em>Tagged by ${escapeHtml(cleanAssignedBy)}</em>`
+      : '';
+    message.innerHTML = `${statusCopy}<br><strong>Assigned Zone:</strong> ${zoneLabel}${assignedLabel}`;
+  }
+
+  if (blurbEl) {
+    const depotKey = (depotId || zoneName || '').toString().toLowerCase();
+    let depotBlurb = 'Ahh shoot! You got a flat—head to the repair depot shown below.';
+    if (depotKey.includes('north')) {
+      depotBlurb = 'Dang! You popped a tire. Slap on that donut and roll to the North Depot!';
+    } else if (depotKey.includes('south')) {
+      depotBlurb = 'Well butter my biscuit—you’ve got a flat! South Depot’s calling your name.';
+    } else if (depotKey.includes('east')) {
+      depotBlurb = 'Yikes, that rim’s singing. Glide (slowly) to the East Depot for a quick fix.';
+    } else if (depotKey.includes('west')) {
+      depotBlurb = 'That thump-thump ain’t the bass. West Depot’s where the rubber meets repairs.';
+    }
+    blurbEl.textContent = depotBlurb;
   }
 
   if (mapWrapper) {
     if (gps) {
+      const diameterKm = Math.max(0, Number(diameterMeters) || 200) / 1000;
       mapWrapper.innerHTML = generateMiniMap({
         name: zoneName,
         gps,
-        diameter: 0.2
+        diameter: diameterKm || 0.2
       });
     } else {
       mapWrapper.innerHTML = `<div style="padding:24px;text-align:center;color:#b0bec5;">No GPS configured for this tow zone.</div>`;
@@ -355,6 +441,62 @@ export function showFlatTireOverlay({
     };
   }
 
+  if (noteEl) {
+    const noteTarget = escapeHtml(cleanAssignedBy || 'Game Control');
+    noteEl.innerHTML = `Tow crews auto-release <strong>20 minutes</strong> after dispatch. Chirp ${noteTarget} if you need backup.`;
+  }
+
+  if (chirpBtn) {
+    if (typeof onChirp !== 'function') {
+      chirpBtn.disabled = true;
+      chirpBtn.title = 'Chirp unavailable right now.';
+    } else {
+      chirpBtn.disabled = false;
+      chirpBtn.title = '';
+      chirpBtn.onclick = async () => {
+        if (chirpBtn.disabled) return;
+        const value = chirpInput?.value || '';
+        chirpBtn.disabled = true;
+        const reset = () => {
+          chirpBtn.textContent = 'Send';
+          chirpBtn.disabled = false;
+        };
+        try {
+          chirpBtn.textContent = 'Sending…';
+          const result = await onChirp(value);
+          if (result?.ok) {
+            if (chirpInput) chirpInput.value = '';
+            chirpBtn.textContent = 'Sent!';
+            setTimeout(reset, 1400);
+          } else if (result?.reason === 'rate_limited') {
+            chirpBtn.textContent = 'Too Soon';
+            chirpBtn.title = 'You can chirp once per minute.';
+            setTimeout(() => {
+              chirpBtn.title = '';
+              reset();
+            }, 1600);
+          } else {
+            chirpBtn.textContent = 'Try Again';
+            setTimeout(reset, 1400);
+          }
+        } catch (err) {
+          console.error('❌ Flat Tire chirp failed:', err);
+          chirpBtn.textContent = 'Error';
+          setTimeout(reset, 1400);
+        }
+      };
+    }
+  }
+
+  if (chirpInput) {
+    chirpInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        chirpBtn?.click();
+      }
+    });
+  }
+
   const triggerAutoRelease = () => {
     if (flatTireAutoReleaseTriggered) return;
     flatTireAutoReleaseTriggered = true;
@@ -362,20 +504,6 @@ export function showFlatTireOverlay({
       console.error('Flat Tire auto-release failed:', err);
     });
   };
-
-  if (releaseBtn) {
-    releaseBtn.disabled = true;
-    releaseBtn.onclick = () => {
-      if (releaseBtn.disabled) return;
-      releaseBtn.disabled = true;
-      Promise.resolve(onManualRelease?.())
-        .then(() => hideFlatTireOverlay())
-        .catch(err => {
-          console.error('Flat Tire release failed:', err);
-          releaseBtn.disabled = false;
-        });
-    };
-  }
 
   if (flatTireCountdownInterval) {
     clearInterval(flatTireCountdownInterval);
@@ -392,8 +520,7 @@ export function showFlatTireOverlay({
     if (!countdownEl) return;
 
     if (remaining <= 0) {
-      countdownEl.textContent = 'Tow window complete — you may rejoin the race!';
-      if (releaseBtn) releaseBtn.disabled = false;
+      countdownEl.textContent = 'Tow window complete — auto release triggered!';
       triggerAutoRelease();
       clearInterval(flatTireCountdownInterval);
       flatTireCountdownInterval = null;
@@ -401,7 +528,6 @@ export function showFlatTireOverlay({
     }
 
     countdownEl.textContent = `Auto release in ${formatMMSS(Math.ceil(remaining / 1000))}`;
-    if (releaseBtn) releaseBtn.disabled = true;
   };
 
   updateCountdown();

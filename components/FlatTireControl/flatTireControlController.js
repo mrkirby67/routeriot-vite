@@ -28,6 +28,15 @@ const AUTO_RELEASE_MINUTES = 20;
 const DEFAULT_DIAMETER_METERS = 200;
 const MIN_DIAMETER_METERS = 50;
 
+function parseGps(value = '') {
+  if (typeof value !== 'string') return null;
+  const [latStr, lngStr] = value.split(',');
+  const lat = Number.parseFloat(latStr);
+  const lng = Number.parseFloat(lngStr);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
 function formatCountdown(ms) {
   if (!Number.isFinite(ms) || ms <= 0) return '00:00';
   const totalSeconds = Math.ceil(ms / 1000);
@@ -242,7 +251,7 @@ class FlatTireControlController {
     this.ignoreConfigInput = true;
 
     ZONE_KEYS.forEach((key) => {
-      const zone = config.zones[key] || {};
+      const zone = { ...(config.zones[key] || {}) };
       const input = this.dom.zoneInputs.get(key);
       const diameterInput = this.dom.zoneDiameterInputs.get(key);
       const card = document.querySelector(`.${styles.zoneCard}[data-zone="${key}"] h3`);
@@ -250,11 +259,20 @@ class FlatTireControlController {
       if (input && input.value !== zone.gps) {
         input.value = zone.gps || '';
       }
-      const diameterKm = typeof zone.diameter === 'number' && zone.diameter > 0
-        ? zone.diameter
-        : DEFAULT_DIAMETER_METERS / 1000;
+      const diameterMeters = Number.isFinite(zone.diameterMeters) && zone.diameterMeters > 0
+        ? zone.diameterMeters
+        : (Number.isFinite(zone.diameter) && zone.diameter > 0
+            ? zone.diameter * 1000
+            : DEFAULT_DIAMETER_METERS);
+      const normalizedZone = {
+        ...zone,
+        diameterMeters,
+        diameter: diameterMeters / 1000
+      };
+      this.config.zones[key] = normalizedZone;
+      config.zones[key] = normalizedZone;
       if (diameterInput) {
-        const meters = Math.max(MIN_DIAMETER_METERS, Math.round(diameterKm * 1000));
+        const meters = Math.max(MIN_DIAMETER_METERS, Math.round(diameterMeters));
         if (Number(diameterInput.value) !== meters) {
           diameterInput.value = String(meters);
         }
@@ -286,12 +304,24 @@ class FlatTireControlController {
       const rawMeters = Number.parseFloat(diameterInput?.value) || DEFAULT_DIAMETER_METERS;
       const diameterMeters = Math.max(MIN_DIAMETER_METERS, rawMeters);
       if (diameterInput) diameterInput.value = String(Math.round(diameterMeters));
+
       const updated = {
         ...current,
         gps: input?.value.trim() || '',
         name: current.name || `Zone ${key.toUpperCase()}`,
-        diameter: diameterMeters / 1000
+        diameterMeters
       };
+      delete updated.diameter;
+
+      const coords = parseGps(updated.gps);
+      if (coords) {
+        updated.lat = coords.lat;
+        updated.lng = coords.lng;
+      } else {
+        delete updated.lat;
+        delete updated.lng;
+      }
+
       zones[key] = updated;
       this.config.zones[key] = updated;
     });
@@ -312,9 +342,12 @@ class FlatTireControlController {
     if (!map) return;
     const zone = this.config.zones[zoneKey] || {};
     if (zone.gps) {
-      const diameterKm = typeof zone.diameter === 'number' && zone.diameter > 0
-        ? zone.diameter
-        : DEFAULT_DIAMETER_METERS / 1000;
+      const diameterMeters = Number.isFinite(zone.diameterMeters) && zone.diameterMeters > 0
+        ? zone.diameterMeters
+        : (Number.isFinite(zone.diameter) && zone.diameter > 0
+            ? zone.diameter * 1000
+            : DEFAULT_DIAMETER_METERS);
+      const diameterKm = diameterMeters / 1000;
       map.innerHTML = generateMiniMap({
         name: zone.name || `Zone ${zoneKey.toUpperCase()}`,
         gps: zone.gps,
@@ -348,8 +381,9 @@ class FlatTireControlController {
       const existing = this.config.zones[zoneKey] || {};
       this.config.zones[zoneKey] = {
         ...existing,
-        diameter: meters / 1000
+        diameterMeters: meters
       };
+      delete this.config.zones[zoneKey].diameter;
     }
     this.queueConfigSave();
   }
@@ -374,9 +408,10 @@ class FlatTireControlController {
     this.config.zones[zoneKey] = {
       ...existing,
       gps: gpsInput?.value.trim() || '',
-      diameter: meters / 1000,
+      diameterMeters: meters,
       name: existing.name || `Zone ${zoneKey.toUpperCase()}`
     };
+    delete this.config.zones[zoneKey].diameter;
 
     this.updateZonePreview(zoneKey);
     this.queueConfigSave();
@@ -491,13 +526,22 @@ class FlatTireControlController {
       return;
     }
     const now = Date.now();
+    const coords = parseGps(zone.gps);
+    const diameterMeters = Number.isFinite(zone.diameterMeters) && zone.diameterMeters > 0
+      ? zone.diameterMeters
+      : DEFAULT_DIAMETER_METERS;
     await assignFlatTireTeam(teamName, {
       zoneKey,
+      depotId: zoneKey,
       zoneName: zone.name,
       gps: zone.gps,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
+      diameterMeters,
       assignedAt: now,
       autoReleaseAt: now + AUTO_RELEASE_MINUTES * 60_000,
       autoReleaseMinutes: AUTO_RELEASE_MINUTES,
+      assignedBy: 'Game Control',
       status: cause === 'auto' ? 'auto-assigned' : 'assigned'
     });
   }

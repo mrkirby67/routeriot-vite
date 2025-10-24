@@ -671,3 +671,51 @@ button:hover,
   z-index: 1100;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
 }
+
+.chirp-row {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.chirp-row label {
+  font-weight: 600;
+  min-width: 180px;
+}
+
+.chirp-row input {
+  flex: 1 1 220px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #f7f7f7;
+}
+
+.chirp-row button {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  background: #ffd54f;
+  color: #2d2000;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.chirp-row button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(255, 213, 79, 0.25);
+}
+
+.chirp-row button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ft-blurb {
+  margin: 6px 0 10px;
+  font-style: italic;
+  opacity: 0.85;
+}

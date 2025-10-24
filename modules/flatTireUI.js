@@ -15,6 +15,62 @@ import {
   showFlatTireOverlay,
   hideFlatTireOverlay
 } from './playerUI/overlays.js';
+import { getRandomTaunt } from './messages/taunts.js';
+import { sendPrivateMessage } from './chatManager/messageService.js';
+
+const FLAT_TIRE_CHIRP_COOLDOWN_MS = 60_000;
+const flatTireChirpCooldowns = new Map();
+
+function parseGpsString(gps = '') {
+  if (typeof gps !== 'string') return null;
+  const [latStr, lngStr] = gps.split(',');
+  const lat = Number.parseFloat(latStr);
+  const lng = Number.parseFloat(lngStr);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
+function buildChirpKey(victimTeam, aggressorTeam, kind) {
+  const sender = (victimTeam || '').trim().toLowerCase();
+  const recipient = (aggressorTeam || '').trim().toLowerCase();
+  const category = (kind || 'flatTire').trim().toLowerCase();
+  return `${sender}->${recipient}:${category}`;
+}
+
+async function sendFlatTireChirp({ victimTeam, aggressorTeam, message, kind = 'flatTire' }) {
+  const sender = typeof victimTeam === 'string' ? victimTeam.trim() : '';
+  let recipient = typeof aggressorTeam === 'string' ? aggressorTeam.trim() : '';
+  if (!sender) return { ok: false, reason: 'missing_sender' };
+  if (!recipient || recipient === sender) {
+    recipient = 'Game Control';
+  }
+
+  const key = buildChirpKey(sender, recipient, kind);
+  const now = Date.now();
+  const last = flatTireChirpCooldowns.get(key) || 0;
+  if (now - last < FLAT_TIRE_CHIRP_COOLDOWN_MS) {
+    return {
+      ok: false,
+      reason: 'rate_limited',
+      retryInMs: FLAT_TIRE_CHIRP_COOLDOWN_MS - (now - last)
+    };
+  }
+
+  const trimmed = typeof message === 'string' ? message.trim() : '';
+  const text = trimmed || getRandomTaunt(kind);
+
+  try {
+    const result = await sendPrivateMessage(sender, recipient, text);
+    if (!result?.ok) {
+      return { ok: false, reason: result?.reason || 'send_failed' };
+    }
+    flatTireChirpCooldowns.set(key, now);
+    return { ok: true };
+  } catch (err) {
+    console.error('❌ Failed to send Flat Tire chirp:', err);
+    return { ok: false, reason: err?.message || 'send_failed' };
+  }
+}
 
 export function initializeFlatTireUI(teamName) {
   if (!teamName) return () => {};
@@ -36,6 +92,23 @@ export function initializeFlatTireUI(teamName) {
       autoReleaseAtMs,
       assignedAtMs
     } = assignment;
+    const coordsFromAssignment = (Number.isFinite(assignment.lat) && Number.isFinite(assignment.lng))
+      ? { lat: Number(assignment.lat), lng: Number(assignment.lng) }
+      : null;
+    const parsedGps = parseGpsString(gps);
+    const lat = coordsFromAssignment?.lat ?? parsedGps?.lat ?? null;
+    const lng = coordsFromAssignment?.lng ?? parsedGps?.lng ?? null;
+    const diameterMeters = Number.isFinite(assignment.diameterMeters) && assignment.diameterMeters > 0
+      ? assignment.diameterMeters
+      : (Number.isFinite(assignment.diameter) && assignment.diameter > 0
+          ? assignment.diameter * 1000
+          : 200);
+    const assignedBy = typeof assignment.assignedBy === 'string' && assignment.assignedBy.trim()
+      ? assignment.assignedBy.trim()
+      : (typeof assignment.fromTeam === 'string' && assignment.fromTeam.trim()
+          ? assignment.fromTeam.trim()
+          : 'Game Control');
+    const depotId = assignment.depotId || assignment.zoneKey || '';
 
     const onCheckIn = async () => {
       if (!gps) {
@@ -100,14 +173,27 @@ export function initializeFlatTireUI(teamName) {
       }
     };
 
+    const handleChirp = (value) => sendFlatTireChirp({
+      victimTeam: teamName,
+      aggressorTeam: assignedBy,
+      message: value,
+      kind: 'flatTire'
+    });
+
     showFlatTireOverlay({
       zoneName,
+      depotId,
       gps,
+      lat,
+      lng,
+      diameterMeters,
       status,
       distanceRemainingKm,
       autoReleaseAtMs,
       assignedAtMs,
+      assignedBy,
       onCheckIn,
+      onChirp: handleChirp,
       onManualRelease: releaseTeam,
       onAutoRelease: releaseTeam
     });

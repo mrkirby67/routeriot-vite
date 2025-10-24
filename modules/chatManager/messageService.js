@@ -38,6 +38,24 @@ export async function sendPrivateSystemMessage(recipient, text) {
   return sendMessage(GAME_MASTER_NAME, recipient, text);
 }
 
+export async function sendPrivateMessage(sender, recipient, rawText) {
+  const fromTeam = typeof sender === 'string' ? sender.trim() : '';
+  const toTeam = typeof recipient === 'string' ? recipient.trim() : '';
+  const text = typeof rawText === 'string' ? rawText.trim() : '';
+
+  if (!fromTeam || !toTeam || !text) {
+    return { ok: false, reason: 'invalid_payload' };
+  }
+
+  try {
+    await sendMessage(fromTeam, toTeam, text.slice(0, 280));
+    return { ok: true };
+  } catch (err) {
+    console.error('❌ Error sending private message:', err);
+    return { ok: false, reason: err?.message || 'send_failed' };
+  }
+}
+
 export function listenForMyMessages(myTeamName, logBox) {
   clearRegistry('playerMessages');
   const messagesRef = collectionGroup(db, 'messages');

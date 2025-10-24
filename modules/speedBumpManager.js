@@ -8,6 +8,8 @@ import { broadcastEvent } from './zonesFirestore.js';
 import { db } from './config.js';
 import { allTeams } from '../data.js';
 import { escapeHtml } from './utils.js';
+import { getRandomTaunt } from './messages/taunts.js';
+import { sendPrivateMessage } from './chatManager/messageService.js';
 import {
   collection,
   onSnapshot,
@@ -17,6 +19,7 @@ import {
 
 const COOLDOWN_MS = 60_000;
 const VALIDATION_MS = 5 * 60_000;
+const SPEEDBUMP_CHIRP_COOLDOWN_MS = 60_000;
 
 const TEAM_DIRECTORY = Array.isArray(allTeams)
   ? new Map(allTeams.map(team => [String(team?.name || '').trim(), team]))
@@ -27,6 +30,7 @@ const cooldowns = new Map(); // `${team}:${type}` -> expiresAt
 const subscribers = new Set();
 const processedMessages = new Set();
 const validationTimers = new Map(); // teamName -> { expiresAt, timerId }
+const speedBumpChirpCooldowns = new Map();
 
 let commsUnsub = null;
 let tickerId = null;
@@ -110,6 +114,41 @@ function getRecipientContact(teamName) {
   const email = team?.email ? String(team.email).trim() : null;
   const phone = team?.phone ? String(team.phone).trim() : null;
   return { email: email || null, phone: phone || null };
+}
+
+export async function sendSpeedBumpChirp({ fromTeam, toTeam, message } = {}) {
+  const sender = typeof fromTeam === 'string' ? fromTeam.trim() : '';
+  let recipient = typeof toTeam === 'string' ? toTeam.trim() : '';
+  if (!sender) return { ok: false, reason: 'missing_sender' };
+  if (!recipient || recipient === sender) {
+    recipient = 'Game Control';
+  }
+
+  const key = `${sender.toLowerCase()}->${recipient.toLowerCase()}:speedbump`;
+  const now = Date.now();
+  const last = speedBumpChirpCooldowns.get(key) || 0;
+  if (now - last < SPEEDBUMP_CHIRP_COOLDOWN_MS) {
+    return {
+      ok: false,
+      reason: 'rate_limited',
+      retryInMs: SPEEDBUMP_CHIRP_COOLDOWN_MS - (now - last)
+    };
+  }
+
+  const trimmed = typeof message === 'string' ? message.trim() : '';
+  const text = trimmed || getRandomTaunt('speedBump');
+
+  try {
+    const result = await sendPrivateMessage(sender, recipient, text);
+    if (!result?.ok) {
+      return { ok: false, reason: result?.reason || 'send_failed' };
+    }
+    speedBumpChirpCooldowns.set(key, now);
+    return { ok: true };
+  } catch (err) {
+    console.error('❌ Failed to send Speed Bump chirp:', err);
+    return { ok: false, reason: err?.message || 'send_failed' };
+  }
 }
 
 function openDirectMessage({ fromTeam, toTeam, challengeText }) {

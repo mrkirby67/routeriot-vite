@@ -706,13 +706,25 @@ async function triggerFlatTireSurprise(fromTeam, targetTeam) {
     throw new Error('No tow zones are configured yet. Ping Control.');
   }
   const [zoneKey, zone] = zones[Math.floor(Math.random() * zones.length)];
+  const coords = typeof zone.gps === 'string' ? zone.gps.split(',') : [];
+  const lat = Number.parseFloat(coords[0]);
+  const lng = Number.parseFloat(coords[1]);
+  const diameterMeters = Number.isFinite(zone.diameterMeters) && zone.diameterMeters > 0
+    ? zone.diameterMeters
+    : (Number.isFinite(zone.diameter) && zone.diameter > 0 ? zone.diameter * 1000 : 200);
   await assignFlatTireTeam(targetTeam, {
     zoneKey,
+    depotId: zoneKey,
     zoneName: zone.name,
     gps: zone.gps,
+    lat: Number.isFinite(lat) ? lat : null,
+    lng: Number.isFinite(lng) ? lng : null,
+    diameterMeters,
     assignedAt: Date.now(),
     autoReleaseMinutes: 20,
-    status: 'player-surprise'
+    status: 'player-surprise',
+    assignedBy: fromTeam,
+    fromTeam
   });
   await broadcastSurprise(`${fromTeam} deployed a Flat Tire surprise on ${targetTeam}!`, {
     type: 'flatTire',
