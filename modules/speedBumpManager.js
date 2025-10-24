@@ -19,7 +19,7 @@ import {
 
 const COOLDOWN_MS = 60_000;
 const VALIDATION_MS = 5 * 60_000;
-const SPEEDBUMP_CHIRP_COOLDOWN_MS = 60_000;
+const INTERACTION_COOLDOWN_MS = 60_000;
 
 const TEAM_DIRECTORY = Array.isArray(allTeams)
   ? new Map(allTeams.map(team => [String(team?.name || '').trim(), team]))
@@ -30,7 +30,7 @@ const cooldowns = new Map(); // `${team}:${type}` -> expiresAt
 const subscribers = new Set();
 const processedMessages = new Set();
 const validationTimers = new Map(); // teamName -> { expiresAt, timerId }
-const speedBumpChirpCooldowns = new Map();
+const interactionCooldowns = new Map(); // `${from}->${to}:${type}` -> last timestamp
 
 let commsUnsub = null;
 let tickerId = null;
@@ -109,29 +109,43 @@ function formatSenderContact(senderTeamName) {
   return { email: email || 'not provided', phone: phone || 'not provided' };
 }
 
-function getRecipientContact(teamName) {
-  const team = findTeamByName(teamName);
-  const email = team?.email ? String(team.email).trim() : null;
-  const phone = team?.phone ? String(team.phone).trim() : null;
-  return { email: email || null, phone: phone || null };
+function normalizeTeamKey(value) {
+  return typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : null;
+}
+
+function getInteractionKey(fromTeam, toTeam, type) {
+  const senderKey = normalizeTeamKey(fromTeam);
+  const targetKey = normalizeTeamKey(toTeam);
+  if (!senderKey || !targetKey) return null;
+  const category = typeof type === 'string' && type.trim() ? type.trim().toLowerCase() : 'generic';
+  return `${senderKey}->${targetKey}:${category}`;
+}
+
+function getInteractionCooldownState(fromTeam, toTeam, type) {
+  const key = getInteractionKey(fromTeam, toTeam, type);
+  if (!key) return { key: null, remainingMs: 0 };
+  const last = interactionCooldowns.get(key) || 0;
+  const elapsed = Date.now() - last;
+  const remainingMs = Math.max(0, INTERACTION_COOLDOWN_MS - elapsed);
+  return { key, remainingMs };
+}
+
+function commitInteractionCooldown(key) {
+  if (key) interactionCooldowns.set(key, Date.now());
 }
 
 export async function sendSpeedBumpChirp({ fromTeam, toTeam, message } = {}) {
   const sender = typeof fromTeam === 'string' ? fromTeam.trim() : '';
-  let recipient = typeof toTeam === 'string' ? toTeam.trim() : '';
+  const recipient = typeof toTeam === 'string' ? toTeam.trim() : '';
   if (!sender) return { ok: false, reason: 'missing_sender' };
-  if (!recipient || recipient === sender) {
-    recipient = 'Game Control';
-  }
+  if (!recipient) return { ok: false, reason: 'missing_target' };
 
-  const key = `${sender.toLowerCase()}->${recipient.toLowerCase()}:speedbump`;
-  const now = Date.now();
-  const last = speedBumpChirpCooldowns.get(key) || 0;
-  if (now - last < SPEEDBUMP_CHIRP_COOLDOWN_MS) {
+  const { key, remainingMs } = getInteractionCooldownState(sender, recipient, 'chirp');
+  if (remainingMs > 0) {
     return {
       ok: false,
-      reason: 'rate_limited',
-      retryInMs: SPEEDBUMP_CHIRP_COOLDOWN_MS - (now - last)
+      reason: Math.ceil(remainingMs / 1000),
+      retryInMs: remainingMs
     };
   }
 
@@ -143,7 +157,7 @@ export async function sendSpeedBumpChirp({ fromTeam, toTeam, message } = {}) {
     if (!result?.ok) {
       return { ok: false, reason: result?.reason || 'send_failed' };
     }
-    speedBumpChirpCooldowns.set(key, now);
+    commitInteractionCooldown(key);
     return { ok: true };
   } catch (err) {
     console.error('❌ Failed to send Speed Bump chirp:', err);
@@ -151,90 +165,60 @@ export async function sendSpeedBumpChirp({ fromTeam, toTeam, message } = {}) {
   }
 }
 
-function openDirectMessage({ fromTeam, toTeam, challengeText }) {
-  if (typeof window === 'undefined') return;
-
-  const fromLabel = String(fromTeam || 'Unknown Team');
-  const toLabel = String(toTeam || 'Recipient Team');
-  const challenge = normalizeChallenge(challengeText) || 'Take a photo or video of the challenge';
-
-  const { email: senderEmail, phone: senderPhone } = formatSenderContact(fromLabel);
-  const { email: recipientEmail, phone: recipientPhone } = getRecipientContact(toLabel);
-
-  const safeLines = [
-    '🚧 Route Riot Speed Bump!',
-    '',
-    `From Team: ${escapeHtml(fromLabel)}`,
-    `Sender Email: ${escapeHtml(senderEmail)}`,
-    `Sender Phone: ${escapeHtml(senderPhone)}`,
-    '',
-    'Challenge:',
-    escapeHtml(challenge),
-    '',
-    'Reply with a proof photo / video to clear your Speed Bump!'
-  ];
-
-  const encodedBody = encodeURIComponent(safeLines.join('\n'));
-  const subject = encodeURIComponent('Route Riot Speed Bump!');
-
-  let opened = false;
-
-  if (recipientEmail) {
-    const mailto = `mailto:${recipientEmail}?subject=${subject}&body=${encodedBody}`;
-    try {
-      window.open(mailto, '_blank');
-      opened = true;
-    } catch (err) {
-      console.warn('⚠️ Failed to open mail client:', err);
-    }
-  } else if (recipientPhone) {
-    const smsLink = `sms:${recipientPhone}?body=${encodedBody}`;
-    try {
-      window.open(smsLink, '_blank');
-      opened = true;
-    } catch (err) {
-      console.warn('⚠️ Failed to open SMS client:', err);
-    }
-  }
-
-  if (!opened) {
-    const preview = safeLines.join('\n');
-    const message = `⚠️ No contact info available for ${toLabel}. Copy the message below:\n\n${preview}`;
-    window.alert(message);
-  }
+export function controlSendSpeedBumpChirp(targetTeam, customText) {
+  return sendSpeedBumpChirp({
+    fromTeam: 'Control',
+    toTeam: targetTeam,
+    message: customText
+  });
 }
 
 export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override = false } = {}) {
   ensureCommsListener();
   const challenge = normalizeChallenge(challengeText) || 'Complete a surprise photo challenge!';
-  const key = `${fromTeam}:bump`;
+
+  const attacker = typeof fromTeam === 'string' && fromTeam.trim() ? fromTeam.trim() : 'Unknown Team';
+  const defender = typeof toTeam === 'string' && toTeam.trim() ? toTeam.trim() : 'Unknown Team';
+
+  const { key: pairKey, remainingMs } = getInteractionCooldownState(attacker, defender, 'bump');
+  if (remainingMs > 0) {
+    return { ok: false, reason: Math.ceil(remainingMs / 1000) };
+  }
+
+  const cooldownKey = `${attacker}:bump`;
   const now = Date.now();
-  if (!override && cooldowns.has(key) && cooldowns.get(key) > now) {
-    const remaining = cooldowns.get(key) - now;
+  if (!override && cooldowns.has(cooldownKey) && cooldowns.get(cooldownKey) > now) {
+    const remaining = cooldowns.get(cooldownKey) - now;
     return { ok: false, reason: Math.ceil(remaining / 1000) };
   }
 
-  const { email: senderEmail, phone: senderPhone } = formatSenderContact(fromTeam);
+  const { email: senderEmail, phone: senderPhone } = formatSenderContact(attacker);
 
-  const message = `🚧 Speed Bump: ${fromTeam} challenged ${toTeam}! Challenge: ${challenge} — wait for their proof photo before releasing. Sender Email: ${senderEmail}. Sender Phone: ${senderPhone}.`;
+  const messageLines = [
+    `🚧 Speed Bump: ${escapeHtml(attacker)} challenged ${escapeHtml(defender)}!`,
+    '',
+    `Challenge: ${escapeHtml(challenge)}`,
+    '',
+    '📇 CONTACT DETAILS:',
+    `• Email: ${escapeHtml(senderEmail)}`,
+    `• Phone: ${escapeHtml(senderPhone)}`,
+    '',
+    'Reply with a proof photo / video to clear your Speed Bump!'
+  ];
+  const message = messageLines.join('<br>');
+
   await broadcastEvent('Game Master', message, true);
 
-  applySpeedBump(toTeam, {
-    by: fromTeam,
+  applySpeedBump(defender, {
+    by: attacker,
     challenge,
     startedAt: now,
     proofSentAt: null,
     countdownEndsAt: null
   });
-  startCooldown(fromTeam, 'bump', override ? 0 : COOLDOWN_MS);
+  startCooldown(attacker, 'bump', override ? 0 : COOLDOWN_MS);
+  commitInteractionCooldown(pairKey);
 
-  if (typeof window !== 'undefined') {
-    try {
-      openDirectMessage({ fromTeam, toTeam, challengeText: challenge });
-    } catch (err) {
-      console.warn('⚠️ Could not open direct message for Speed Bump:', err);
-    }
-  }
   return { ok: true };
 }
 

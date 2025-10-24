@@ -119,7 +119,7 @@ export function showSpeedBumpOverlay({
 
     const chirpRow = document.createElement('div');
     chirpRow.id = 'speedbump-chirp-row';
-    chirpRow.className = 'chirp-row';
+    chirpRow.className = 'chirp-row speedbump-chirp-box';
 
     const chirpLabel = document.createElement('label');
     chirpLabel.setAttribute('for', 'sb-chirp-input');

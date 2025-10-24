@@ -719,3 +719,32 @@ button:hover,
   font-style: italic;
   opacity: 0.85;
 }
+
+.speedbump-chirp-box {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.speedbump-chirp-box input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.speedbump-chirp-box button {
+  background: #ff8800;
+  border: none;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.speedbump-chirp-box button:hover {
+  background: #ff6600;
+}
