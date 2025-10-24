@@ -1,232 +1,140 @@
 /* ============================================================================
-   FILE: SurpriseSelector.module.css
-   PURPOSE: Styling for Surprise Selector control panel
+   FILE: components/SurpriseSelector/SurpriseSelector.module.css
+   PURPOSE: Styling for the updated wild card dashboard (Control view)
    ============================================================================ */
 
-.selectorSection {
+.surpriseSelector {
   background: #1e1e1e;
   border: 1px solid #333;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 20px;
   margin-top: 16px;
-  color: #ddd;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  color: #eee;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
-.headerRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-.headerRow h3 {
-  margin: 0;
-  font-size: 1.35rem;
+.surpriseSelector h2 {
+  margin: 0 0 6px;
+  font-size: 1.45rem;
   color: #ffd54f;
 }
 
-.subhead {
-  margin: 6px 0 0;
-  font-size: 0.9rem;
+.subtitle {
+  margin: 0 0 16px;
+  font-size: 0.95rem;
   color: #b0bec5;
 }
 
-.legend {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.legendBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  letter-spacing: 0.35px;
-  border: 1px solid transparent;
-  text-transform: uppercase;
-}
-
-.flatTire {
-  background: rgba(255, 204, 128, 0.2);
-  border-color: rgba(255, 204, 128, 0.45);
-  color: #ffcc80;
-}
-
-.bugSplat {
-  background: rgba(244, 143, 177, 0.2);
-  border-color: rgba(244, 143, 177, 0.45);
-  color: #f48fb1;
-}
-
-.shieldWax {
-  background: rgba(129, 212, 250, 0.2);
-  border-color: rgba(129, 212, 250, 0.45);
-  color: #81d4fa;
-}
-
-.dataTable {
+.surpriseTable {
   width: 100%;
   border-collapse: collapse;
+  background: rgba(15, 15, 15, 0.85);
   border-radius: 10px;
   overflow: hidden;
-  background: rgba(12, 12, 12, 0.85);
 }
 
-.dataTable th,
-.dataTable td {
-  padding: 10px 12px;
-  border-bottom: 1px solid #2b2b2b;
-  text-align: left;
-  vertical-align: middle;
+.surpriseTable th,
+.surpriseTable td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+  font-size: 0.95rem;
 }
 
-.dataTable th {
+.surpriseTable th {
   background: rgba(33, 33, 33, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
   color: #9e9e9e;
   font-size: 0.75rem;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-
-.dataTable tr:nth-child(even) td {
-  background: rgba(30, 30, 30, 0.65);
 }
 
 .teamCell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  text-align: left;
 }
 
 .teamCell strong {
-  color: #fff;
-  font-size: 1rem;
+  display: block;
+  color: #ffffff;
+  font-size: 1.05rem;
 }
 
-.teamCell span {
+.teamCell small {
+  display: block;
+  margin-top: 2px;
   color: #90a4ae;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
 .counterCell {
-  min-width: 140px;
+  min-width: 150px;
 }
 
 .counterLabel {
-  font-size: 1rem;
-  margin-bottom: 4px;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
   color: #ffe082;
 }
 
 .counterControls {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  border-radius: 999px;
 }
 
-.counterBtn {
-  width: 34px;
-  height: 34px;
+.counterControls button {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 183, 77, 0.35);
-  background: rgba(255, 183, 77, 0.15);
-  color: #ffcc80;
-  font-size: 1.2rem;
+  border: 1px solid rgba(255, 214, 79, 0.4);
+  background: rgba(255, 214, 79, 0.12);
+  color: #ffd54f;
+  font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.counterBtn:hover {
+.counterControls button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 10px rgba(255, 214, 79, 0.3);
 }
 
 .counterControls span {
-  min-width: 28px;
+  min-width: 32px;
   text-align: center;
-  font-size: 1.1rem;
   font-weight: 600;
-  color: #fff;
+  color: #ffffff;
 }
 
-.totalCell {
+.hasStock td {
+  background: rgba(64, 196, 87, 0.08);
+}
+
+.noStock td {
+  background: rgba(244, 67, 54, 0.08);
+}
+
+.activeShield {
+  color: #4caf50;
   font-weight: 600;
-  color: #ffe082;
 }
 
-.statusCell {
-  font-size: 0.85rem;
-  color: #b0bec5;
-}
-
-.statusSubtext {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.75rem;
+.inactiveShield {
   color: #90a4ae;
 }
 
-.statusTag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  border: 1px solid transparent;
-}
+@media (max-width: 720px) {
+  .counterControls {
+    flex-direction: column;
+    padding: 8px;
+  }
 
-.statusTagAssigned {
-  background: rgba(255, 204, 128, 0.2);
-  border-color: rgba(255, 204, 128, 0.45);
-  color: #ffcc80;
-}
-
-.statusTagEnroute {
-  background: rgba(129, 212, 250, 0.2);
-  border-color: rgba(129, 212, 250, 0.45);
-  color: #81d4fa;
-}
-
-.statusTagCleared {
-  background: rgba(165, 214, 167, 0.2);
-  border-color: rgba(165, 214, 167, 0.45);
-  color: #a5d6a7;
-}
-
-.loading {
-  text-align: center;
-  padding: 18px;
-  color: #9e9e9e;
-}
-
-.shieldDurationControl {
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.shieldDurationControl label {
-  font-size: 0.9rem;
-  color: #cfd8dc;
-}
-
-.shieldDurationControl input {
-  width: 90px;
-  text-align: center;
-  border: 1px solid #37474f;
-  border-radius: 6px;
-  padding: 4px 6px;
-  background: rgba(13, 13, 13, 0.9);
-  color: #eceff1;
+  .counterControls button {
+    width: 30px;
+    height: 30px;
+  }
 }

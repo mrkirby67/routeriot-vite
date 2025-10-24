@@ -442,54 +442,89 @@ button:hover,
   cursor: default;
 }
 
-/* === Surprise Scoreboard === */
-#surprise-scoreboard {
-  background: #1b1f27;
-  border: 1px solid #2f343f;
+/* === Player Wild Card Panel === */
+#team-surprises-panel {
+  background: #1c1f26;
+  border: 1px solid #2f333f;
+  border-radius: 10px;
 }
 
-#surprise-scoreboard h2 {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
+#team-surprises-panel h3 {
+  margin-top: 0;
+  color: #ffd54f;
 }
 
-.surprise-row {
+.wildcard-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  justify-content: center;
+  justify-content: space-between;
 }
 
-.surprise-chip {
-  min-width: 170px;
+.wildcard-card {
+  flex: 1 1 120px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
   padding: 10px 14px;
-  border-radius: 10px;
-  background: rgba(29, 32, 41, 0.9);
-  border: 1px solid rgba(102, 102, 102, 0.4);
-  font-size: 0.95em;
-  letter-spacing: 0.3px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: center;
+  text-align: center;
+  min-width: 120px;
 }
 
-.surprise-chip span {
+.wildcard-label {
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #9db2c7;
+  letter-spacing: 0.35px;
+}
+
+.wildcard-card strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.3rem;
+  color: #ffffff;
+}
+
+.shield-activate-btn {
+  margin-top: 12px;
+  background: linear-gradient(135deg, #ffa726, #fb8c00);
+  color: #1f1400;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
   font-weight: 600;
-  color: #fff;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
-.surprise-chip.flat-tire {
-  border-left: 4px solid #ff6f61;
+.shield-activate-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(251, 140, 0, 0.35);
 }
 
-.surprise-chip.bug-splat {
-  border-left: 4px solid #fdd835;
+.shield-activate-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
-.surprise-chip.shield-wax {
-  border-left: 4px solid #64b5f6;
+.shield-status {
+  margin-top: 10px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.shield-active {
+  color: #4caf50;
+}
+
+.shield-empty {
+  color: #ef9a9a;
+}
+
+.outgoing-bump-timer {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.85rem;
+  color: #ffb74d;
 }

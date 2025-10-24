@@ -169,6 +169,31 @@ export function getAllActiveBumps() {
   }));
 }
 
+export function subscribeSpeedBumpsForAttacker(fromTeam, callback) {
+  if (!fromTeam || typeof callback !== 'function') return () => {};
+  return subscribeSpeedBumps((payload = {}) => {
+    const now = Date.now();
+    const list = Array.isArray(payload.activeBumps)
+      ? payload.activeBumps
+          .map(([teamName, data]) => ({ teamName, ...(data || {}) }))
+          .filter(entry => entry.by === fromTeam)
+          .map(entry => {
+            const targetTimestamp = entry.countdownEndsAt ?? (entry.startedAt ? entry.startedAt + VALIDATION_MS : null);
+            const remainingMs = targetTimestamp ? Math.max(0, targetTimestamp - now) : 0;
+            return {
+              toTeam: entry.teamName,
+              remainingMs
+            };
+          })
+      : [];
+    try {
+      callback(list);
+    } catch (err) {
+      console.warn('⚠️ speed bump attacker callback error:', err);
+    }
+  });
+}
+
 function notify() {
   const payload = {
     activeBumps: Array.from(activeBumps.entries()),

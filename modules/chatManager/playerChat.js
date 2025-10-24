@@ -21,20 +21,25 @@ import {
   sendSpeedBumpFromPlayer,
   releaseSpeedBumpFromPlayer
 } from '../speedBumpPlayer.js';
-import { getCooldownRemaining, getActiveBump, subscribeSpeedBumps } from '../speedBumpManager.js';
+import { getCooldownRemaining, getActiveBump, subscribeSpeedBumps, subscribeSpeedBumpsForAttacker } from '../speedBumpManager.js';
 import {
   subscribeTeamSurprises,
   decrementSurprise,
   SurpriseTypes,
   isShieldActive,
   activateShield,
-  getShieldDurationMs
+  getShieldDurationMs,
+  subscribeSurprisesForTeam,
+  consumeSurprise,
+  getShieldTimeRemaining
 } from '../teamSurpriseManager.js';
 import {
   loadFlatTireConfig,
   assignFlatTireTeam
 } from '../flatTireManager.js';
 import { getZoneDisplayName } from '../zoneManager.js';
+import { showShieldHudTimer, hideShieldHudTimer } from '../playerUI/overlays.js';
+import { escapeHtml } from '../utils.js';
 
 const speedBumpSubscriptions = { unsubscribe: null, current: null };
 const surpriseSubscriptions = { unsubscribe: null, counts: new Map() };
@@ -52,6 +57,10 @@ export async function setupPlayerChat(currentTeamName) {
   const chatLog = document.getElementById('team-chat-log');
   if (!opponentsTbody || !chatLog) return console.warn("⚠️ Chat elements missing on player page.");
 
+  const teamSurprisesPanel = document.getElementById('team-surprises-body');
+  let unsubscribeMySurprises = null;
+  let unsubscribeOutgoingBumps = null;
+
   clearRegistry('player');
   clearRegistry('playerMessages');
 
@@ -68,7 +77,7 @@ export async function setupPlayerChat(currentTeamName) {
     const row = document.createElement('tr');
     row.dataset.team = teamName;
     row.innerHTML = `
-      <td>${teamName}</td>
+      <td>${escapeHtml(teamName)}</td>
       <td class="last-location">--</td>
       <td class="message-cell">
         <input type="text" class="chat-input" data-recipient-input="${teamName}"
@@ -87,6 +96,111 @@ export async function setupPlayerChat(currentTeamName) {
     `;
     opponentsTbody.appendChild(row);
   });
+
+  const renderPlayerSurprises = ({ flatTire = 0, bugSplat = 0, superShieldWax = 0 } = {}) => {
+    if (!teamSurprisesPanel) return;
+    const shieldActive = isShieldActive(currentTeamName);
+    const remainingMs = getShieldTimeRemaining(currentTeamName);
+    const flatDisplay = escapeHtml(String(flatTire));
+    const bugDisplay = escapeHtml(String(bugSplat));
+    const shieldDisplay = escapeHtml(String(superShieldWax));
+
+    const actionMarkup = shieldActive
+      ? `<div class="shield-status shield-active">🛡️ Active: ${Math.ceil(remainingMs / 1000)}s</div>`
+      : (superShieldWax > 0
+        ? `<button id="activate-shield-btn" class="shield-activate-btn">🛡️ Activate Super SHIELD Wax</button>`
+        : `<div class="shield-status shield-empty">No SHIELD Wax remaining</div>`);
+
+    teamSurprisesPanel.innerHTML = `
+      <div class="wildcard-grid">
+        <div class="wildcard-card">
+          <span class="wildcard-label">Flat Tire</span>
+          <strong>${flatDisplay}</strong>
+        </div>
+        <div class="wildcard-card">
+          <span class="wildcard-label">Bug Splat</span>
+          <strong>${bugDisplay}</strong>
+        </div>
+        <div class="wildcard-card">
+          <span class="wildcard-label">Super SHIELD Wax</span>
+          <strong>${shieldDisplay}</strong>
+        </div>
+      </div>
+      ${actionMarkup}
+    `;
+
+    const button = document.getElementById('activate-shield-btn');
+    if (button) {
+      button.onclick = async () => {
+        button.disabled = true;
+        const consumed = await consumeSurprise(currentTeamName, SurpriseTypes.WILD_CARD, 1);
+        if (!consumed) {
+          button.disabled = false;
+          return;
+        }
+        activateShield(currentTeamName);
+        const ms = getShieldTimeRemaining(currentTeamName);
+        showShieldHudTimer(ms);
+      };
+    }
+
+    if (shieldActive && remainingMs > 0) {
+      showShieldHudTimer(remainingMs);
+    } else if (!shieldActive) {
+      hideShieldHudTimer();
+    }
+  };
+
+  if (teamSurprisesPanel) {
+    renderPlayerSurprises();
+    unsubscribeMySurprises = subscribeSurprisesForTeam(currentTeamName, (snapshot = {}) => {
+      renderPlayerSurprises({
+        flatTire: snapshot.flatTire ?? snapshot.counts?.flatTire ?? 0,
+        bugSplat: snapshot.bugSplat ?? snapshot.counts?.bugSplat ?? 0,
+        superShieldWax: snapshot.superShieldWax ?? snapshot.counts?.superShieldWax ?? snapshot.counts?.wildCard ?? 0
+      });
+    });
+  }
+
+  const renderOutgoingBumpTimers = (entries = []) => {
+    const activeMap = new Map();
+    entries.forEach(entry => {
+      if (!entry?.toTeam) return;
+      activeMap.set(entry.toTeam, Math.max(0, Number(entry.remainingMs) || 0));
+    });
+
+    opponentsTbody.querySelectorAll('tr[data-team]').forEach(row => {
+      const targetTeam = row.dataset.team;
+      const label = row.querySelector('.outgoing-bump-timer');
+      const sendBtn = row.querySelector('.speedbump-send-btn');
+      const remainingMs = activeMap.get(targetTeam);
+
+      if (remainingMs !== undefined) {
+        if (!label) {
+          const tag = document.createElement('span');
+          tag.className = 'outgoing-bump-timer';
+          tag.textContent = '';
+          const actions = row.querySelector('.speedbump-actions') || row.lastElementChild;
+          if (actions) actions.appendChild(tag);
+        }
+        const targetLabel = row.querySelector('.outgoing-bump-timer');
+        if (targetLabel) {
+          const seconds = Math.ceil(remainingMs / 1000);
+          targetLabel.textContent = seconds > 0 ? `⏳ ${seconds}s` : '⏳ Active';
+        }
+        if (sendBtn) {
+          sendBtn.disabled = true;
+          sendBtn.title = 'Speed bump active — wait for completion';
+        }
+      } else {
+        label?.remove();
+        if (sendBtn && !sendBtn.disabled) {
+          sendBtn.title = '';
+        }
+      }
+    });
+    updateSpeedBumpButtons(currentTeamName);
+  };
 
   const teamStatusCol = collection(db, 'teamStatus');
   const teamStatusUnsub = onSnapshot(teamStatusCol, async (snapshot) => {
@@ -193,6 +307,12 @@ export async function setupPlayerChat(currentTeamName) {
     updateSurpriseCounters(currentTeamName);
   });
 
+  renderOutgoingBumpTimers([]);
+  unsubscribeOutgoingBumps?.();
+  unsubscribeOutgoingBumps = subscribeSpeedBumpsForAttacker(currentTeamName, (list = []) => {
+    renderOutgoingBumpTimers(list);
+  });
+
   const shieldQuery = query(collection(db, 'communications'), where('type', '==', 'shieldWax'));
   const shieldUnsub = onSnapshot(shieldQuery, (snapshot) => {
     snapshot.docChanges().forEach(change => {
@@ -221,6 +341,11 @@ export async function setupPlayerChat(currentTeamName) {
     speedBumpSubscriptions.current = null;
     surpriseSubscriptions.unsubscribe?.();
     surpriseSubscriptions.unsubscribe = null;
+    unsubscribeMySurprises?.();
+    unsubscribeMySurprises = null;
+    unsubscribeOutgoingBumps?.();
+    unsubscribeOutgoingBumps = null;
+    hideShieldHudTimer();
   };
 }
 

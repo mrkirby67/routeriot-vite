@@ -538,3 +538,67 @@ export function stopConfetti() {
   }
   console.log('✨ Confetti stopped.');
 }
+
+let shieldTimerEl = null;
+let shieldInterval = null;
+
+export function showShieldHudTimer(msRemaining = 0) {
+  const duration = Math.max(0, Number(msRemaining) || 0);
+  if (duration <= 0) {
+    hideShieldHudTimer();
+    return;
+  }
+
+  if (!shieldTimerEl) {
+    shieldTimerEl = document.createElement('div');
+    shieldTimerEl.id = 'shield-hud-timer';
+    shieldTimerEl.style.cssText = [
+      'position:sticky',
+      'top:0',
+      'z-index:20',
+      'background:#0b5',
+      'color:#fff',
+      'padding:4px 10px',
+      'border-radius:6px',
+      'display:inline-block',
+      'margin-bottom:8px',
+      'font-weight:600',
+      'letter-spacing:0.4px'
+    ].join(';');
+
+    const statusEl = document.getElementById('game-status');
+    if (statusEl?.parentNode) {
+      statusEl.parentNode.insertBefore(shieldTimerEl, statusEl);
+    } else {
+      document.body.insertBefore(shieldTimerEl, document.body.firstChild);
+    }
+  }
+
+  const endAt = Date.now() + duration;
+  updateShieldHud(endAt);
+  clearInterval(shieldInterval);
+  shieldInterval = window.setInterval(() => updateShieldHud(endAt), 500);
+}
+
+export function hideShieldHudTimer() {
+  if (shieldInterval) {
+    clearInterval(shieldInterval);
+    shieldInterval = null;
+  }
+  if (shieldTimerEl) {
+    shieldTimerEl.remove();
+    shieldTimerEl = null;
+  }
+}
+
+function updateShieldHud(endAt) {
+  const remaining = Math.max(0, endAt - Date.now());
+  const seconds = Math.ceil(remaining / 1000);
+  if (!shieldTimerEl) return;
+  shieldTimerEl.textContent = remaining > 0
+    ? `🛡️ SHIELD Wax active: ${seconds}s`
+    : '🛡️ SHIELD Wax expired';
+  if (remaining <= 0) {
+    hideShieldHudTimer();
+  }
+}

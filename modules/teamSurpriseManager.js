@@ -10,7 +10,8 @@ import {
   getDoc,
   onSnapshot,
   runTransaction,
-  setDoc
+  setDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 export const SurpriseTypes = Object.freeze({
@@ -112,4 +113,85 @@ export async function resetSurpriseCounter(teamName, type) {
 export async function getTeamSurpriseCounts(teamName) {
   const snap = await getDoc(teamDocRef(teamName));
   return snap.exists() ? snap.data().counts || {} : {};
+}
+
+export const increment = incrementSurprise;
+export const decrement = decrementSurprise;
+
+export function getShieldTimeRemaining(teamName) {
+  if (!teamName) return 0;
+  const expiresAt = activeShieldUntil.get(teamName);
+  if (!expiresAt) return 0;
+  if (expiresAt <= Date.now()) {
+    activeShieldUntil.delete(teamName);
+    return 0;
+  }
+  return expiresAt - Date.now();
+}
+
+export function subscribeSurprisesForTeam(teamName, callback) {
+  if (!teamName || typeof callback !== 'function') return () => {};
+  const ref = teamDocRef(teamName);
+  return onSnapshot(ref, (snapshot) => {
+    const data = snapshot.exists() ? snapshot.data() || {} : {};
+    const counts = data.counts || {};
+    const flat = normalizeCount(counts[SurpriseTypes.FLAT_TIRE] ?? counts.flatTire);
+    const bug = normalizeCount(counts[SurpriseTypes.BUG_SPLAT] ?? counts.bugSplat);
+    const shield = normalizeCount(counts[SurpriseTypes.WILD_CARD] ?? counts.superShieldWax ?? counts.wildCard);
+    callback({
+      team: teamName,
+      flatTire: flat,
+      bugSplat: bug,
+      superShieldWax: shield
+    });
+  });
+}
+
+export async function consumeSurprise(teamName, key, amount = 1) {
+  if (!teamName || !key || amount <= 0) return false;
+  const normalizedKey = normalizeSurpriseKey(key);
+  if (!normalizedKey) return false;
+
+  let success = false;
+  await runTransaction(db, async (tx) => {
+    const ref = teamDocRef(teamName);
+    const snap = await tx.get(ref);
+    const data = snap.exists() ? snap.data() || {} : {};
+    const counts = { ...(data.counts || {}) };
+    const current = normalizeCount(counts[normalizedKey]);
+    if (current < amount) {
+      return;
+    }
+    counts[normalizedKey] = Math.max(0, current - amount);
+    tx.set(ref, { counts, updatedAt: serverTimestamp() }, { merge: true });
+    success = true;
+  });
+  return success;
+}
+
+export async function auditUse(teamName, kind, meta = {}) {
+  try {
+    const auditRef = doc(collection(db, 'surpriseAudit'), `${teamName}-${Date.now()}`);
+    await setDoc(auditRef, {
+      teamName,
+      kind,
+      meta,
+      updatedAt: serverTimestamp()
+    });
+  } catch (err) {
+    console.debug('🔍 surprise audit skipped:', err?.message || err);
+  }
+}
+
+function normalizeCount(value) {
+  const num = Number(value);
+  return Number.isFinite(num) && num >= 0 ? num : 0;
+}
+
+function normalizeSurpriseKey(key) {
+  if (!key) return null;
+  if (key === SurpriseTypes.FLAT_TIRE || key === 'flatTire') return SurpriseTypes.FLAT_TIRE;
+  if (key === SurpriseTypes.BUG_SPLAT || key === 'bugSplat') return SurpriseTypes.BUG_SPLAT;
+  if (key === SurpriseTypes.WILD_CARD || key === 'wildCard' || key === 'superShieldWax') return SurpriseTypes.WILD_CARD;
+  return null;
 }

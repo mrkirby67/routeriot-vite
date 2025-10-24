@@ -1,258 +1,209 @@
 // ============================================================================
 // FILE: components/SurpriseSelector/SurpriseSelector.js
-// PURPOSE: Surprise Selector control panel – manage surprise counts per team
+// PURPOSE: Control dashboard for monitoring and adjusting team surprises
 // ============================================================================
 
 import styles from './SurpriseSelector.module.css';
 import { allTeams } from '../../data.js';
 import {
   subscribeTeamSurprises,
-  incrementSurprise,
-  decrementSurprise,
-  SurpriseTypes
+  increment,
+  decrement,
+  SurpriseTypes,
+  getShieldTimeRemaining
 } from '../../modules/teamSurpriseManager.js';
-import { getActiveBump } from '../../modules/speedBumpManager.js';
 import { escapeHtml } from '../../modules/utils.js';
 
-const ACTIVE_TYPES = [SurpriseTypes.FLAT_TIRE, SurpriseTypes.BUG_SPLAT, SurpriseTypes.WILD_CARD];
+const TYPE_CONFIG = [
+  { key: SurpriseTypes.FLAT_TIRE, label: 'Flat Tire' },
+  { key: SurpriseTypes.BUG_SPLAT, label: 'Bug Splat' },
+  { key: SurpriseTypes.WILD_CARD, label: 'Super SHIELD Wax' }
+];
 
-let controllerInstance = null;
-
-const SHIELD_DURATION_STORAGE_KEY = 'shieldDuration';
-const DEFAULT_SHIELD_MINUTES = 15;
-
-function clampShieldDuration(value) {
-  if (!Number.isFinite(value)) return DEFAULT_SHIELD_MINUTES;
-  return Math.min(60, Math.max(1, value));
-}
-
-function readShieldDurationMinutes() {
-  if (typeof window === 'undefined') return DEFAULT_SHIELD_MINUTES;
-  const stored = Number.parseInt(window.localStorage.getItem(SHIELD_DURATION_STORAGE_KEY), 10);
-  if (!Number.isFinite(stored) || stored <= 0) return DEFAULT_SHIELD_MINUTES;
-  return clampShieldDuration(stored);
-}
-
-let shieldDurationMinutes = readShieldDurationMinutes();
-
-function getShieldDurationMinutes() {
-  shieldDurationMinutes = readShieldDurationMinutes();
-  return shieldDurationMinutes;
-}
-
-function setShieldDurationMinutes(nextValue) {
-  const normalized = clampShieldDuration(nextValue);
-  shieldDurationMinutes = normalized;
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem(SHIELD_DURATION_STORAGE_KEY, String(normalized));
-  }
-  return normalized;
-}
+let cleanupHandle = null;
 
 export function SurpriseSelectorComponent() {
   return `
-    <div class="${styles.selectorSection}">
-      <div class="${styles.headerRow}">
-        <div>
-          <h3>🎉 Surprise Selector</h3>
-          <p class="${styles.subhead}">Track surprises awarded to each team and balance the chaos.</p>
-        </div>
-        <div class="${styles.legend}">
-          <span class="${styles.legendBadge} ${styles.flatTire}">🚗 Flat Tire</span>
-          <span class="${styles.legendBadge} ${styles.bugSplat}">🐞 Bug Splat</span>
-          <span class="${styles.legendBadge} ${styles.shieldWax}">🛡️ Super SHIELD Wax</span>
-        </div>
-      </div>
-
-      <div class="${styles.shieldDurationControl}">
-        <label for="shield-duration-input">🛡️ Shield Wax Duration (min)</label>
-        <input
-          id="shield-duration-input"
-          data-role="shield-duration-input"
-          type="number"
-          min="1"
-          max="60"
-          value="${getShieldDurationMinutes()}"
-        />
-      </div>
-
-      <table class="${styles.dataTable}">
+    <section class="${styles.surpriseSelector}">
+      <h2>🎉 Team Wild Cards Dashboard</h2>
+      <p class="${styles.subtitle}">
+        Monitor and adjust each team’s surprise inventory in real time.
+      </p>
+      <table class="${styles.surpriseTable}">
         <thead>
           <tr>
             <th>Team</th>
             <th>Flat Tire</th>
             <th>Bug Splat</th>
             <th>Super SHIELD Wax</th>
-            <th>Total</th>
-            <th>Status</th>
+            <th>Shield Timer</th>
           </tr>
         </thead>
-        <tbody id="surprise-selector-body">
-          <tr><td colspan="6" class="${styles.loading}">Loading surprise counts…</td></tr>
-        </tbody>
+        <tbody id="surprise-table-body"></tbody>
       </table>
-    </div>
+    </section>
   `;
 }
 
 export function initializeSurpriseSelector() {
-  controllerInstance?.destroy('reinitialize');
-  controllerInstance = new SurpriseSelectorController();
-  return controllerInstance.initialize();
+  teardownSurpriseSelector('reinitialize');
+
+  const tbody = document.getElementById('surprise-table-body');
+  if (!tbody) {
+    console.warn('⚠️ Surprise selector table body missing.');
+    return () => {};
+  }
+
+  const handleClick = createClickHandler();
+  tbody.addEventListener('click', handleClick);
+
+  const unsubscribe = subscribeTeamSurprises((entries = [], byTeam = {}) => {
+    const teamCounts = buildTeamCounts(entries, byTeam);
+    renderTable(tbody, teamCounts);
+  });
+
+  const timerId = window.setInterval(() => {
+    refreshShieldTimers(tbody);
+  }, 1000);
+
+  cleanupHandle = (reason = 'manual') => {
+    unsubscribe?.();
+    tbody.removeEventListener('click', handleClick);
+    clearInterval(timerId);
+    cleanupHandle = null;
+    console.info(`🧹 [SurpriseSelector] cleaned up (${reason})`);
+  };
+
+  // Initial render so the table isn't empty while waiting for Firestore
+  renderTable(tbody, new Map());
+  refreshShieldTimers(tbody);
+
+  return cleanupHandle;
 }
 
 export function teardownSurpriseSelector(reason = 'manual') {
-  controllerInstance?.destroy(reason);
-  controllerInstance = null;
+  cleanupHandle?.(reason);
+  cleanupHandle = null;
 }
 
-class SurpriseSelectorController {
-  constructor() {
-    this.tableBody = null;
-    this.unsubscribe = null;
-    this.state = new Map();
-    this.durationInput = null;
-    this.onData = this.onData.bind(this);
-    this.handleClick = this.handleClick.bind(this);
-    this.handleDurationChange = this.handleDurationChange.bind(this);
-  }
+function createClickHandler() {
+  return async (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
 
-  initialize() {
-    this.tableBody = document.getElementById('surprise-selector-body');
-    if (!this.tableBody) {
-      console.warn('⚠️ Surprise selector container missing.');
-      return () => {};
-    }
-    this.tableBody.innerHTML = '';
-    this.renderSkeleton();
-    this.unsubscribe = subscribeTeamSurprises(this.onData);
-    this.tableBody.addEventListener('click', this.handleClick);
+    const team = button.dataset.team;
+    const type = button.dataset.type;
+    const action = button.dataset.action;
 
-    this.durationInput = document.querySelector('[data-role="shield-duration-input"]');
-    if (this.durationInput) {
-      this.durationInput.value = String(getShieldDurationMinutes());
-      this.durationInput.addEventListener('change', this.handleDurationChange);
-    }
+    if (!team || !type || !action) return;
 
-    return (reason) => this.destroy(reason);
-  }
-
-  destroy(reason = 'manual') {
-    this.unsubscribe?.();
-    this.unsubscribe = null;
-    this.tableBody?.removeEventListener('click', this.handleClick);
-    this.tableBody = null;
-    if (this.durationInput) {
-      this.durationInput.removeEventListener('change', this.handleDurationChange);
-      this.durationInput = null;
-    }
-    console.info(`🧹 [SurpriseSelector] destroyed (${reason})`);
-  }
-
-  onData(snapshot = []) {
-    this.state.clear();
-    snapshot.forEach(entry => {
-      if (!entry?.teamName) return;
-      this.state.set(entry.teamName, entry);
-    });
-    this.renderRows();
-  }
-
-  renderSkeleton() {
-    const frag = document.createDocumentFragment();
-    allTeams.forEach(team => {
-      const tr = document.createElement('tr');
-      tr.dataset.team = team.name;
-      tr.innerHTML = `
-        <td class="${styles.teamCell}">
-          <strong>${team.name}</strong>
-          <span>${team.slogan || ''}</span>
-        </td>
-        ${ACTIVE_TYPES.map(type => this.renderCounterCell(type)).join('')}
-        <td class="${styles.totalCell}" data-role="total">0</td>
-        <td class="${styles.statusCell}" data-role="status">—</td>
-      `;
-      frag.appendChild(tr);
-    });
-    this.tableBody.appendChild(frag);
-  }
-
-  renderRows() {
-    if (!this.tableBody) return;
-    allTeams.forEach(team => {
-      const row = this.tableBody.querySelector(`tr[data-team="${team.name}"]`);
-      if (!row) return;
-      const entry = this.state.get(team.name) || {};
-      let total = 0;
-      ACTIVE_TYPES.forEach(type => {
-        const cell = row.querySelector(`[data-role="counter-${type}"]`);
-        const count = Number(entry?.counts?.[type] ?? 0);
-        total += count;
-        if (cell) {
-          const valueEl = cell.querySelector('[data-role="value"]');
-          if (valueEl) valueEl.textContent = String(count);
-        }
-      });
-      const totalCell = row.querySelector('[data-role="total"]');
-      if (totalCell) totalCell.textContent = String(total);
-      const statusCell = row.querySelector('[data-role="status"]');
-      if (statusCell) {
-        const activeBump = getActiveBump(team.name);
-        if (activeBump) {
-          const statusLabel = activeBump.proofSentAt ? 'In Route' : 'Assigned';
-          const statusClass = activeBump.proofSentAt ? styles.statusTagEnroute : styles.statusTagAssigned;
-          statusCell.innerHTML = `
-            <span class="${styles.statusTag} ${statusClass}">${escapeHtml(statusLabel)}</span>
-            <span class="${styles.statusSubtext}">from ${escapeHtml(activeBump.by)}</span>
-          `;
-        } else {
-          statusCell.innerHTML = `<span class="${styles.statusTag} ${styles.statusTagCleared}">Ready</span>`;
-        }
+    try {
+      if (action === 'increment') {
+        await increment(team, type);
+      } else if (action === 'decrement') {
+        await decrement(team, type);
       }
+    } catch (err) {
+      console.error(`❌ Failed to ${action} surprise for ${team}/${type}:`, err);
+    }
+  };
+}
+
+function buildTeamCounts(entries, byTeam) {
+  const countsMap = new Map();
+
+  if (byTeam && typeof byTeam === 'object') {
+    Object.entries(byTeam).forEach(([teamName, counts]) => {
+      countsMap.set(teamName, counts || {});
+    });
+  } else if (Array.isArray(entries)) {
+    entries.forEach(entry => {
+      countsMap.set(entry.teamName, entry.counts || {});
     });
   }
 
-  renderCounterCell(type) {
-    const icon = type === SurpriseTypes.FLAT_TIRE ? '🚗'
-      : type === SurpriseTypes.BUG_SPLAT ? '🐞'
-      : '🛡️';
-    return `
-      <td class="${styles.counterCell}" data-role="counter-${type}">
-        <div class="${styles.counterLabel}">${icon}</div>
-        <div class="${styles.counterControls}">
-          <button type="button" class="${styles.counterBtn}" data-action="decrement" data-type="${type}">−</button>
-          <span data-role="value">0</span>
-          <button type="button" class="${styles.counterBtn}" data-action="increment" data-type="${type}">+</button>
-        </div>
+  return countsMap;
+}
+
+function renderTable(tbody, countsMap) {
+  const fragment = document.createDocumentFragment();
+
+  allTeams.forEach(team => {
+    const row = document.createElement('tr');
+    row.dataset.team = team.name;
+
+    const counts = countsMap.get(team.name) || {};
+    const flat = normalizeCount(counts[SurpriseTypes.FLAT_TIRE] ?? counts.flatTire);
+    const bug = normalizeCount(counts[SurpriseTypes.BUG_SPLAT] ?? counts.bugSplat);
+    const shield = normalizeCount(counts[SurpriseTypes.WILD_CARD] ?? counts.superShieldWax ?? counts.wildCard);
+
+    const hasShieldStock = shield > 0;
+    row.className = hasShieldStock ? styles.hasStock : styles.noStock;
+
+    row.innerHTML = `
+      <td class="${styles.teamCell}">
+        <strong>${escapeHtml(team.name)}</strong>
+        <small>${escapeHtml(team.slogan || '')}</small>
       </td>
+      ${TYPE_CONFIG.map(cfg => renderCounterCell(team.name, cfg.key, counts)).join('')}
+      <td data-role="shield-timer">${renderShieldTimer(team.name)}</td>
     `;
-  }
 
-  handleClick(event) {
-    const btn = event.target.closest(`.${styles.counterBtn}`);
-    if (!btn) return;
-    const row = btn.closest('tr[data-team]');
-    const type = btn.dataset.type;
-    const action = btn.dataset.action;
-    if (!row || !type || !ACTIVE_TYPES.includes(type)) return;
+    fragment.appendChild(row);
+  });
+
+  tbody.replaceChildren(fragment);
+}
+
+function renderCounterCell(teamName, typeKey, counts) {
+  const value = normalizeCount(counts?.[typeKey]);
+  const label =
+    typeKey === SurpriseTypes.WILD_CARD ? 'Super SHIELD Wax' :
+    typeKey === SurpriseTypes.BUG_SPLAT ? 'Bug Splat' :
+    'Flat Tire';
+
+  return `
+    <td class="${styles.counterCell}">
+      <div class="${styles.counterLabel}">${escapeHtml(label)}</div>
+      <div class="${styles.counterControls}">
+        <button type="button" data-action="decrement" data-team="${escapeHtml(teamName)}" data-type="${typeKey}">−</button>
+        <span>${value}</span>
+        <button type="button" data-action="increment" data-team="${escapeHtml(teamName)}" data-type="${typeKey}">+</button>
+      </div>
+    </td>
+  `;
+}
+
+function renderShieldTimer(teamName) {
+  const remaining = getShieldTimeRemaining(teamName);
+  if (remaining > 0) {
+    const seconds = Math.ceil(remaining / 1000);
+    return `<span class="${styles.activeShield}">🛡️ ${seconds}s</span>`;
+  }
+  return `<span class="${styles.inactiveShield}">—</span>`;
+}
+
+function refreshShieldTimers(tbody) {
+  tbody.querySelectorAll('tr[data-team]').forEach(row => {
     const teamName = row.dataset.team;
-    if (action === 'increment') {
-      incrementSurprise(teamName, type).catch(err => {
-        console.error('❌ Failed to increment surprise:', err);
-      });
-    } else if (action === 'decrement') {
-      decrementSurprise(teamName, type).catch(err => {
-        console.error('❌ Failed to decrement surprise:', err);
-      });
-    }
-  }
+    const cell = row.querySelector('[data-role="shield-timer"]');
+    if (!teamName || !cell) return;
 
-  handleDurationChange(event) {
-    const next = Number.parseInt(event?.target?.value, 10);
-    const normalized = setShieldDurationMinutes(Number.isFinite(next) ? next : DEFAULT_SHIELD_MINUTES);
-    if (this.durationInput) {
-      this.durationInput.value = String(normalized);
+    const remaining = getShieldTimeRemaining(teamName);
+    if (remaining > 0) {
+      const seconds = Math.ceil(remaining / 1000);
+      cell.innerHTML = `<span class="${styles.activeShield}">🛡️ ${seconds}s</span>`;
+      row.className = styles.hasStock;
+    } else {
+      cell.innerHTML = `<span class="${styles.inactiveShield}">—</span>`;
+      if (!row.classList.contains(styles.hasStock) && !row.classList.contains(styles.noStock)) {
+        row.className = styles.noStock;
+      }
     }
-    console.log(`🛡️ Shield duration set to ${normalized} minutes`);
-  }
+  });
+}
+
+function normalizeCount(value) {
+  const num = Number(value);
+  return Number.isFinite(num) && num >= 0 ? num : 0;
 }
