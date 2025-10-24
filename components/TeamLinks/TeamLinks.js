@@ -1,6 +1,7 @@
 // File: components/TeamLinks/TeamLinks.js
 import { allTeams } from '../../data.js';
 import styles from './TeamLinks.module.css';
+import { escapeHtml } from '../../modules/utils.js';
 
 /** ---------------------------------------------------------------------------
  *  Component markup
@@ -8,10 +9,12 @@ import styles from './TeamLinks.module.css';
 export function TeamLinksComponent() {
   const tableRowsHtml = allTeams.map(team => {
     const teamUrl = `/player.html?teamName=${encodeURIComponent(team.name)}`;
+    const safeTeamName = escapeHtml(team.name);
+    const safeTeamUrl = escapeHtml(teamUrl);
     return `
       <tr>
-        <td>${team.name}</td>
-        <td><a href="${teamUrl}" target="_blank" rel="noopener noreferrer">${teamUrl}</a></td>
+        <td>${safeTeamName}</td>
+        <td><a href="${safeTeamUrl}" target="_blank" rel="noopener noreferrer">${safeTeamUrl}</a></td>
       </tr>
     `;
   }).join('');

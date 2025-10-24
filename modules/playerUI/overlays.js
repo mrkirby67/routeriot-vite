@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { generateMiniMap } from '../zonesMap.js';
+import { escapeHtml } from '../utils.js';
 
 function $(id) {
   return document.getElementById(id);
@@ -423,16 +424,6 @@ function formatMMSS(totalSeconds) {
   const secs = totalSeconds % 60;
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 
 export function showGameOverOverlay() {
   if ($('gameover-overlay')) return;

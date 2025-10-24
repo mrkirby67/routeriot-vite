@@ -27,6 +27,7 @@ import {
   setDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { escapeHtml } from '../../modules/utils.js';
 
 const PROMPTS_STORAGE_KEY = 'speedBumpPrompts';
 const BANK_STORAGE_KEY = 'speedBumpBank';
@@ -80,15 +81,6 @@ function persistBankLocal(list) {
   } catch (err) {
     console.warn('⚠️ Failed to persist Speed Bump bank locally:', err);
   }
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function focusEditable(element) {

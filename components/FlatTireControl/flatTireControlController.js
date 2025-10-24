@@ -21,20 +21,12 @@ import {
   collection,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { escapeHtml } from '../../modules/utils.js';
 
 const ZONE_KEYS = ['north', 'south', 'east', 'west'];
 const AUTO_RELEASE_MINUTES = 20;
 const DEFAULT_DIAMETER_METERS = 200;
 const MIN_DIAMETER_METERS = 50;
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 function formatCountdown(ms) {
   if (!Number.isFinite(ms) || ms <= 0) return '00:00';

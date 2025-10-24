@@ -12,6 +12,7 @@ import {
   SurpriseTypes
 } from '../../modules/teamSurpriseManager.js';
 import { getActiveBump } from '../../modules/speedBumpManager.js';
+import { escapeHtml } from '../../modules/utils.js';
 
 const ACTIVE_TYPES = [SurpriseTypes.FLAT_TIRE, SurpriseTypes.BUG_SPLAT, SurpriseTypes.WILD_CARD];
 

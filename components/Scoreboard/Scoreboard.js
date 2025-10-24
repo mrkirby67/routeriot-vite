@@ -6,6 +6,7 @@
 import { db } from '../../modules/config.js';
 import { addPointsToTeam } from '../../modules/scoreboardManager.js';
 import { getZoneDisplayName } from '../../modules/zoneManager.js';
+import { escapeHtml } from '../../modules/utils.js';
 import {
   onSnapshot,
   collection,
@@ -98,30 +99,35 @@ export function initializeScoreboardListener({ editable = true } = {}) {
         ? formatTimestamp(ts)
         : '—';
 
+      const safeTeamName = escapeHtml(teamName);
+      const safeZoneLabel = escapeHtml(zoneLabel);
+      const safeZonesControlled = escapeHtml(String(zones));
+      const safeScoreDisplay = escapeHtml(String(score));
+      const safeTime = escapeHtml(time);
       const row = document.createElement('tr');
 
       if (editable) {
         row.innerHTML = `
-          <td>${teamName}</td>
+          <td>${safeTeamName}</td>
           <td>
             <input type="number"
                    id="score-${teamName.replace(/\s/g, '')}"
-                   value="${score}"
+                   value="${safeScoreDisplay}"
                    class="${styles.scoreInput}">
           </td>
-          <td>${zones}</td>
-          <td>${zoneLabel}</td>
+          <td>${safeZonesControlled}</td>
+          <td>${safeZoneLabel}</td>
           <td>
             <button class="${styles.adjustBtn}" data-team="${teamName}" data-change="+1">+1</button>
             <button class="${styles.adjustBtn}" data-team="${teamName}" data-change="-1">-1</button>
           </td>`;
       } else {
         row.innerHTML = `
-          <td>${teamName}</td>
-          <td>${score}</td>
-          <td>${zones}</td>
-          <td>${zoneLabel}</td>
-          <td>${time}</td>`;
+          <td>${safeTeamName}</td>
+          <td>${safeScoreDisplay}</td>
+          <td>${safeZonesControlled}</td>
+          <td>${safeZoneLabel}</td>
+          <td>${safeTime}</td>`;
       }
 
       scoreboardBody.appendChild(row);
