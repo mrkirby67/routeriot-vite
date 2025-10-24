@@ -825,3 +825,47 @@ export function hideShieldTimer() {
     floatingShieldOverlay = null;
   }
 }
+
+// =========================================================
+// 💥 WRECKED OVERLAY
+// =========================================================
+export function showWreckedOverlay(teamA, teamB, teamC) {
+  if (typeof document === 'undefined') return;
+  const existing = document.querySelector('.wrecked-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'wrecked-overlay';
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    inset: '0',
+    background: 'rgba(5, 5, 5, 0.85)',
+    color: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '14px',
+    textAlign: 'center',
+    zIndex: '9000',
+    fontFamily: 'Montserrat, "Segoe UI", sans-serif'
+  });
+
+  let counter = 10;
+  overlay.innerHTML = `<h1 style="font-size:3rem;margin:0;">💥 WRECKED!</h1>
+    <p>Team ${escapeHtml(teamA || '?')} needs to keep both hands on the wheel!</p>
+    <p>Team ${escapeHtml(teamC || '?')} just got WRECKED — instant karma!</p>
+    <p>Countdown: <span id="wrecked-count">${counter}</span>s</p>`;
+
+  document.body.appendChild(overlay);
+
+  const interval = window.setInterval(() => {
+    counter -= 1;
+    const el = document.getElementById('wrecked-count');
+    if (el) el.textContent = Math.max(counter, 0);
+    if (counter <= 0) {
+      window.clearInterval(interval);
+      overlay.remove();
+    }
+  }, 1000);
+}

@@ -38,17 +38,31 @@ export async function sendPrivateSystemMessage(recipient, text) {
   return sendMessage(GAME_MASTER_NAME, recipient, text);
 }
 
-export async function sendPrivateMessage(sender, recipient, rawText) {
-  const fromTeam = typeof sender === 'string' ? sender.trim() : '';
-  const toTeam = typeof recipient === 'string' ? recipient.trim() : '';
-  const text = typeof rawText === 'string' ? rawText.trim() : '';
+export async function sendPrivateMessage(senderOrTarget, recipientMaybe, rawText) {
+  let fromTeam;
+  let toTeam;
+  let text;
+
+  if (typeof rawText === 'undefined') {
+    fromTeam = GAME_MASTER_NAME;
+    toTeam = typeof senderOrTarget === 'string' ? senderOrTarget.trim() : '';
+    text = typeof recipientMaybe === 'string' ? recipientMaybe.trim() : '';
+  } else {
+    fromTeam = typeof senderOrTarget === 'string' ? senderOrTarget.trim() : '';
+    toTeam = typeof recipientMaybe === 'string' ? recipientMaybe.trim() : '';
+    text = typeof rawText === 'string' ? rawText.trim() : '';
+  }
 
   if (!fromTeam || !toTeam || !text) {
     return { ok: false, reason: 'invalid_payload' };
   }
 
+  const snippet = text.length > 280 ? `${text.slice(0, 277)}…` : text;
+  console.log(`💬 [Private] → ${toTeam}: ${snippet}`);
+  // TODO: wire to team-specific Firestore chat doc
+
   try {
-    await sendMessage(fromTeam, toTeam, text.slice(0, 280));
+    await sendMessage(fromTeam, toTeam, snippet);
     return { ok: true };
   } catch (err) {
     console.error('❌ Error sending private message:', err);

@@ -11,6 +11,16 @@ import { escapeHtml } from './utils.js';
 import { getRandomTaunt } from './messages/taunts.js';
 import { sendPrivateMessage } from './chatManager/messageService.js';
 import {
+  isUnderWildCard,
+  startWildCard,
+  clearWildCard,
+  isOnCooldown as isTeamOnCooldown,
+  startCooldown as startGuardCooldown,
+  isShieldActive,
+  deactivateShield
+} from './teamSurpriseManager.js';
+import { showWreckedOverlay } from './playerUI/overlays.js';
+import {
   collection,
   onSnapshot,
   orderBy,
@@ -20,6 +30,8 @@ import {
 const COOLDOWN_MS = 60_000;
 const VALIDATION_MS = 5 * 60_000;
 const INTERACTION_COOLDOWN_MS = 60_000;
+const WILD_CARD_DURATION_MS = 90_000;
+const REVERSAL_DELAY_MS = 10_000;
 
 const TEAM_DIRECTORY = Array.isArray(allTeams)
   ? new Map(allTeams.map(team => [String(team?.name || '').trim(), team]))
@@ -71,6 +83,7 @@ function parseBroadcast(message) {
   if (releaseMatch) {
     const [, team] = releaseMatch;
     clearValidationTimer(team.trim());
+    clearWildCard(team.trim());
     activeBumps.delete(team.trim());
     notify();
     return;
@@ -134,6 +147,91 @@ function commitInteractionCooldown(key) {
   if (key) interactionCooldowns.set(key, Date.now());
 }
 
+function showGuardAlert(message) {
+  if (!message) return;
+  if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+    window.alert(message);
+  } else {
+    console.warn(message);
+  }
+}
+
+function requestShieldConfirm(message) {
+  if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+    return window.confirm(message);
+  }
+  console.warn('Shield confirmation requested outside browser context; proceeding by default.');
+  return true;
+}
+
+function interceptSpeedBump(attacker, victim) {
+  if (!attacker || !victim) return false;
+  if (isTeamOnCooldown(attacker)) {
+    showGuardAlert('⏳ Your crew needs a breather before another attack!');
+    return true;
+  }
+  if (isUnderWildCard(attacker)) {
+    showGuardAlert('⚠️ You can’t attack while dealing with your own Wild Card!');
+    return true;
+  }
+  if (isUnderWildCard(victim)) {
+    showGuardAlert('⚠️ That team is already in trouble. Let them breathe!');
+    return true;
+  }
+  if (isShieldActive(attacker)) {
+    const proceed = requestShieldConfirm(
+      "Now why would you get that new Polish tarnished with those dirty deeds? Proceeding will cancel your Shield."
+    );
+    if (!proceed) {
+      return true;
+    }
+    deactivateShield(attacker);
+  }
+  return false;
+}
+
+function findActiveBumpByAttacker(teamName) {
+  for (const [victimTeam, data] of activeBumps.entries()) {
+    if (data?.by === teamName) {
+      return { victimTeam, data };
+    }
+  }
+  return null;
+}
+
+function handleReversal(priorAttacker, priorVictim, newAttacker, challenge) {
+  console.log(`💥 Reversal triggered: ${newAttacker} attacked ${priorAttacker} while they had ${priorVictim}`);
+  if (typeof document !== 'undefined' && typeof showWreckedOverlay === 'function') {
+    showWreckedOverlay(priorAttacker, priorVictim, newAttacker);
+  }
+  const message = `💥 Instant Karma! ${newAttacker} attacked ${priorAttacker} mid-Speed-Bump — both got WRECKED!`;
+  broadcastEvent('Game Master', message, false);
+
+  setTimeout(() => {
+    clearWildCard(priorVictim);
+    clearValidationTimer(priorVictim);
+    activeBumps.delete(priorVictim);
+    notify();
+
+    startWildCard(priorAttacker, 'speedBump', WILD_CARD_DURATION_MS);
+    startGuardCooldown(priorAttacker);
+    startGuardCooldown(priorVictim);
+
+    const startedAt = Date.now();
+    applySpeedBump(priorAttacker, {
+      by: newAttacker,
+      challenge,
+      startedAt,
+      proofSentAt: null,
+      countdownEndsAt: null
+    });
+
+    sendPrivateMessage(priorAttacker, '🚧 You hit your own bump! Time to slow down.');
+    sendPrivateMessage(priorVictim, '🛞 You’re free! The road’s clear again.');
+    sendPrivateMessage(newAttacker, '😈 Instant Karma delivered!');
+  }, REVERSAL_DELAY_MS);
+}
+
 export async function sendSpeedBumpChirp({ fromTeam, toTeam, message } = {}) {
   const sender = typeof fromTeam === 'string' ? fromTeam.trim() : '';
   const recipient = typeof toTeam === 'string' ? toTeam.trim() : '';
@@ -185,11 +283,25 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
     return { ok: false, reason: Math.ceil(remainingMs / 1000) };
   }
 
+  if (interceptSpeedBump(attacker, defender)) {
+    return { ok: false, reason: 'guard_blocked' };
+  }
+
   const cooldownKey = `${attacker}:bump`;
   const now = Date.now();
   if (!override && cooldowns.has(cooldownKey) && cooldowns.get(cooldownKey) > now) {
     const remaining = cooldowns.get(cooldownKey) - now;
     return { ok: false, reason: Math.ceil(remaining / 1000) };
+  }
+
+  const reversal = findActiveBumpByAttacker(defender);
+  if (reversal && !override) {
+    handleReversal(defender, reversal.victimTeam, attacker, challenge);
+    startGuardCooldown(attacker);
+    startCooldown(attacker, 'bump', override ? 0 : COOLDOWN_MS);
+    commitInteractionCooldown(pairKey);
+    startWildCard(defender, 'speedBump', WILD_CARD_DURATION_MS);
+    return { ok: true, reason: 'reversal_triggered' };
   }
 
   const { email: senderEmail, phone: senderPhone } = formatSenderContact(attacker);
@@ -218,6 +330,8 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
   });
   startCooldown(attacker, 'bump', override ? 0 : COOLDOWN_MS);
   commitInteractionCooldown(pairKey);
+  startGuardCooldown(attacker);
+  startWildCard(defender, 'speedBump', WILD_CARD_DURATION_MS);
 
   return { ok: true };
 }
@@ -225,6 +339,7 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
 export async function releaseSpeedBump(teamName, releasedBy = 'Game Master') {
   ensureCommsListener();
   clearValidationTimer(teamName);
+  clearWildCard(teamName);
   activeBumps.delete(teamName);
   const message = `🟢 Speed Bump Cleared: ${teamName} is back on the road! (Released by ${releasedBy})`;
   await broadcastEvent('Game Master', message, true);
@@ -325,6 +440,7 @@ function notify() {
 function applySpeedBump(teamName, data) {
   clearValidationTimer(teamName);
   activeBumps.set(teamName, { ...data });
+  startWildCard(teamName, 'speedBump', WILD_CARD_DURATION_MS);
   notify();
 }
 

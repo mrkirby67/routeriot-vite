@@ -15,6 +15,10 @@ import {
   setDoc,
   Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  isUnderWildCard,
+  isOnCooldown as isTeamOnCooldown
+} from './teamSurpriseManager.js';
 
 const ASSIGNMENTS_COLLECTION = collection(db, 'flatTireAssignments');
 const CONFIG_DOCUMENT = doc(db, 'settings', 'flatTireConfig');
@@ -28,6 +32,15 @@ const DEFAULT_ZONES = {
   east: { name: 'East Repair Depot', gps: '', diameterMeters: DEFAULT_DIAMETER_METERS },
   west: { name: 'West Repair Depot', gps: '', diameterMeters: DEFAULT_DIAMETER_METERS }
 };
+
+export function canSendFlatTire(attacker, victim) {
+  const attackerName = typeof attacker === 'string' ? attacker.trim() : '';
+  const victimName = typeof victim === 'string' ? victim.trim() : '';
+  if (!attackerName || !victimName) return false;
+  if (isTeamOnCooldown(attackerName)) return false;
+  if (isUnderWildCard(attackerName) || isUnderWildCard(victimName)) return false;
+  return true;
+}
 
 function encodeTeamId(teamName = '') {
   return teamName.replace(/[^\w\d]+/g, '_').toLowerCase();

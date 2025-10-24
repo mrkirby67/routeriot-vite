@@ -58,6 +58,11 @@ export function isShieldActive(teamName) {
   return true;
 }
 
+export function deactivateShield(teamName) {
+  if (!teamName) return;
+  delete activeShields[teamName];
+}
+
 const COLLECTION = collection(db, 'teamSurprises');
 
 function teamDocRef(teamName) {
@@ -204,4 +209,48 @@ function normalizeSurpriseKey(key) {
   if (key === SurpriseTypes.BUG_SPLAT || key === 'bugSplat') return SurpriseTypes.BUG_SPLAT;
   if (key === SurpriseTypes.WILD_CARD || key === 'wildCard' || key === 'superShieldWax') return SurpriseTypes.WILD_CARD;
   return null;
+}
+
+// =========================================================
+// 🚫 Wild Card & Shield Guards
+// =========================================================
+export const activeWildCards = Object.create(null);   // { teamName: { type, expires } }
+export const activeCooldowns = Object.create(null);   // { teamName: timestamp }
+
+export function isUnderWildCard(team) {
+  if (!team) return false;
+  const entry = activeWildCards[team];
+  if (!entry) return false;
+  if (entry.expires <= Date.now()) {
+    delete activeWildCards[team];
+    return false;
+  }
+  return true;
+}
+
+export function startWildCard(team, type, durationMs) {
+  if (!team) return;
+  const expires = Date.now() + Math.max(0, Number(durationMs) || 0);
+  activeWildCards[team] = { type, expires };
+}
+
+export function clearWildCard(team) {
+  if (!team) return;
+  delete activeWildCards[team];
+}
+
+export function startCooldown(team, ms = 60_000) {
+  if (!team) return;
+  activeCooldowns[team] = Date.now() + Math.max(0, Number(ms) || 0);
+}
+
+export function isOnCooldown(team) {
+  if (!team) return false;
+  const expires = activeCooldowns[team];
+  if (!expires) return false;
+  if (expires <= Date.now()) {
+    delete activeCooldowns[team];
+    return false;
+  }
+  return true;
 }
