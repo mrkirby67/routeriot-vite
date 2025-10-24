@@ -1,0 +1,19 @@
+#!/bin/bash
+echo "🔧 Backing up current monolith..."
+mv modules/speedBumpManager.js modules/speedBumpManager_FULL.js
+
+echo "📁 Creating modular folder..."
+mkdir -p modules/speedBump
+
+echo "🧱 Creating module files..."
+touch modules/speedBump/{index.js,core.js,comms.js,interactions.js,timers.js,reversals.js}
+
+echo "🔁 Updating imports..."
+grep -rl "speedBumpManager.js" ./components ./modules ./player.js ./control.js | while read -r file; do
+  sed -i '' 's#speedBumpManager.js#speedBump/index.js#g' "$file"
+done
+
+echo "⚙️ Running codex refresh..."
+npx codex --reindex || echo "⚠️ Codex refresh skipped (offline sandbox)."
+
+echo "✅ Split complete!"

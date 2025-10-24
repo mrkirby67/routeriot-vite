@@ -1,5 +1,5 @@
 // ============================================================================
-// FILE: modules/speedBumpManager.js
+// FILE: modules/speedBump/index.js
 // PURPOSE: Shared helpers for sending, tracking, and releasing Speed Bumps
 // NOTE: Uses broadcasts (communications collection) to sync state across clients.
 // ============================================================================

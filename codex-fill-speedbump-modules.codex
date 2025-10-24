@@ -1,0 +1,84 @@
+#!/bin/bash
+echo "🧠 Populating modular SpeedBump code..."
+
+# index.js
+cat > modules/speedBump/index.js <<'JS'
+export * from './core.js';
+export * from './comms.js';
+export * from './interactions.js';
+export * from './timers.js';
+export * from './reversals.js';
+JS
+
+# core.js
+cat > modules/speedBump/core.js <<'JS'
+import { allTeams } from '../data.js';
+export const TEAM_DIRECTORY = new Map(
+  Array.isArray(allTeams) ? allTeams.map(t => [String(t?.name || '').trim(), t]) : []
+);
+export const activeBumps = new Map();
+export const cooldowns = new Map();
+export const subscribers = new Set();
+export const processedMessages = new Set();
+export const validationTimers = new Map();
+export const interactionCooldowns = new Map();
+export const COOLDOWN_MS = 60_000;
+export const VALIDATION_MS = 5 * 60_000;
+export const INTERACTION_COOLDOWN_MS = 60_000;
+export const WILD_CARD_DURATION_MS = 90_000;
+export const REVERSAL_DELAY_MS = 10_000;
+export function normalizeTeamKey(value){return typeof value==='string'&&value.trim()?value.trim().toLowerCase():null;}
+export function sanitize(value){return String(value||'').replace(/[\r\n]+/g,' ').replace(/[<>]/g,'').trim();}
+export function findTeamByName(name){if(!name)return null;const key=name.trim();const direct=TEAM_DIRECTORY.get(key);if(direct)return direct;const lower=key.toLowerCase();for(const t of TEAM_DIRECTORY.values()){if(t?.name&&t.name.toLowerCase()===lower)return t;}return null;}
+JS
+
+# comms.js
+cat > modules/speedBump/comms.js <<'JS'
+import { collection, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from '../config.js';
+import { processedMessages } from './core.js';
+import { applySpeedBump, applyProofSent, clearValidationTimer, notify } from './interactions.js';
+import { clearWildCard } from '../teamSurpriseManager.js';
+
+let commsUnsub = null;
+export function ensureCommsListener(){if(commsUnsub||typeof window==='undefined')return;const commsQuery=query(collection(db,'communications'),orderBy('timestamp','desc'));commsUnsub=onSnapshot(commsQuery,snap=>{snap.docChanges().forEach(change=>{if(change.type!=='added')return;const id=change.doc.id;if(processedMessages.has(id))return;processedMessages.add(id);parseBroadcast(change.doc.data()?.message||'');});});}
+export function parseBroadcast(message=''){if(!message)return;const speedBumpMatch=message.match(/Speed Bump:\s*([^\n]+?)\s+challenged\s+([^\n!]+)!/);if(speedBumpMatch){const[,fromRaw,toRaw]=speedBumpMatch;const challenge=(message.match(/Challenge:\s*([^\n]+)/)?.[1]||'').trim();const email=(message.match(/Contact Email:\s*([^\n]+)/)?.[1]||'').trim();const phone=(message.match(/Contact Phone:\s*([^\n]+)/)?.[1]||'').trim();applySpeedBump(toRaw.trim(),{by:fromRaw.trim(),challenge,startedAt:Date.now(),contactEmail:email||null,contactPhone:phone||null});return;}const releaseMatch=message.match(/Speed Bump Cleared: ([^]+?) is/);if(releaseMatch){const team=releaseMatch[1].trim();clearValidationTimer(team);clearWildCard(team);notify();return;}const proofMatch=message.match(/Proof Sent: ([^|]+)\|([0-9]+)\|([0-9]+)/);if(proofMatch){const[,team,expires,proofAt]=proofMatch;applyProofSent(team.trim(),Number(expires),Number(proofAt));}}
+JS
+
+# interactions.js
+cat > modules/speedBump/interactions.js <<'JS'
+import { broadcastEvent } from '../zonesFirestore.js';
+import { findTeamByName, sanitize, activeBumps, cooldowns, subscribers, COOLDOWN_MS, WILD_CARD_DURATION_MS } from './core.js';
+import { ensureCommsListener } from './comms.js';
+import { startWildCard, clearWildCard } from '../teamSurpriseManager.js';
+import { clearValidationTimer, scheduleValidationTimer } from './timers.js';
+
+let tickerId=null;
+export function applySpeedBump(teamName,data){activeBumps.set(teamName,data);startWildCard(teamName,'speedBump',WILD_CARD_DURATION_MS);notify();}
+export function applyProofSent(teamName,expiresAt,proofAt=Date.now()){const current=activeBumps.get(teamName);if(!current)return;activeBumps.set(teamName,{...current,proofSentAt:proofAt,countdownEndsAt:expiresAt});scheduleValidationTimer(teamName,expiresAt);notify();}
+export function notify(){const payload={activeBumps:Array.from(activeBumps.entries()),cooldowns:Array.from(cooldowns.entries())};subscribers.forEach(fn=>{try{fn(payload);}catch(e){console.warn(e);}});}
+export async function releaseSpeedBump(teamName,releasedBy='Game Master'){ensureCommsListener();clearValidationTimer(teamName);clearWildCard(teamName);activeBumps.delete(teamName);await broadcastEvent('Game Master',`�� Speed Bump Cleared: ${teamName} (by ${releasedBy})`,true);notify();}
+export function startCooldown(team,type,ms=COOLDOWN_MS){const key=\`\${team}:\${type}\`;cooldowns.set(key,Date.now()+ms);scheduleTicker();}
+function scheduleTicker(){if(tickerId)return;tickerId=setInterval(()=>{const now=Date.now();let changed=false;for(const[key,exp]of cooldowns){if(exp<=now){cooldowns.delete(key);changed=true;}}if(changed)notify();if(!cooldowns.size){clearInterval(tickerId);tickerId=null;}},1000);}
+JS
+
+# timers.js
+cat > modules/speedBump/timers.js <<'JS'
+import { validationTimers } from './core.js';
+import { releaseSpeedBump } from './interactions.js';
+export function scheduleValidationTimer(teamName,expiresAt){if(!expiresAt)return;const remaining=Math.max(0,expiresAt-Date.now());const existing=validationTimers.get(teamName);if(existing?.timerId)clearTimeout(existing.timerId);const timerId=setTimeout(()=>{validationTimers.delete(teamName);releaseSpeedBump(teamName,'Auto Timer');},remaining);validationTimers.set(teamName,{expiresAt,timerId});}
+export function clearValidationTimer(teamName){const entry=validationTimers.get(teamName);if(entry?.timerId)clearTimeout(entry.timerId);validationTimers.delete(teamName);}
+JS
+
+# reversals.js
+cat > modules/speedBump/reversals.js <<'JS'
+import { broadcastEvent } from '../zonesFirestore.js';
+import { startWildCard, clearWildCard, startCooldown as startGuardCooldown } from '../teamSurpriseManager.js';
+import { showWreckedOverlay } from '../playerUI/overlays.js';
+import { applySpeedBump, notify } from './interactions.js';
+import { REVERSAL_DELAY_MS, WILD_CARD_DURATION_MS } from './core.js';
+import { sendPrivateMessage } from '../chatManager/messageService.js';
+export function handleReversal(priorAttacker,priorVictim,newAttacker,challenge){console.log(\`💥 Reversal: \${newAttacker} attacked \${priorAttacker} mid-Speed-Bump\`);showWreckedOverlay(priorAttacker,priorVictim,newAttacker);broadcastEvent('Game Master',\`💥 Instant Karma! \${newAttacker} hit \${priorAttacker} — both wrecked!\`,false);setTimeout(()=>{clearWildCard(priorVictim);notify();startWildCard(priorAttacker,'speedBump',WILD_CARD_DURATION_MS);startGuardCooldown(priorAttacker);startGuardCooldown(priorVictim);applySpeedBump(priorAttacker,{by:newAttacker,challenge,startedAt:Date.now()});sendPrivateMessage(priorAttacker,'🚧 You hit your own bump!');sendPrivateMessage(priorVictim,'🛞 You’re free!');sendPrivateMessage(newAttacker,'😈 Instant Karma delivered!');},REVERSAL_DELAY_MS);}
+JS
+
+echo "✅ Modular code populated!"

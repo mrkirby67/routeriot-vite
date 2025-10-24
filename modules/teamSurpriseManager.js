@@ -69,6 +69,9 @@ function teamDocRef(teamName) {
   return doc(COLLECTION, teamName.replace(/[\\/#?]/g, '_'));
 }
 
+// ----------------------------------------------------------------------------
+// 🔁 Firestore Listeners & Counters
+// ----------------------------------------------------------------------------
 export function subscribeTeamSurprises(callback) {
   console.log('🧩 Subscribed to team surprises for UI sync…');
   if (typeof window !== 'undefined' && window?.fakeTeamData && typeof callback === 'function') {
@@ -131,6 +134,9 @@ export async function getTeamSurpriseCounts(teamName) {
 export const increment = incrementSurprise;
 export const decrement = decrementSurprise;
 
+// ----------------------------------------------------------------------------
+// 🕒 Shield + Timer Utilities
+// ----------------------------------------------------------------------------
 export function getShieldTimeRemaining(teamName) {
   if (!teamName) return 0;
   const expiresAt = activeShields[teamName];
@@ -142,6 +148,9 @@ export function getShieldTimeRemaining(teamName) {
   return expiresAt - Date.now();
 }
 
+// ----------------------------------------------------------------------------
+// 🔥 Live per-team subscription helper
+// ----------------------------------------------------------------------------
 export function subscribeSurprisesForTeam(teamName, callback) {
   if (!teamName || typeof callback !== 'function') return () => {};
   const ref = teamDocRef(teamName);
@@ -160,6 +169,9 @@ export function subscribeSurprisesForTeam(teamName, callback) {
   });
 }
 
+// ----------------------------------------------------------------------------
+// 💾 Transactional surprise usage + audit
+// ----------------------------------------------------------------------------
 export async function consumeSurprise(teamName, key, amount = 1) {
   if (!teamName || !key || amount <= 0) return false;
   const normalizedKey = normalizeSurpriseKey(key);
@@ -198,6 +210,9 @@ export async function auditUse(teamName, kind, meta = {}) {
   }
 }
 
+// ----------------------------------------------------------------------------
+// 🧮 Normalization helpers
+// ----------------------------------------------------------------------------
 function normalizeCount(value) {
   const num = Number(value);
   return Number.isFinite(num) && num >= 0 ? num : 0;
@@ -253,4 +268,68 @@ export function isOnCooldown(team) {
     return false;
   }
   return true;
+}
+
+export const isTeamOnCooldown = isOnCooldown;
+
+// =========================================================
+// 🧼 Shield Confirmation Gate
+// =========================================================
+export function checkShieldBeforeAttack(teamName, onProceed) {
+  if (typeof onProceed !== 'function') return Promise.resolve(null);
+
+  const execute = () => Promise.resolve(onProceed());
+
+  if (!teamName || !isShieldActive(teamName)) {
+    return execute();
+  }
+
+  if (typeof document === 'undefined') {
+    if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      const confirmed = window.confirm(
+        '🧼 Now why would you get that new polish tarnished with those dirty deeds? Proceeding will cancel your shield.'
+      );
+      if (!confirmed) {
+        return Promise.resolve({ ok: false, reason: 'shield_cancelled' });
+      }
+      deactivateShield(teamName);
+      return execute();
+    }
+    deactivateShield(teamName);
+    return execute();
+  }
+
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('.shield-confirm');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.className = 'shield-confirm';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <p>🧼 Now why would you get that new polish tarnished with those dirty deeds?</p>
+        <p>If you proceed you cancel your shield.</p>
+        <div class="modal-actions">
+          <button type="button" id="cancelAttack">Cancel</button>
+          <button type="button" id="proceedAttack">Proceed Anyway</button>
+        </div>
+      </div>
+    `;
+
+    const cleanup = () => modal?.remove();
+    const handleCancel = () => {
+      cleanup();
+      resolve({ ok: false, reason: 'shield_cancelled' });
+    };
+    const handleProceed = () => {
+      cleanup();
+      deactivateShield(teamName);
+      execute().then(resolve).catch(reject);
+    };
+
+    modal.querySelector('#cancelAttack')?.addEventListener('click', handleCancel, { once: true });
+    modal.querySelector('#proceedAttack')?.addEventListener('click', handleProceed, { once: true });
+
+    document.body.appendChild(modal);
+  });
 }

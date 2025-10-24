@@ -21,7 +21,7 @@ import {
   sendSpeedBumpFromPlayer,
   releaseSpeedBumpFromPlayer
 } from '../speedBumpPlayer.js';
-import { getCooldownRemaining, getActiveBump, subscribeSpeedBumps, subscribeSpeedBumpsForAttacker } from '../speedBumpManager.js';
+import { getCooldownRemaining, getActiveBump, subscribeSpeedBumps, subscribeSpeedBumpsForAttacker } from '../speedBump/index.js';
 import {
   subscribeTeamSurprises,
   decrementSurprise,

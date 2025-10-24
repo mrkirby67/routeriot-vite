@@ -12,7 +12,7 @@ import {
   getActiveBump,
   markProofSent,
   sendSpeedBumpChirp
-} from './speedBumpManager.js';
+} from './speedBump/index.js';
 import {
   showSpeedBumpOverlay,
   hideSpeedBumpOverlay
