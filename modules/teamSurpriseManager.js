@@ -35,24 +35,24 @@ export function getShieldDurationMs() {
   return minutes * 60 * 1000;
 }
 
-export const activeShieldUntil = new Map();
+export const activeShields = Object.create(null);
 
 export function activateShield(teamName, expiresAtMs) {
   if (!teamName) return null;
   const durationMs = getShieldDurationMs();
   const candidate = Number(expiresAtMs);
   const expiresAt = Number.isFinite(candidate) ? candidate : Date.now() + durationMs;
-  activeShieldUntil.set(teamName, expiresAt);
-  console.log(`🛡️ ${teamName} protected until ${new Date(expiresAt).toLocaleTimeString()}`);
+  activeShields[teamName] = expiresAt;
+  console.log(`🛡️ Shield active for ${teamName} until ${new Date(expiresAt).toLocaleTimeString()}`);
   return expiresAt;
 }
 
 export function isShieldActive(teamName) {
   if (!teamName) return false;
-  const expiresAt = activeShieldUntil.get(teamName);
+  const expiresAt = activeShields[teamName];
   if (!expiresAt) return false;
   if (expiresAt <= Date.now()) {
-    activeShieldUntil.delete(teamName);
+    delete activeShields[teamName];
     return false;
   }
   return true;
@@ -65,6 +65,14 @@ function teamDocRef(teamName) {
 }
 
 export function subscribeTeamSurprises(callback) {
+  console.log('🧩 Subscribed to team surprises for UI sync…');
+  if (typeof window !== 'undefined' && window?.fakeTeamData && typeof callback === 'function') {
+    try {
+      callback([], window.fakeTeamData);
+    } catch (err) {
+      console.warn('⚠️ team surprise callback (prefill) failed:', err);
+    }
+  }
   return onSnapshot(COLLECTION, snapshot => {
     const entries = snapshot.docs.map(docSnap => ({
       id: docSnap.id,
@@ -120,10 +128,10 @@ export const decrement = decrementSurprise;
 
 export function getShieldTimeRemaining(teamName) {
   if (!teamName) return 0;
-  const expiresAt = activeShieldUntil.get(teamName);
+  const expiresAt = activeShields[teamName];
   if (!expiresAt) return 0;
   if (expiresAt <= Date.now()) {
-    activeShieldUntil.delete(teamName);
+    delete activeShields[teamName];
     return 0;
   }
   return expiresAt - Date.now();
@@ -151,6 +159,8 @@ export async function consumeSurprise(teamName, key, amount = 1) {
   if (!teamName || !key || amount <= 0) return false;
   const normalizedKey = normalizeSurpriseKey(key);
   if (!normalizedKey) return false;
+
+  console.log(`🎯 ${teamName} used ${normalizedKey}`);
 
   let success = false;
   await runTransaction(db, async (tx) => {

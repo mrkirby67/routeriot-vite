@@ -7,6 +7,7 @@
 import { broadcastEvent } from './zonesFirestore.js';
 import { db } from './config.js';
 import { allTeams } from '../data.js';
+import { escapeHtml } from './utils.js';
 import {
   collection,
   onSnapshot,
@@ -78,11 +79,10 @@ function parseBroadcast(message) {
   }
 }
 
-function sanitize(text) {
+function normalizeChallenge(text) {
   return String(text || '')
     .replace(/[\r\n]+/g, ' ')
-    .replace(/</g, '')
-    .replace(/>/g, '')
+    .replace(/[<>]/g, '')
     .trim();
 }
 
@@ -115,28 +115,27 @@ function getRecipientContact(teamName) {
 function openDirectMessage({ fromTeam, toTeam, challengeText }) {
   if (typeof window === 'undefined') return;
 
-  const safeFrom = String(fromTeam || 'Unknown Team');
-  const safeTo = String(toTeam || 'Recipient Team');
-  const challenge = String(challengeText || 'Take a photo or video of the challenge').trim();
+  const fromLabel = String(fromTeam || 'Unknown Team');
+  const toLabel = String(toTeam || 'Recipient Team');
+  const challenge = normalizeChallenge(challengeText) || 'Take a photo or video of the challenge';
 
-  const { email: senderEmail, phone: senderPhone } = formatSenderContact(safeFrom);
-  const { email: recipientEmail, phone: recipientPhone } = getRecipientContact(safeTo);
+  const { email: senderEmail, phone: senderPhone } = formatSenderContact(fromLabel);
+  const { email: recipientEmail, phone: recipientPhone } = getRecipientContact(toLabel);
 
-  const bodyLines = [
-    'Route Riot Speed Bump!',
+  const safeLines = [
+    '🚧 Route Riot Speed Bump!',
     '',
-    `From: ${safeFrom}`,
-    `Sender email: ${senderEmail}`,
-    `Sender phone: ${senderPhone}`,
+    `From Team: ${escapeHtml(fromLabel)}`,
+    `Sender Email: ${escapeHtml(senderEmail)}`,
+    `Sender Phone: ${escapeHtml(senderPhone)}`,
     '',
     'Challenge:',
-    challenge,
+    escapeHtml(challenge),
     '',
-    'Please send the requested photo/video to the sender to release them.',
-    'If you have issues replying, use the in-app Release button once confirmed.'
+    'Reply with a proof photo / video to clear your Speed Bump!'
   ];
 
-  const encodedBody = encodeURIComponent(bodyLines.join('\n'));
+  const encodedBody = encodeURIComponent(safeLines.join('\n'));
   const subject = encodeURIComponent('Route Riot Speed Bump!');
 
   let opened = false;
@@ -160,15 +159,15 @@ function openDirectMessage({ fromTeam, toTeam, challengeText }) {
   }
 
   if (!opened) {
-    const preview = bodyLines.join('\n');
-    const message = `No direct contact found for ${safeTo}. Copy the message below:\n\n${preview}`;
+    const preview = safeLines.join('\n');
+    const message = `⚠️ No contact info available for ${toLabel}. Copy the message below:\n\n${preview}`;
     window.alert(message);
   }
 }
 
 export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override = false } = {}) {
   ensureCommsListener();
-  const challenge = sanitize(challengeText) || 'Complete a surprise photo challenge!';
+  const challenge = normalizeChallenge(challengeText) || 'Complete a surprise photo challenge!';
   const key = `${fromTeam}:bump`;
   const now = Date.now();
   if (!override && cooldowns.has(key) && cooldowns.get(key) > now) {
@@ -176,7 +175,9 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
     return { ok: false, reason: Math.ceil(remaining / 1000) };
   }
 
-  const message = `🚧 Speed Bump: ${fromTeam} challenged ${toTeam}! Challenge: ${challenge} — wait for their proof photo before releasing.`;
+  const { email: senderEmail, phone: senderPhone } = formatSenderContact(fromTeam);
+
+  const message = `🚧 Speed Bump: ${fromTeam} challenged ${toTeam}! Challenge: ${challenge} — wait for their proof photo before releasing. Sender Email: ${senderEmail}. Sender Phone: ${senderPhone}.`;
   await broadcastEvent('Game Master', message, true);
 
   applySpeedBump(toTeam, {
@@ -190,7 +191,7 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
 
   if (typeof window !== 'undefined') {
     try {
-      openDirectMessage({ fromTeam, toTeam, challengeText: challengeText || challenge });
+      openDirectMessage({ fromTeam, toTeam, challengeText: challenge });
     } catch (err) {
       console.warn('⚠️ Could not open direct message for Speed Bump:', err);
     }
