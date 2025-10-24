@@ -748,3 +748,43 @@ button:hover,
 .speedbump-chirp-box button:hover {
   background: #ff6600;
 }
+
+/* =========================================================
+   🛞 Tire Celebration Animation Styles
+   ========================================================= */
+.tire-celebration {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.tire-emoji {
+  position: absolute;
+  bottom: -60px;
+  font-size: 2.4rem;
+  animation: tire-bounce 2.5s cubic-bezier(0.28, 0.84, 0.42, 1) forwards;
+}
+
+@keyframes tire-bounce {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-70vh) rotate(360deg);
+  }
+  100% {
+    transform: translateY(0) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.tire-celebration.fade-out {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}

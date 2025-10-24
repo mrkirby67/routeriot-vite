@@ -13,10 +13,13 @@ import {
 } from './flatTireManager.js';
 import {
   showFlatTireOverlay,
-  hideFlatTireOverlay
+  hideFlatTireOverlay,
+  clearFlatTireOverlay,
+  showTireCelebration
 } from './playerUI/overlays.js';
 import { getRandomTaunt } from './messages/taunts.js';
 import { sendPrivateMessage } from './chatManager/messageService.js';
+import { broadcastEvent } from './zonesFirestore.js';
 
 const FLAT_TIRE_CHIRP_COOLDOWN_MS = 60_000;
 const flatTireChirpCooldowns = new Map();
@@ -156,7 +159,19 @@ export function initializeFlatTireUI(teamName) {
           arrivalLng: coords.lng,
           arrivedAt: Date.now()
         });
+
+        clearFlatTireOverlay();
+        showTireCelebration();
+
+        try {
+          await broadcastEvent('Game Master', `🛞 ${teamName} repaired their Flat Tire and is back in the race!`, true);
+        } catch (broadcastErr) {
+          console.warn('⚠️ Flat Tire celebration broadcast failed:', broadcastErr);
+        }
+
+        await releaseTeam();
         alert('✅ Tow crew confirmed! You are inside the capture radius.');
+        return;
       } catch (err) {
         console.error('❌ Failed to submit Flat Tire check-in:', err);
         const message = err?.message || 'Unable to capture your location. Please enable GPS and try again.';

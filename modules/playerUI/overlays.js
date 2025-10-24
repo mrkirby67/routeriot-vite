@@ -299,6 +299,7 @@ function ensureFlatTireOverlay() {
 
   overlay = document.createElement('div');
   overlay.id = 'flat-tire-overlay';
+  overlay.classList.add('flat-tire-overlay');
   Object.assign(overlay.style, {
     position: 'fixed',
     inset: 0,
@@ -371,6 +372,7 @@ export function showFlatTireOverlay({
   onChirp
 } = {}) {
   const overlay = ensureFlatTireOverlay();
+  document.body.classList.add('overlay-active');
   const message = overlay.querySelector('#flat-tire-message');
   const blurbEl = overlay.querySelector('#flat-tire-blurb');
   const mapWrapper = overlay.querySelector('#flat-tire-map');
@@ -536,19 +538,57 @@ export function showFlatTireOverlay({
 
 export function hideFlatTireOverlay() {
   const overlay = document.getElementById('flat-tire-overlay');
-  if (!overlay) return;
-  if (flatTireCountdownInterval) {
-    clearInterval(flatTireCountdownInterval);
-    flatTireCountdownInterval = null;
+  if (!overlay) {
+    clearFlatTireOverlay();
+    return;
   }
   overlay.style.opacity = '0';
-  setTimeout(() => overlay.remove(), 250);
+  setTimeout(() => clearFlatTireOverlay(), 250);
 }
 
 function formatMMSS(totalSeconds) {
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+// =========================================================
+// 🛞 Tire Celebration Animation
+// =========================================================
+export function showTireCelebration() {
+  const container = document.createElement('div');
+  container.classList.add('tire-celebration');
+  document.body.appendChild(container);
+
+  for (let i = 0; i < 8; i++) {
+    const tire = document.createElement('div');
+    tire.classList.add('tire-emoji');
+    tire.textContent = '🛞';
+    tire.style.left = `${Math.random() * 90}%`;
+    tire.style.animationDelay = `${Math.random() * 0.6}s`;
+    container.appendChild(tire);
+  }
+
+  setTimeout(() => {
+    container.classList.add('fade-out');
+    setTimeout(() => container.remove(), 1500);
+  }, 2500);
+}
+
+// =========================================================
+// 💨 Helper to remove Flat Tire overlay cleanly
+// =========================================================
+export function clearFlatTireOverlay() {
+  const overlay = document.getElementById('flat-tire-overlay');
+  if (flatTireCountdownInterval) {
+    clearInterval(flatTireCountdownInterval);
+    flatTireCountdownInterval = null;
+  }
+  if (overlay) {
+    overlay.remove();
+  }
+  document.body.classList.remove('overlay-active');
+  console.log('🧹 Flat Tire overlay cleared.');
 }
 
 export function showGameOverOverlay() {
