@@ -102,6 +102,24 @@ export async function releaseSpeedBump(teamName, releasedBy = 'Game Master') {
   notify();
 }
 
+// Used by comms parser to mirror releases without rebroadcast loops.
+export function applyReleaseFromComms(teamName) {
+  const key = (teamName || '').trim();
+  if (!key) return;
+  try {
+    clearValidationTimer(key);
+  } catch (err) {
+    console.warn('⚠️ applyReleaseFromComms timer cleanup failed:', err);
+  }
+  try {
+    clearWildCard(key);
+  } catch (err) {
+    console.warn('⚠️ applyReleaseFromComms wild card cleanup failed:', err);
+  }
+  activeBumps.delete(key);
+  notify();
+}
+
 // Register release handler with timers.js to avoid circular import
 registerReleaseHandler(releaseSpeedBump);
 
