@@ -21,7 +21,7 @@ import {
   startWildCard,
   clearWildCard,
   isUnderWildCard,
-  isTeamOnCooldown,
+  isOnCooldown,          // ✅ FIXED (was isTeamOnCooldown)
   isShieldActive,
   deactivateShield
 } from '../teamSurpriseManager.js';
@@ -106,16 +106,8 @@ export async function releaseSpeedBump(teamName, releasedBy = 'Game Master') {
 export function applyReleaseFromComms(teamName) {
   const key = (teamName || '').trim();
   if (!key) return;
-  try {
-    clearValidationTimer(key);
-  } catch (err) {
-    console.warn('⚠️ applyReleaseFromComms timer cleanup failed:', err);
-  }
-  try {
-    clearWildCard(key);
-  } catch (err) {
-    console.warn('⚠️ applyReleaseFromComms wild card cleanup failed:', err);
-  }
+  try { clearValidationTimer(key); } catch {}
+  try { clearWildCard(key); } catch {}
   activeBumps.delete(key);
   notify();
 }
@@ -147,7 +139,7 @@ export function getCooldownRemaining(team, type) {
 }
 
 // ----------------------------------------------------------------------------
-// ⏱️ Internal ticker for cooldown cleanup
+// ⏱️ Internal ticker
 // ----------------------------------------------------------------------------
 function scheduleTicker() {
   if (tickerId) return;
@@ -169,7 +161,7 @@ function scheduleTicker() {
 }
 
 // ----------------------------------------------------------------------------
-// 📊 Query helpers for UI components (status panels, overlays, etc.)
+// 📊 Query helpers
 // ----------------------------------------------------------------------------
 export function isTeamBumped(teamName) {
   const key = (teamName || '').trim();
@@ -189,7 +181,7 @@ export function getActiveBump(teamName) {
 }
 
 // ----------------------------------------------------------------------------
-// 🔔 Subscription system (used by UI for live updates)
+// 🔔 Subscription system
 // ----------------------------------------------------------------------------
 export function subscribeSpeedBumps(callback) {
   if (typeof callback !== 'function') return () => {};
@@ -220,16 +212,12 @@ export function subscribeSpeedBumpsForAttacker(fromTeam, callback) {
             };
           })
       : [];
-    try {
-      callback(list);
-    } catch (err) {
-      console.warn('⚠️ speed bump attacker callback error:', err);
-    }
+    try { callback(list); } catch {}
   });
 }
 
 // ----------------------------------------------------------------------------
-// 🚧 Sending Speed Bumps (attack logic)
+// 🚧 Sending Speed Bumps
 // ----------------------------------------------------------------------------
 export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override = false } = {}) {
   ensureCommsListener();
@@ -238,12 +226,12 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
   const defender = (toTeam || '').trim();
   if (!attacker || !defender) return { ok: false, reason: 'missing_team' };
 
-  // Guard conditions
-  if (isTeamOnCooldown(attacker)) return { ok: false, reason: 'cooldown' };
+  // ✅ FIXED: cooldown check
+  if (isOnCooldown(attacker)) return { ok: false, reason: 'cooldown' };
+
   if (isUnderWildCard(attacker)) return { ok: false, reason: 'attacker_busy' };
   if (isUnderWildCard(defender)) return { ok: false, reason: 'target_busy' };
 
-  // Shield confirmation
   if (isShieldActive(attacker)) {
     let proceed = true;
     if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
@@ -260,20 +248,18 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
   const sanitizedDefender = sanitize(defender) || defender;
   const sanitizedChallenge = sanitize(challenge);
 
-  // Check for reversal case
+  // reversal logic fix
   const reversal = findActiveBumpByAttacker(defender);
   if (reversal && !override) {
-    handleReversal(defender, reversal.victimTeam, attacker, challenge);
+    handleReversal(defender, reversal.victimTeam, attacker, sanitizedChallenge);
     startCooldown(attacker, 'bump', COOLDOWN_MS);
     return { ok: true, reason: 'reversal_triggered' };
   }
 
-  // Contact info
   const { email: contactEmail, phone: contactPhone } = formatSenderContact(attacker);
   const sanitizedEmail = contactEmail ? sanitize(contactEmail) : '';
   const sanitizedPhone = contactPhone ? sanitize(contactPhone) : '';
 
-  // Compose broadcast
   const messageLines = [
     `🚧 Speed Bump: ${sanitizedAttacker} challenged ${sanitizedDefender}!`,
     '',
@@ -285,7 +271,6 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
 
   await broadcastEvent('Game Master', messageLines.join('\n'), true);
 
-  // Apply locally
   applySpeedBump(defender, {
     by: attacker,
     challenge: sanitizedChallenge,
@@ -295,7 +280,6 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
   });
 
   startCooldown(attacker, 'bump', override ? 0 : COOLDOWN_MS);
-  startWildCard(defender, 'speedBump', WILD_CARD_DURATION_MS);
   return { ok: true };
 }
 

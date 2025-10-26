@@ -1,12 +1,12 @@
 // ============================================================================
-// COMMS – Firestore listener + broadcast parsing (Unified, Corrected)
+// COMMS – Firestore listener + broadcast parsing (Corrected Silent Release Path)
 // ============================================================================
 
 import { collection, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../config.js';
 
 import { processedMessages } from './core.js';
-import { applySpeedBump, applyProofSent, releaseSpeedBump } from './interactions.js';
+import { applySpeedBump, applyProofSent, applyReleaseFromComms } from './interactions.js';
 
 // ----------------------------------------------------------------------------
 // 🔄 Real-time Firestore listener for new communications
@@ -55,13 +55,13 @@ export function parseBroadcast(message = '') {
   }
 
   // ------------------------------------------------------------
-  // ✅ Speed Bump Cleared (Always use the official release logic)
+  // ✅ Speed Bump Cleared (Silent internal release — no re-broadcast)
   // Format: Speed Bump Cleared: TEAM_X (by Control)
   // ------------------------------------------------------------
   const clear = message.match(/Speed Bump Cleared:\s*([^(]+?)(?:\s|\(|$)/);
   if (clear) {
     const team = clear[1].trim();
-    releaseSpeedBump(team, 'Broadcast');
+    applyReleaseFromComms(team); // ← **CRITICAL FIX**
     return;
   }
 
