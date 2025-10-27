@@ -67,6 +67,10 @@ export function initializeBugStrikeListener(teamName) {
       console.log(`🪰 Bug Strike received for ${teamName}!`);
       triggerBugStrikeEffect(data.from);
     });
+  }, (error) => {
+    if (error.message && error.message.includes('requires an index')) {
+      console.warn("⚠️ BugStrike requires Firestore index: to + type + timestamp");
+    }
   });
 
   console.info(`📡 [bugStrike] listening for strikes → ${teamName}`);

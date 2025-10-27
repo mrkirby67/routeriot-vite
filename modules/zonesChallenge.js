@@ -10,12 +10,12 @@ import {
   getDocs,
   collection,
   setDoc,
-  serverTimestamp
+  serverTimestamp,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { validateAnswer } from './zonesUtils.js';
 import { broadcastChallenge, broadcastWin, updateTeamLocation } from './zonesFirestore.js';
-import { addPointsToTeam, updateControlledZones } from './scoreboardManager.js';
 import { allTeams } from '../data.js';
 import {
   hydrateZoneCooldown,
@@ -221,8 +221,19 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
         },
         { merge: true }
       );
-      await addPointsToTeam(currentTeamName, points);
-      await updateControlledZones(currentTeamName, zoneId);
+      
+      // Atomic update for score and zone control
+      const scoreRef = doc(db, 'scores', currentTeamName);
+      await runTransaction(db, async (transaction) => {
+        const scoreDoc = await transaction.get(scoreRef);
+        const currentScore = scoreDoc.exists() ? scoreDoc.data().score || 0 : 0;
+        transaction.set(scoreRef, { 
+            score: currentScore + points, 
+            zonesControlled: zoneId,
+            updatedAt: serverTimestamp() 
+        }, { merge: true });
+      });
+
       await startZoneCooldown(zoneId, cooldownMinutes);
     } catch (err) {
       console.error('❌ Error finalizing win:', err);

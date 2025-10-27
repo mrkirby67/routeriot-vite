@@ -126,11 +126,25 @@ export function initializeFlatTireUI(teamName) {
 
       try {
         const position = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 5000
-          });
+          const timeoutId = setTimeout(() => {
+            reject(new Error('GPS location request timed out. Please ensure you have granted permission and have a clear view of the sky.'));
+          }, 15000); // 15 second timeout
+
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              clearTimeout(timeoutId);
+              resolve(pos);
+            },
+            (err) => {
+              clearTimeout(timeoutId);
+              reject(err);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 5000
+            }
+          );
         });
 
         const coords = {

@@ -6,7 +6,7 @@ import { collection, onSnapshot, orderBy, query } from "https://www.gstatic.com/
 import { db } from '../config.js';
 
 import { processedMessages } from './core.js';
-import { applySpeedBump, applyProofSent, applyReleaseFromComms } from './interactions.js';
+import { applySpeedBump, applyProofSent, releaseSpeedBump } from './interactions.js';
 
 // ----------------------------------------------------------------------------
 // 🔄 Real-time Firestore listener for new communications
@@ -46,22 +46,24 @@ export function parseBroadcast(message = '') {
   if (bump) {
     const [, fromTeam, toTeam] = bump;
     const challenge = (message.match(/Challenge:\s*([^\n]+)/)?.[1] || '').trim();
+
     applySpeedBump(toTeam.trim(), {
       by: fromTeam.trim(),
       challenge,
       startedAt: Date.now()
     });
+
     return;
   }
 
   // ------------------------------------------------------------
-  // ✅ Speed Bump Cleared (Silent internal release — no re-broadcast)
+  // ✅ Speed Bump Cleared (correct silent release routing)
   // Format: Speed Bump Cleared: TEAM_X (by Control)
   // ------------------------------------------------------------
-  const clear = message.match(/Speed Bump Cleared:\s*([^(]+?)(?:\s|\(|$)/);
+  const clear = message.match(/(?:🟢\s)?Speed Bump Cleared:\s*([^(]+?)(?:\s|\(|$)/);
   if (clear) {
     const team = clear[1].trim();
-    applyReleaseFromComms(team); // ← **CRITICAL FIX**
+    releaseSpeedBump(team, 'Comms Listener', { fromComms: true }); // ✅ Correct fixed release path
     return;
   }
 

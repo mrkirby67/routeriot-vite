@@ -26,10 +26,12 @@ export {
   subscribeSpeedBumps,
   subscribeSpeedBumpsForAttacker,
   sendSpeedBump,
-  sendSpeedBumpChirp,
-  markProofSent,
+  sendSpeedBumpChirp,              // ✅ Restored: was missing and caused build failure
+  applyProofSent as markProofSent, // ✅ Legacy alias retained
   releaseSpeedBump,
-  applyProofSent
+  applyProofSent,
+  applySpeedBump,
+  isTeamBumped
 } from './interactions.js';
 
 export { clearValidationTimer } from './timers.js';
