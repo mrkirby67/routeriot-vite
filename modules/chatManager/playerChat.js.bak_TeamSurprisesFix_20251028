@@ -5,7 +5,7 @@
 
 import * as State from './playerChat.state.js';
 import * as Events from './playerChat.events.js';
-import { initializeTeamSurprisesPanel } from './playerChat.ui.js';
+import * as UI from './playerChat.ui.js';
 import * as Surprises from './playerChat.surprises.js';
 
 // Core setup
@@ -13,16 +13,13 @@ export function setupPlayerChat(teamName) {
   console.log(`🧩 Initializing Player Chat for ${teamName}`);
 
   // Initialize state (Firestore listeners, team data, etc.)
-  const currentTeamName = State.setupPlayerChat(teamName) ?? teamName;
+  State.setupPlayerChat(teamName);
 
   // Register event listeners (clicks, surprise use, etc.)
   Events.registerChatEventHandlers(teamName);
 
   // Initialize UI (builds the panel and live shield ticker)
-  const teamSurprisesController = initializeTeamSurprisesPanel(currentTeamName);
-  if (!teamSurprisesController) {
-    console.warn('⚠️ Team Surprises panel failed to initialize');
-  }
+  UI.initializeTeamSurprisesPanel(teamName);
 
   console.log('✅ Player Chat modules loaded successfully');
 }
