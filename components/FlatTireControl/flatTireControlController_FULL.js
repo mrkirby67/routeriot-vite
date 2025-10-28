@@ -259,7 +259,7 @@ class FlatTireControlController {
     }
   }
 
-  handleTeamRegistry(teamNames = []) {
+  async handleTeamRegistry(teamNames = []) {
     const normalized = Array.from(new Set(
       teamNames
         .map(name => typeof name === 'string' ? name.trim() : '')
@@ -267,6 +267,7 @@ class FlatTireControlController {
     )).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
     this.activeTeams = normalized;
+    await this.ensureConfigLoaded(); // 🧭 ensure tow-zones loaded before render
     this.renderRows(true);
   }
 
@@ -474,7 +475,31 @@ class FlatTireControlController {
 
   async onRandomizeZones(event) {
     event?.preventDefault?.();
-    await this.randomizeAssignedZones();
+
+    // ✅ Guard: teams must exist
+    if (!this.activeTeams.length) {
+      alert('No teams registered to randomize.');
+      return;
+    }
+
+    // ✅ Guard: zones must be configured and maps loaded
+    if (!this.ensureConfigLoaded()) {
+      alert('Tow-zones not ready — please confirm GPS is set.');
+      return;
+    }
+
+    const button = this.dom.randomizeBtn;
+    if (button) button.disabled = true;
+
+    try {
+      await this.randomizeAssignedZones();
+      this.renderRows(true); // 🧩 refresh UI after assigning
+    } catch (err) {
+      console.error('❌ Randomize zones failed:', err);
+      alert('Failed to randomize tow-zones. Check console for details.');
+    } finally {
+      if (button) button.disabled = false;
+    }
   }
 
   startAutoScheduler() {
@@ -698,6 +723,10 @@ class FlatTireControlController {
   renderRows(forceFullRender = false) {
     const body = this.dom.tableBody;
     if (!body) return;
+    if (this.renderedTeamSignature === JSON.stringify(this.activeTeams)) {
+      // 🧹 Prevent duplicate rebuilds when team list unchanged
+      return;
+    }
 
     const configReady = this.ensureConfigLoaded();
     const hasTeams = this.activeTeams.length > 0;
