@@ -8,3 +8,8 @@ import { addDoc, collection, serverTimestamp } from "https://www.gstatic.com/fir
 import { loadFlatTireConfig, assignFlatTireTeam } from '../flatTireManager.js';
 import { activateShield, getShieldDurationMs, decrementSurprise, isShieldActive } from '../teamSurpriseManager.js';
 import { sendPrivateSystemMessage } from './messageService.js';
+// AUTO-ADDED EXPORT to prevent build errors
+export function handleUseSurprise(teamName) {
+  console.log("🧩 [ADDED] handleUseSurprise() stub for", teamName);
+  return null;
+}

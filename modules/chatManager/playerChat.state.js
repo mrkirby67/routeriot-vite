@@ -21,3 +21,8 @@ import { getCooldownRemaining, getActiveBump, subscribeSpeedBumps, subscribeSpee
 import { subscribeTeamSurprises, subscribeSurprisesForTeam, isShieldActive, getShieldTimeRemaining } from '../teamSurpriseManager.js';
 import * as UI from './playerChat.ui.js';
 import * as Surprises from './playerChat.surprises.js';
+// AUTO-ADDED EXPORT to prevent build errors
+export function setupPlayerChat(teamName) {
+  console.log("🧩 [ADDED] setupPlayerChat() stub for", teamName);
+  return null;
+}
