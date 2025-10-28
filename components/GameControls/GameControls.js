@@ -21,9 +21,9 @@ import {
 import { listenToGameTimer, clearElapsedTimer } from '../../modules/gameTimer.js';
 import { pauseGame, resumeGame } from '../../modules/gameStateManager.js';
 import {
-  resetFullGame,
   clearChatsAndScores
 } from '../../modules/gameMaintenance.js'; // 🧹 new imports
+import { clearAllCollectionsAndReset } from '../../modules/gameRulesManager.js';
 
 import styles from './GameControls.module.css';
 
@@ -295,16 +295,17 @@ export function initializeGameControlsLogic() {
 
   // 🔄 RESET GAME (full reset)
   resetBtn.addEventListener('click', async () => {
-    await resetFullGame();
-    await addDoc(collection(db, 'communications'), {
-      teamName: 'Game Master',
-      sender: 'Game Master',
-      senderDisplay: 'Game Master',
-      message: '🔄 Game has been fully reset.',
-      isBroadcast: true,
-      timestamp: serverTimestamp()
-    });
-    showAnimatedBanner('🔄 Game Reset', '#ffa000');
+    const confirmReset = confirm(
+      '⚠️  This will clear all game data, scores, zones, and statuses.\nContinue?'
+    );
+    if (!confirmReset) return;
+    resetBtn.disabled = true;
+    try {
+      await clearAllCollectionsAndReset();
+      showAnimatedBanner('🔄 Game Reset', '#ffa000');
+    } finally {
+      resetBtn.disabled = false;
+    }
   });
 
   // 🧹 CLEAR ALL (chat + scores)

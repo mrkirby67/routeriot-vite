@@ -252,18 +252,22 @@ export function clearGameStatusListeners(reason = 'manual') {
 // 🔁 Reset Game State (Admin only)
 // ---------------------------------------------------------------------------
 export async function resetGameState() {
-  try {
-    await setDoc(gameStateRef, {
-      status: 'waiting',
-      zonesReleased: false,
-      startTime: null,
-      endTime: null,
-      durationMinutes: null,
-      remainingMs: null,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+  const { doc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const { db } = await import("./config.js");
 
-    console.log("🧹 Game state reset.");
+  const stateRef = doc(db, "game", "gameState");
+  const defaultState = {
+    status: "idle",
+    startTime: null,
+    endTime: null,
+    paused: false,
+    countdownShown: false,
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    await setDoc(stateRef, defaultState, { merge: true });
+    console.log("🕹️ Game state reset to default.");
   } catch (err) {
     console.error("❌ Error resetting game state:", err);
   }

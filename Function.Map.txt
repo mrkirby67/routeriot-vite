@@ -1,52 +1,1188 @@
-
 # =========================================================
 # 🧩 CODEx REBUILD COMMANDS (Auto-Preserved Copy)
 # =========================================================
 #!/bin/bash
-# =========================================================
-# 🚀 CODEX REFRESH SCRIPT
-# =========================================================
-# PURPOSE:
-#   Perform a full Codex rebuild: clean caches, re-index all
-#   JS/HTML/CSS modules, validate build output, and log results.
-#
-# SAFETY:
-#   - No source code is deleted.
-#   - Only cache, dist, and old Function.Map.txt are removed.
-# =========================================================
-
 echo "🧽 Starting full Codex refresh..."
 start_time=$(date +%s)
-
-# STEP 1️⃣: Clean environment
-echo "🧹 Cleaning caches and build output..."
 rm -rf .codex_temp dist node_modules/.cache 2>/dev/null
 rm -f Function.Map.txt 2>/dev/null
-
-# STEP 2️⃣: Re-index all project functions
-echo "🗺️  Rebuilding Function.Map.txt..."
 npx codex --reindex \
   --include "components/**/*.js" \
   --include "modules/**/*.js" \
   --include "*.html" \
   --include "*.css" \
   --output Function.Map.txt
-
-# STEP 3️⃣: Validate project build
-echo "🔧 Running npm build check..."
 npm run build
-
-# STEP 4️⃣: Preserve this script reference for future runs
-echo "" >> Function.Map.txt
-echo "# =========================================================" >> Function.Map.txt
-echo "# 🧩 CODEx REBUILD COMMANDS (Auto-Preserved Copy)" >> Function.Map.txt
-echo "# =========================================================" >> Function.Map.txt
-cat "$0" >> Function.Map.txt
-echo "" >> Function.Map.txt
-
 end_time=$(date +%s)
 duration=$((end_time - start_time))
 echo "✅ Codex refresh complete in ${duration}s."
 echo "   → Function.Map.txt updated"
 echo "   → Build validated successfully"
-echo "   → Safe to resume Codex operations!"
+# =========================================================
+
+: <<'ROUTERIOT_MAP'
+Route Riot Function Map — generated 2025-10-28 02:24 UTC
+
+Indexed files (107):
+  - 404.html (33 lines)
+  - components/Broadcast/Broadcast.js (55 lines)
+  - components/Broadcast/Broadcast.module.css (36 lines)
+  - components/BugStrikeControl/BugStrikeControl.js (160 lines)
+  - components/BugStrikeControl/BugStrikeControl.module.css (64 lines)
+  - components/FlatTireControl/FlatTireControl.js (122 lines)
+  - components/FlatTireControl/FlatTireControl.module.css (430 lines)
+  - components/FlatTireControl/controller/autoScheduler.js (42 lines)
+  - components/FlatTireControl/controller/domHandlers.js (52 lines)
+  - components/FlatTireControl/controller/firestoreSync.js (40 lines)
+  - components/FlatTireControl/flatTireControlController.js (50 lines)
+  - components/FlatTireControl/flatTireControlController_FULL.js (680 lines)
+  - components/GameControls/GameControls.js (326 lines)
+  - components/GameControls/GameControls.module.css (285 lines)
+  - components/RacerManagement/RacerManagement.js (56 lines)
+  - components/RacerManagement/RacerManagement.module.css (38 lines)
+  - components/Scoreboard/Scoreboard.js (233 lines)
+  - components/Scoreboard/Scoreboard.module.css (56 lines)
+  - components/SpeedBumpControl/SpeedBumpControl.js (76 lines)
+  - components/SpeedBumpControl/SpeedBumpControl.module.css (380 lines)
+  - components/SpeedBumpControl/controller/domHandlers.js (143 lines)
+  - components/SpeedBumpControl/controller/promptBank.js (34 lines)
+  - components/SpeedBumpControl/controller/stateSync.js (20 lines)
+  - components/SpeedBumpControl/controller/teamPrompts.js (38 lines)
+  - components/SpeedBumpControl/speedBumpControlController.js (272 lines)
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js (708 lines)
+  - components/SurpriseSelector/SurpriseSelector.js (209 lines)
+  - components/SurpriseSelector/SurpriseSelector.module.css (140 lines)
+  - components/TeamLinks/TeamLinks.js (46 lines)
+  - components/TeamLinks/TeamLinks.module.css (28 lines)
+  - components/ZoneManagement/ZoneManagement.js (258 lines)
+  - components/ZoneManagement/ZoneManagement.module.css (293 lines)
+  - components/ZoneManagement/zoneFirestore.js (134 lines)
+  - components/ZoneManagement/zoneHandlers.js (216 lines)
+  - components/ZoneManagement/zoneRender.js (229 lines)
+  - components/ZoneManagement/zoneUI.js (78 lines)
+  - components/ZoneQuestions/ZoneQuestions.js (22 lines)
+  - components/ZoneQuestions/ZoneQuestions.module.css (264 lines)
+  - components/ZoneQuestions/ZoneQuestionsEditor.js (261 lines)
+  - components/ZoneQuestions/ZoneQuestionsLogic.js (109 lines)
+  - components/ZoneQuestions/ZoneQuestionsTypes.js (81 lines)
+  - components/ZoneQuestions/ZoneQuestionsUI.js (167 lines)
+  - control.html (125 lines)
+  - control.js (242 lines)
+  - data.js (14 lines)
+  - firebase.json (22 lines)
+  - firestore.indexes.json (14 lines)
+  - gameTestState.html (54 lines)
+  - index.html (43 lines)
+  - modules/auth.js (43 lines)
+  - modules/bugStrikeManager.js (199 lines)
+  - modules/chatManager.js (8 lines)
+  - modules/chatManager/controlFeed.js (90 lines)
+  - modules/chatManager/messageService.js (157 lines)
+  - modules/chatManager/playerChat.js (767 lines)
+  - modules/chatManager/registry.js (39 lines)
+  - modules/chatManager/utils.js (30 lines)
+  - modules/config.js (60 lines)
+  - modules/controlActions.js (168 lines)
+  - modules/controlStatus.js (263 lines)
+  - modules/controlUI.js (138 lines)
+  - modules/emailTeams.js (88 lines)
+  - modules/flatTireManager.js (233 lines)
+  - modules/flatTireUI.js (197 lines)
+  - modules/gameCountdown.js (100 lines)
+  - modules/gameMaintenance.js (98 lines)
+  - modules/gameRulesManager.js (290 lines)
+  - modules/gameStateManager.js (286 lines)
+  - modules/gameTimer.js (198 lines)
+  - modules/gameUI.js (195 lines)
+  - modules/googleMapsLoader.js (71 lines)
+  - modules/homeMap.js (134 lines)
+  - modules/messages/taunts.js (44 lines)
+  - modules/playerBugStrikeUI.js (258 lines)
+  - modules/playerUI.js (9 lines)
+  - modules/playerUI/autoInit.js (13 lines)
+  - modules/playerUI/core.js (161 lines)
+  - modules/playerUI/overlays.js (6 lines)
+  - modules/playerUI/overlays/baseOverlays.js (55 lines)
+  - modules/playerUI/overlays/flatTireOverlay.js (89 lines)
+  - modules/playerUI/overlays/shieldAndWrecked.js (160 lines)
+  - modules/playerUI/overlays/speedBumpOverlay.js (27 lines)
+  - modules/playerUI/overlays_FULL.js (902 lines)
+  - modules/scoreboardManager.js (203 lines)
+  - modules/speedBump/comms.js (80 lines)
+  - modules/speedBump/core.js (41 lines)
+  - modules/speedBump/index.js (37 lines)
+  - modules/speedBump/interactions.js (334 lines)
+  - modules/speedBump/reversals.js (28 lines)
+  - modules/speedBump/timers.js (45 lines)
+  - modules/speedBumpChallenges.js (54 lines)
+  - modules/speedBumpManager_FULL.js (526 lines)
+  - modules/speedBumpPlayer.js (97 lines)
+  - modules/teamSurpriseManager.js (335 lines)
+  - modules/utils.js (6 lines)
+  - modules/zoneManager.js (169 lines)
+  - modules/zones.js (255 lines)
+  - modules/zonesChallenge.js (262 lines)
+  - modules/zonesFirestore.js (86 lines)
+  - modules/zonesMap.js (136 lines)
+  - modules/zonesUtils.js (186 lines)
+  - package-lock.json (942 lines)
+  - package.json (16 lines)
+  - player.html (236 lines)
+  - player.js (299 lines)
+  - style.css (838 lines)
+  - vite.config.js (14 lines)
+
+Function definitions (430):
+  - components/Broadcast/Broadcast.js:5 — BroadcastComponent
+  - components/Broadcast/Broadcast.js:22 — initializeBroadcastLogic
+  - components/BugStrikeControl/BugStrikeControl.js:22 — BugStrikeControlComponent
+  - components/BugStrikeControl/BugStrikeControl.js:61 — initializeBugStrikeControl
+  - components/FlatTireControl/FlatTireControl.js:11 — FlatTireControlComponent
+  - components/FlatTireControl/FlatTireControl.js:113 — initializeFlatTireControl
+  - components/FlatTireControl/FlatTireControl.js:119 — teardownFlatTireControl
+  - components/FlatTireControl/controller/autoScheduler.js:8 — startAutoScheduler
+  - components/FlatTireControl/controller/autoScheduler.js:17 — stopAutoScheduler
+  - components/FlatTireControl/controller/autoScheduler.js:23 — runAutoCycle
+  - components/FlatTireControl/controller/domHandlers.js:7 — setupDomRefs
+  - components/FlatTireControl/controller/domHandlers.js:22 — renderRows
+  - components/FlatTireControl/controller/firestoreSync.js:7 — subscribeToRacers
+  - components/FlatTireControl/controller/firestoreSync.js:25 — applyConfig
+  - components/FlatTireControl/flatTireControlController.js:48 — createFlatTireControlController
+  - components/FlatTireControl/flatTireControlController_FULL.js:31 — parseGps
+  - components/FlatTireControl/flatTireControlController_FULL.js:40 — formatCountdown
+  - components/FlatTireControl/flatTireControlController_FULL.js:48 — pickLeastBusyZone
+  - components/FlatTireControl/flatTireControlController_FULL.js:61 — createFlatTireControlController
+  - components/GameControls/GameControls.js:33 — showAnimatedBanner
+  - components/GameControls/GameControls.js:67 — launchConfetti
+  - components/GameControls/GameControls.js:97 — announceTopThree
+  - components/GameControls/GameControls.js:145 — GameControlsComponent
+  - components/GameControls/GameControls.js:193 — initializeGameControlsLogic
+  - components/RacerManagement/RacerManagement.js:5 — RacerManagementComponent
+  - components/RacerManagement/RacerManagement.js:26 — initializeRacerManagementLogic
+  - components/RacerManagement/RacerManagement.js:31 — saveRacerData
+  - components/Scoreboard/Scoreboard.js:22 — ScoreboardComponent
+  - components/Scoreboard/Scoreboard.js:49 — initializeScoreboardListener
+  - components/Scoreboard/Scoreboard.js:66 — renderTable
+  - components/Scoreboard/Scoreboard.js:142 — formatTimestamp
+  - components/Scoreboard/Scoreboard.js:159 — attachHandlers
+  - components/Scoreboard/Scoreboard.js:180 — triggerRender
+  - components/SpeedBumpControl/SpeedBumpControl.js:11 — SpeedBumpControlComponent
+  - components/SpeedBumpControl/SpeedBumpControl.js:67 — initializeSpeedBumpControl
+  - components/SpeedBumpControl/SpeedBumpControl.js:73 — teardownSpeedBumpControl
+  - components/SpeedBumpControl/controller/domHandlers.js:13 — setupDomRefs
+  - components/SpeedBumpControl/controller/domHandlers.js:29 — wireButtons
+  - components/SpeedBumpControl/controller/domHandlers.js:63 — renderTeamRows
+  - components/SpeedBumpControl/controller/domHandlers.js:107 — updateRow
+  - components/SpeedBumpControl/controller/promptBank.js:10 — loadBank
+  - components/SpeedBumpControl/controller/promptBank.js:28 — saveBankToFirestore
+  - components/SpeedBumpControl/controller/promptBank.js:32 — saveBankLocal
+  - components/SpeedBumpControl/controller/stateSync.js:8 — syncTeams
+  - components/SpeedBumpControl/controller/stateSync.js:18 — syncBumps
+  - components/SpeedBumpControl/controller/teamPrompts.js:7 — loadPrompts
+  - components/SpeedBumpControl/controller/teamPrompts.js:13 — savePrompts
+  - components/SpeedBumpControl/controller/teamPrompts.js:19 — ensurePrompt
+  - components/SpeedBumpControl/controller/teamPrompts.js:27 — shufflePrompt
+  - components/SpeedBumpControl/controller/teamPrompts.js:32 — reconcileWithBank
+  - components/SpeedBumpControl/speedBumpControlController.js:270 — createSpeedBumpControlController
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js:36 — loadPersistedPrompts
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js:49 — persistPrompts
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js:64 — loadPersistedBankLocal
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js:77 — persistBankLocal
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js:86 — focusEditable
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js:98 — escapeSelector
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js:103 — createSpeedBumpControlController
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js:704 — formatSeconds
+  - components/SurpriseSelector/SurpriseSelector.js:25 — SurpriseSelectorComponent
+  - components/SurpriseSelector/SurpriseSelector.js:48 — initializeSurpriseSelector
+  - components/SurpriseSelector/SurpriseSelector.js:84 — teardownSurpriseSelector
+  - components/SurpriseSelector/SurpriseSelector.js:89 — createClickHandler
+  - components/SurpriseSelector/SurpriseSelector.js:112 — buildTeamCounts
+  - components/SurpriseSelector/SurpriseSelector.js:128 — renderTable
+  - components/SurpriseSelector/SurpriseSelector.js:158 — renderCounterCell
+  - components/SurpriseSelector/SurpriseSelector.js:177 — renderShieldTimer
+  - components/SurpriseSelector/SurpriseSelector.js:186 — refreshShieldTimers
+  - components/SurpriseSelector/SurpriseSelector.js:206 — normalizeCount
+  - components/TeamLinks/TeamLinks.js:9 — TeamLinksComponent
+  - components/TeamLinks/TeamLinks.js:44 — initializeTeamLinksLogic
+  - components/ZoneManagement/ZoneManagement.js:31 — initializeZoneManagementLogic
+  - components/ZoneManagement/ZoneManagement.js:45 — stopCooldownTicker
+  - components/ZoneManagement/ZoneManagement.js:52 — ensureCooldownTicker
+  - components/ZoneManagement/ZoneManagement.js:62 — rebuildStatusCell
+  - components/ZoneManagement/ZoneManagement.js:97 — updateCooldownDisplays
+  - components/ZoneManagement/ZoneManagement.js:127 — registerCooldownCells
+  - components/ZoneManagement/ZoneManagement.js:152 — enqueueRender
+  - components/ZoneManagement/ZoneManagement.js:167 — updateTeamLocation
+  - components/ZoneManagement/ZoneManagement.js:191 — clearTeamLocation
+  - components/ZoneManagement/zoneFirestore.js:28 — broadcastEvent
+  - components/ZoneManagement/zoneFirestore.js:53 — broadcastChallenge
+  - components/ZoneManagement/zoneFirestore.js:70 — broadcastWin
+  - components/ZoneManagement/zoneFirestore.js:106 — updateTeamLocation
+  - components/ZoneManagement/zoneHandlers.js:22 — onManageClick
+  - components/ZoneManagement/zoneHandlers.js:35 — onResetClick
+  - components/ZoneManagement/zoneHandlers.js:62 — onForceCapture
+  - components/ZoneManagement/zoneHandlers.js:107 — onEditableBlur
+  - components/ZoneManagement/zoneHandlers.js:156 — onAddZone
+  - components/ZoneManagement/zoneHandlers.js:184 — attachZoneHandlers
+  - components/ZoneManagement/zoneRender.js:25 — calculateZoomFromDiameter
+  - components/ZoneManagement/zoneRender.js:34 — miniMapHtml
+  - components/ZoneManagement/zoneRender.js:72 — renderZones
+  - components/ZoneManagement/zoneUI.js:7 — ZoneManagementComponent
+  - components/ZoneQuestions/ZoneQuestions.js:16 — initializeZoneQuestions
+  - components/ZoneQuestions/ZoneQuestionsEditor.js:24 — renderZoneQuestionEditor
+  - components/ZoneQuestions/ZoneQuestionsEditor.js:66 — initializeZoneQuestionEditor
+  - components/ZoneQuestions/ZoneQuestionsEditor.js:127 — wireDynamicFields
+  - components/ZoneQuestions/ZoneQuestionsEditor.js:204 — readForm
+  - components/ZoneQuestions/ZoneQuestionsEditor.js:256 — loadIntoForm
+  - components/ZoneQuestions/ZoneQuestionsLogic.js:11 — validateQuestionBeforeSave
+  - components/ZoneQuestions/ZoneQuestionsLogic.js:64 — parseCsv
+  - components/ZoneQuestions/ZoneQuestionsLogic.js:75 — renderAnswerSummary
+  - components/ZoneQuestions/ZoneQuestionsTypes.js:43 — validateQuestionType
+  - components/ZoneQuestions/ZoneQuestionsUI.js:21 — ZoneQuestionsComponent
+  - components/ZoneQuestions/ZoneQuestionsUI.js:36 — initializeZoneQuestionsUI
+  - components/ZoneQuestions/ZoneQuestionsUI.js:93 — loadZoneCheckpoints
+  - control.html:93 — main
+  - control.js:56 — registerCleanup
+  - control.js:62 — teardownControlListeners
+  - control.js:79 — main
+  - control.js:132 — handleControlTimer
+  - control.js:185 — renderAllSections
+  - control.js:205 — safeSetHTML
+  - modules/auth.js:7 — requireAuthenticatorAccess
+  - modules/bugStrikeManager.js:29 — getBugStrikeSettings
+  - modules/bugStrikeManager.js:50 — initializeBugStrikesForTeams
+  - modules/bugStrikeManager.js:75 — grantBugStrike
+  - modules/bugStrikeManager.js:106 — useBugStrike
+  - modules/bugStrikeManager.js:171 — resetBugStrikes
+  - modules/bugStrikeManager.js:192 — getAllBugStrikeData
+  - modules/chatManager/controlFeed.js:19 — listenToAllMessages
+  - modules/chatManager/messageService.js:19 — sendMessage
+  - modules/chatManager/messageService.js:36 — sendPrivateSystemMessage
+  - modules/chatManager/messageService.js:41 — sendPrivateMessage
+  - modules/chatManager/messageService.js:73 — listenForMyMessages
+  - modules/chatManager/playerChat.js:70 — ensureTeamSurprisesSection
+  - modules/chatManager/playerChat.js:127 — extractSurpriseCount
+  - modules/chatManager/playerChat.js:139 — renderTeamInventory
+  - modules/chatManager/playerChat.js:177 — renderOutgoingList
+  - modules/chatManager/playerChat.js:202 — formatShieldDuration
+  - modules/chatManager/playerChat.js:212 — updateShieldChip
+  - modules/chatManager/playerChat.js:230 — stopShieldTicker
+  - modules/chatManager/playerChat.js:237 — startShieldTicker
+  - modules/chatManager/playerChat.js:256 — initializeTeamSurprisesPanel
+  - modules/chatManager/playerChat.js:292 — getShieldDurationMinutes
+  - modules/chatManager/playerChat.js:298 — setupPlayerChat
+  - modules/chatManager/playerChat.js:608 — updateSpeedBumpButtons
+  - modules/chatManager/playerChat.js:640 — renderSurpriseCounter
+  - modules/chatManager/playerChat.js:655 — updateSurpriseCounters
+  - modules/chatManager/playerChat.js:668 — handleUseSurprise
+  - modules/chatManager/playerChat.js:702 — triggerFlatTireSurprise
+  - modules/chatManager/playerChat.js:736 — triggerBugSplatSurprise
+  - modules/chatManager/playerChat.js:745 — triggerShieldWaxSurprise
+  - modules/chatManager/playerChat.js:758 — broadcastSurprise
+  - modules/chatManager/registry.js:12 — clearRegistry
+  - modules/chatManager/registry.js:31 — registerListener
+  - modules/chatManager/utils.js:8 — safeHTML
+  - modules/chatManager/utils.js:17 — resolveSenderName
+  - modules/chatManager/utils.js:27 — shouldRenderRaw
+  - modules/config.js:12 — getEnv
+  - modules/controlActions.js:26 — clearAllScores
+  - modules/controlActions.js:90 — safelyEndGameAndResetZones
+  - modules/controlActions.js:149 — resetFullGameState
+  - modules/controlStatus.js:29 — watchLiveGameStatus
+  - modules/controlStatus.js:71 — watchTeamStatuses
+  - modules/controlStatus.js:114 — clearChatOnly
+  - modules/controlStatus.js:154 — clearAllChatAndScores
+  - modules/controlStatus.js:184 — clearAllTeamStatuses
+  - modules/controlStatus.js:206 — clearAllZones
+  - modules/controlStatus.js:233 — addSystemNotice
+  - modules/controlStatus.js:252 — formatTimestamp
+  - modules/controlUI.js:19 — wireGameControls
+  - modules/emailTeams.js:14 — emailAllTeams
+  - modules/flatTireManager.js:36 — canSendFlatTire
+  - modules/flatTireManager.js:45 — encodeTeamId
+  - modules/flatTireManager.js:49 — parseGpsString
+  - modules/flatTireManager.js:58 — getDistanceMetersToDepot
+  - modules/flatTireManager.js:67 — isWithinCaptureRadius
+  - modules/flatTireManager.js:72 — toTimestamp
+  - modules/flatTireManager.js:79 — serializeAssignmentInput
+  - modules/flatTireManager.js:127 — normalizeConfig
+  - modules/flatTireManager.js:164 — subscribeFlatTireAssignments
+  - modules/flatTireManager.js:180 — subscribeFlatTireConfig
+  - modules/flatTireManager.js:187 — loadFlatTireConfig
+  - modules/flatTireManager.js:192 — saveFlatTireConfig
+  - modules/flatTireManager.js:201 — assignFlatTireTeam
+  - modules/flatTireManager.js:209 — updateFlatTireAssignment
+  - modules/flatTireManager.js:224 — releaseFlatTireTeam
+  - modules/flatTireUI.js:26 — parseGpsString
+  - modules/flatTireUI.js:35 — initializeFlatTireUI
+  - modules/gameCountdown.js:11 — showCountdownBanner
+  - modules/gameCountdown.js:73 — showFlashMessage
+  - modules/gameMaintenance.js:19 — resetFullGame
+  - modules/gameMaintenance.js:71 — clearChatsAndScores
+  - modules/gameMaintenance.js:88 — clearTeamStatus
+  - modules/gameRulesManager.js:9 — loadRules
+  - modules/gameRulesManager.js:17 — saveRules
+  - modules/gameRulesManager.js:24 — toggleRules
+  - modules/gameRulesManager.js:36 — initializeGameTimer
+  - modules/gameRulesManager.js:81 — randomizeTeams
+  - modules/gameRulesManager.js:108 — emailTeams
+  - modules/gameRulesManager.js:154 — startGame
+  - modules/gameRulesManager.js:186 — pauseGame
+  - modules/gameRulesManager.js:191 — endGame
+  - modules/gameRulesManager.js:243 — resetFullGame
+  - modules/gameRulesManager.js:274 — clearGameSideEffects
+  - modules/gameRulesManager.js:278 — wipe
+  - modules/gameStateManager.js:34 — setGameStatus
+  - modules/gameStateManager.js:63 — pauseGame
+  - modules/gameStateManager.js:91 — resumeGame
+  - modules/gameStateManager.js:116 — releaseZones
+  - modules/gameStateManager.js:131 — handleGameStateUpdate
+  - modules/gameStateManager.js:195 — listenForGameStatus
+  - modules/gameStateManager.js:238 — clearGameStatusListeners
+  - modules/gameStateManager.js:254 — resetGameState
+  - modules/gameStateManager.js:275 — updateTeamState
+  - modules/gameTimer.js:22 — formatTime
+  - modules/gameTimer.js:33 — getTimerDisplay
+  - modules/gameTimer.js:42 — startCountdownTimer
+  - modules/gameTimer.js:68 — clearElapsedTimer
+  - modules/gameTimer.js:78 — pauseGameTimer
+  - modules/gameTimer.js:112 — resumeGameTimer
+  - modules/gameTimer.js:139 — listenToGameTimer
+  - modules/gameUI.js:13 — startCountdownTimer
+  - modules/gameUI.js:42 — startElapsedTimer
+  - modules/gameUI.js:65 — clearElapsedTimer
+  - modules/gameUI.js:75 — showFlashMessage
+  - modules/gameUI.js:112 — showCountdownBanner
+  - modules/gameUI.js:171 — showWaitingBanner
+  - modules/gameUI.js:193 — removeWaitingBanner
+  - modules/googleMapsLoader.js:13 — loadGoogleMapsApi
+  - modules/homeMap.js:6 — parseGPS
+  - modules/homeMap.js:14 — averageCenter
+  - modules/homeMap.js:21 — boundsOf
+  - modules/homeMap.js:33 — computeZoom
+  - modules/homeMap.js:45 — circlePathPoints
+  - modules/homeMap.js:68 — buildStaticMapUrl
+  - modules/homeMap.js:94 — renderHomeMap
+  - modules/messages/taunts.js:24 — mergeTaunts
+  - modules/messages/taunts.js:34 — getTauntList
+  - modules/messages/taunts.js:39 — getRandomTaunt
+  - modules/playerBugStrikeUI.js:29 — initializeBugStrikeListener
+  - modules/playerBugStrikeUI.js:80 — disposeBugStrikeListener
+  - modules/playerBugStrikeUI.js:95 — triggerBugStrikeEffect
+  - modules/playerBugStrikeUI.js:128 — createBugStrikeOverlay
+  - modules/playerBugStrikeUI.js:169 — createRandomSplat
+  - modules/playerBugStrikeUI.js:209 — updateCountdownDisplay
+  - modules/playerBugStrikeUI.js:217 — removeBugStrikeOverlay
+  - modules/playerBugStrikeUI.js:231 — disableGameplayControls
+  - modules/playerBugStrikeUI.js:249 — formatTime
+  - modules/playerBugStrikeUI.js:255 — randomColor
+  - modules/playerUI/core.js:17 — $
+  - modules/playerUI/core.js:21 — setText
+  - modules/playerUI/core.js:26 — fmtTime
+  - modules/playerUI/core.js:37 — updatePlayerTimer
+  - modules/playerUI/core.js:42 — getTeamNameFromUrl
+  - modules/playerUI/core.js:48 — initializePlayerUI
+  - modules/playerUI/overlays/baseOverlays.js:6 — showPausedOverlay
+  - modules/playerUI/overlays/baseOverlays.js:20 — hidePausedOverlay
+  - modules/playerUI/overlays/baseOverlays.js:25 — showGameOverOverlay
+  - modules/playerUI/overlays/baseOverlays.js:40 — showTireCelebration
+  - modules/playerUI/overlays/flatTireOverlay.js:9 — startCountdown
+  - modules/playerUI/overlays/flatTireOverlay.js:32 — showFlatTireOverlay
+  - modules/playerUI/overlays/flatTireOverlay.js:79 — hideFlatTireOverlay
+  - modules/playerUI/overlays/flatTireOverlay.js:87 — clearFlatTireOverlay
+  - modules/playerUI/overlays/shieldAndWrecked.js:14 — showShieldHudTimer
+  - modules/playerUI/overlays/shieldAndWrecked.js:55 — hideShieldHudTimer
+  - modules/playerUI/overlays/shieldAndWrecked.js:66 — updateFloatingShieldOverlay
+  - modules/playerUI/overlays/shieldAndWrecked.js:80 — showShieldTimer
+  - modules/playerUI/overlays/shieldAndWrecked.js:107 — hideShieldTimer
+  - modules/playerUI/overlays/shieldAndWrecked.js:120 — showWreckedOverlay
+  - modules/playerUI/overlays/speedBumpOverlay.js:6 — showSpeedBumpOverlay
+  - modules/playerUI/overlays/speedBumpOverlay.js:25 — hideSpeedBumpOverlay
+  - modules/playerUI/overlays_FULL.js:9 — $
+  - modules/playerUI/overlays_FULL.js:13 — showPausedOverlay
+  - modules/playerUI/overlays_FULL.js:40 — hidePausedOverlay
+  - modules/playerUI/overlays_FULL.js:52 — showSpeedBumpOverlay
+  - modules/playerUI/overlays_FULL.js:304 — hideSpeedBumpOverlay
+  - modules/playerUI/overlays_FULL.js:313 — primaryButtonStyle
+  - modules/playerUI/overlays_FULL.js:327 — ensureFlatTireOverlay
+  - modules/playerUI/overlays_FULL.js:388 — showFlatTireOverlay
+  - modules/playerUI/overlays_FULL.js:570 — hideFlatTireOverlay
+  - modules/playerUI/overlays_FULL.js:580 — formatMMSS
+  - modules/playerUI/overlays_FULL.js:589 — showTireCelebration
+  - modules/playerUI/overlays_FULL.js:612 — clearFlatTireOverlay
+  - modules/playerUI/overlays_FULL.js:625 — showGameOverOverlay
+  - modules/playerUI/overlays_FULL.js:649 — startConfetti
+  - modules/playerUI/overlays_FULL.js:693 — draw
+  - modules/playerUI/overlays_FULL.js:725 — stopConfetti
+  - modules/playerUI/overlays_FULL.js:742 — showShieldHudTimer
+  - modules/playerUI/overlays_FULL.js:780 — hideShieldHudTimer
+  - modules/playerUI/overlays_FULL.js:791 — updateShieldHud
+  - modules/playerUI/overlays_FULL.js:808 — updateFloatingShieldOverlay
+  - modules/playerUI/overlays_FULL.js:819 — showShieldTimer
+  - modules/playerUI/overlays_FULL.js:847 — hideShieldTimer
+  - modules/playerUI/overlays_FULL.js:863 — showWreckedOverlay
+  - modules/scoreboardManager.js:30 — addPointsToTeam
+  - modules/scoreboardManager.js:58 — updateControlledZones
+  - modules/scoreboardManager.js:84 — resetScores
+  - modules/scoreboardManager.js:123 — initializePlayerScoreboard
+  - modules/scoreboardManager.js:164 — broadcastTopThree
+  - modules/speedBump/comms.js:16 — ensureCommsListener
+  - modules/speedBump/comms.js:38 — parseBroadcast
+  - modules/speedBump/core.js:23 — normalizeTeamKey
+  - modules/speedBump/core.js:27 — sanitize
+  - modules/speedBump/core.js:31 — findTeamByName
+  - modules/speedBump/interactions.js:42 — applySpeedBump
+  - modules/speedBump/interactions.js:59 — applyProofSent
+  - modules/speedBump/interactions.js:71 — notify
+  - modules/speedBump/interactions.js:86 — releaseSpeedBump
+  - modules/speedBump/interactions.js:116 — startCooldown
+  - modules/speedBump/interactions.js:126 — getCooldownRemaining
+  - modules/speedBump/interactions.js:139 — scheduleTicker
+  - modules/speedBump/interactions.js:161 — isTeamBumped
+  - modules/speedBump/interactions.js:167 — getActiveBump
+  - modules/speedBump/interactions.js:181 — subscribeSpeedBumps
+  - modules/speedBump/interactions.js:188 — subscribeSpeedBumpsForAttacker
+  - modules/speedBump/interactions.js:212 — sendSpeedBump
+  - modules/speedBump/interactions.js:276 — findActiveBumpByAttacker
+  - modules/speedBump/interactions.js:286 — formatSenderContact
+  - modules/speedBump/interactions.js:293 — getInteractionKey
+  - modules/speedBump/interactions.js:303 — getInteractionCooldownState
+  - modules/speedBump/interactions.js:312 — commitInteractionCooldown
+  - modules/speedBump/interactions.js:316 — sendSpeedBumpChirp
+  - modules/speedBump/reversals.js:11 — handleReversal
+  - modules/speedBump/timers.js:14 — registerReleaseHandler
+  - modules/speedBump/timers.js:22 — scheduleValidationTimer
+  - modules/speedBump/timers.js:41 — clearValidationTimer
+  - modules/speedBumpChallenges.js:21 — normalizeBank
+  - modules/speedBumpChallenges.js:29 — setSpeedBumpPromptBank
+  - modules/speedBumpChallenges.js:34 — resetPromptBankToDefault
+  - modules/speedBumpChallenges.js:39 — getSpeedBumpPromptBank
+  - modules/speedBumpChallenges.js:43 — getRandomSpeedBumpPrompt
+  - modules/speedBumpChallenges.js:52 — getDefaultPrompts
+  - modules/speedBumpManager_FULL.js:50 — ensureCommsListener
+  - modules/speedBumpManager_FULL.js:66 — parseBroadcast
+  - modules/speedBumpManager_FULL.js:107 — normalizeChallenge
+  - modules/speedBumpManager_FULL.js:114 — sanitizeForBroadcast
+  - modules/speedBumpManager_FULL.js:121 — findTeamByName
+  - modules/speedBumpManager_FULL.js:133 — formatSenderContact
+  - modules/speedBumpManager_FULL.js:140 — normalizeTeamKey
+  - modules/speedBumpManager_FULL.js:144 — getInteractionKey
+  - modules/speedBumpManager_FULL.js:152 — getInteractionCooldownState
+  - modules/speedBumpManager_FULL.js:161 — commitInteractionCooldown
+  - modules/speedBumpManager_FULL.js:165 — showGuardAlert
+  - modules/speedBumpManager_FULL.js:174 — requestShieldConfirm
+  - modules/speedBumpManager_FULL.js:182 — interceptSpeedBump
+  - modules/speedBumpManager_FULL.js:208 — findActiveBumpByAttacker
+  - modules/speedBumpManager_FULL.js:217 — handleReversal
+  - modules/speedBumpManager_FULL.js:252 — sendSpeedBumpChirp
+  - modules/speedBumpManager_FULL.js:283 — controlSendSpeedBumpChirp
+  - modules/speedBumpManager_FULL.js:291 — sendSpeedBump
+  - modules/speedBumpManager_FULL.js:363 — releaseSpeedBump
+  - modules/speedBumpManager_FULL.js:373 — markProofSent
+  - modules/speedBumpManager_FULL.js:377 — startValidationTimer
+  - modules/speedBumpManager_FULL.js:387 — startCooldown
+  - modules/speedBumpManager_FULL.js:396 — getCooldownRemaining
+  - modules/speedBumpManager_FULL.js:403 — isTeamBumped
+  - modules/speedBumpManager_FULL.js:407 — getActiveBump
+  - modules/speedBumpManager_FULL.js:414 — subscribeSpeedBumps
+  - modules/speedBumpManager_FULL.js:421 — getAllActiveBumps
+  - modules/speedBumpManager_FULL.js:428 — subscribeSpeedBumpsForAttacker
+  - modules/speedBumpManager_FULL.js:453 — notify
+  - modules/speedBumpManager_FULL.js:464 — applySpeedBump
+  - modules/speedBumpManager_FULL.js:477 — applyProofSent
+  - modules/speedBumpManager_FULL.js:491 — scheduleValidationTimer
+  - modules/speedBumpManager_FULL.js:503 — clearValidationTimer
+  - modules/speedBumpManager_FULL.js:509 — scheduleTicker
+  - modules/speedBumpPlayer.js:24 — initializeSpeedBumpPlayer
+  - modules/speedBumpPlayer.js:37 — handleStateUpdate
+  - modules/speedBumpPlayer.js:59 — sendSpeedBumpFromPlayer
+  - modules/speedBumpPlayer.js:80 — releaseSpeedBumpFromPlayer
+  - modules/speedBumpPlayer.js:95 — getPlayerSpeedBumpState
+  - modules/teamSurpriseManager.js:26 — readShieldDurationMinutes
+  - modules/teamSurpriseManager.js:33 — getShieldDurationMs
+  - modules/teamSurpriseManager.js:40 — activateShield
+  - modules/teamSurpriseManager.js:50 — isShieldActive
+  - modules/teamSurpriseManager.js:61 — deactivateShield
+  - modules/teamSurpriseManager.js:68 — teamDocRef
+  - modules/teamSurpriseManager.js:75 — subscribeTeamSurprises
+  - modules/teamSurpriseManager.js:98 — incrementSurprise
+  - modules/teamSurpriseManager.js:110 — decrementSurprise
+  - modules/teamSurpriseManager.js:123 — resetSurpriseCounter
+  - modules/teamSurpriseManager.js:129 — getTeamSurpriseCounts
+  - modules/teamSurpriseManager.js:140 — getShieldTimeRemaining
+  - modules/teamSurpriseManager.js:154 — subscribeSurprisesForTeam
+  - modules/teamSurpriseManager.js:175 — consumeSurprise
+  - modules/teamSurpriseManager.js:199 — auditUse
+  - modules/teamSurpriseManager.js:216 — normalizeCount
+  - modules/teamSurpriseManager.js:221 — normalizeSurpriseKey
+  - modules/teamSurpriseManager.js:235 — isUnderWildCard
+  - modules/teamSurpriseManager.js:246 — startWildCard
+  - modules/teamSurpriseManager.js:252 — clearWildCard
+  - modules/teamSurpriseManager.js:257 — startCooldown
+  - modules/teamSurpriseManager.js:262 — isOnCooldown
+  - modules/teamSurpriseManager.js:278 — checkShieldBeforeAttack
+  - modules/utils.js:2 — escapeHtml
+  - modules/zoneManager.js:13 — normalizeZoneId
+  - modules/zoneManager.js:22 — getZoneDisplayName
+  - modules/zoneManager.js:47 — toMillis
+  - modules/zoneManager.js:59 — scheduleCooldownCleanup
+  - modules/zoneManager.js:79 — hydrateZoneCooldown
+  - modules/zoneManager.js:93 — startZoneCooldown
+  - modules/zoneManager.js:121 — isZoneOnCooldown
+  - modules/zoneManager.js:135 — getZoneCooldownRemaining
+  - modules/zoneManager.js:150 — clearZoneCooldown
+  - modules/zones.js:30 — registerZoneListener
+  - modules/zones.js:36 — clearZoneListeners
+  - modules/zones.js:49 — teardownZonesListeners
+  - modules/zones.js:56 — initializeZones
+  - modules/zones.js:187 — showFinalStandings
+  - modules/zonesChallenge.js:40 — setTeamContext
+  - modules/zonesChallenge.js:48 — displayZoneQuestions
+  - modules/zonesChallenge.js:187 — handleAnswerSubmitInline
+  - modules/zonesFirestore.js:19 — broadcastEvent
+  - modules/zonesFirestore.js:64 — updateTeamLocation
+  - modules/zonesMap.js:13 — calculateZoomFromDiameter
+  - modules/zonesMap.js:20 — calculateZoomLevel
+  - modules/zonesMap.js:27 — encodeCircle
+  - modules/zonesMap.js:59 — buildCirclePathPoints
+  - modules/zonesMap.js:88 — generateMiniMap
+  - modules/zonesUtils.js:16 — waitForElement
+  - modules/zonesUtils.js:41 — flashPlayerLocation
+  - modules/zonesUtils.js:59 — showCountdownBanner
+  - modules/zonesUtils.js:97 — playRaceStartSequence
+  - modules/zonesUtils.js:115 — calculateDistance
+  - modules/zonesUtils.js:137 — validateAnswer
+  - player.js:33 — teardownPlayerListeners
+  - player.js:62 — initializePlayerPage
+  - player.js:145 — getEndTimestampMs
+  - player.js:172 — handleLiveGameState
+  - player.js:226 — showWaitingBanner
+  - player.js:246 — removeWaitingBanner
+  - player.js:250 — setInlineTimer
+  - player.js:258 — startPlayerTimer
+  - player.js:265 — pausePlayerTimer
+  - player.js:270 — stopAndCalculateRemaining
+  - player.js:277 — formatHMS
+  - player.js:285 — updateTimerDisplay
+
+Class definitions (4):
+  - components/FlatTireControl/flatTireControlController.js:9 — FlatTireControlController
+  - components/FlatTireControl/flatTireControlController_FULL.js:65 — FlatTireControlController
+  - components/SpeedBumpControl/speedBumpControlController.js:38 — SpeedBumpControlController
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js:107 — SpeedBumpControlController
+
+HTML IDs (205):
+  - ${qId} @ components/ZoneManagement/zoneRender.js:216
+  - ${racer.id} @ components/RacerManagement/RacerManagement.js:50
+  - ${racer.id} @ components/RacerManagement/RacerManagement.js:50
+  - ${racer.id} @ components/RacerManagement/RacerManagement.js:50
+  - ${task.id} @ components/ZoneQuestions/ZoneQuestionsUI.js:140
+  - ${zoneId} @ components/ZoneManagement/zoneHandlers.js:28
+  - ${zoneId} @ components/ZoneManagement/zoneHandlers.js:50
+  - ${zoneId} @ components/ZoneManagement/zoneHandlers.js:95
+  - ${zoneId} @ components/ZoneManagement/zoneRender.js:150
+  - ${zoneId} @ components/ZoneManagement/zoneRender.js:151
+  - ${zoneId} @ components/ZoneManagement/zoneRender.js:153
+  - ${zoneId} @ components/ZoneManagement/zoneRender.js:158
+  - ${zoneId} @ components/ZoneManagement/zoneRender.js:182
+  - ${zoneId} @ components/ZoneManagement/zoneRender.js:194
+  - ${zoneId} @ modules/zones.js:112
+  - ${zoneId} @ modules/zonesChallenge.js:58
+  - activate-shield-btn @ modules/chatManager/playerChat.js:355
+  - add-zone-btn @ components/ZoneManagement/zoneUI.js:26
+  - answer-area-${zoneId} @ modules/zonesChallenge.js:95
+  - apply-bugstrike-settings @ components/BugStrikeControl/BugStrikeControl.js:38
+  - broadcast-btn @ components/Broadcast/Broadcast.js:12
+  - broadcast-container @ control.html:46
+  - broadcast-message @ components/Broadcast/Broadcast.js:11
+  - bugstrike-control-container @ control.html:43
+  - bugstrike-cooldown @ components/BugStrikeControl/BugStrikeControl.js:35
+  - bugstrike-countdown @ modules/playerBugStrikeUI.js:153
+  - bugstrike-last-${safeId} @ components/BugStrikeControl/BugStrikeControl.js:110
+  - bugstrike-overlay @ modules/playerBugStrikeUI.js:130
+  - bugstrike-remaining-${safeId} @ components/BugStrikeControl/BugStrikeControl.js:109
+  - bugstrike-table @ components/BugStrikeControl/BugStrikeControl.js:43
+  - bugstrike-tbody @ components/BugStrikeControl/BugStrikeControl.js:52
+  - cancelAttack @ modules/teamSurpriseManager.js:313
+  - challenge-answer-area @ player.html:175
+  - challenge-box @ player.html:172
+  - challenge-question @ player.html:174
+  - challenge-zone-name @ player.html:173
+  - clear-chat-btn @ components/GameControls/GameControls.js:154
+  - clear-scores-btn @ components/GameControls/GameControls.js:156
+  - commissioner-message @ player.html:231
+  - communication-log @ components/Broadcast/Broadcast.js:14
+  - confetti-canvas @ modules/playerUI/overlays_FULL.js:631
+  - confetti-canvas @ modules/playerUI/overlays_FULL.js:656
+  - control-timer-display @ components/GameControls/GameControls.js:172
+  - cooldown-time @ components/ZoneManagement/zoneUI.js:38
+  - countdown @ modules/zones.js:230
+  - countdown-banner @ modules/gameCountdown.js:22
+  - countdown-banner @ modules/gameUI.js:117
+  - dynamic-fields @ components/ZoneQuestions/ZoneQuestionsEditor.js:47
+  - end-btn @ components/GameControls/GameControls.js:153
+  - flash-message @ modules/gameUI.js:80
+  - flat-tire-actions @ modules/playerUI/overlays_FULL.js:376
+  - flat-tire-auto-interval @ components/FlatTireControl/FlatTireControl.js:22
+  - flat-tire-blurb @ modules/playerUI/overlays_FULL.js:367
+  - flat-tire-checkin-btn @ modules/playerUI/overlays/flatTireOverlay.js:65
+  - flat-tire-checkin-btn @ modules/playerUI/overlays_FULL.js:377
+  - flat-tire-chirp-btn @ modules/playerUI/overlays/flatTireOverlay.js:66
+  - flat-tire-chirp-row @ modules/playerUI/overlays_FULL.js:369
+  - flat-tire-control-container @ control.html:37
+  - flat-tire-countdown @ modules/playerUI/overlays/flatTireOverlay.js:63
+  - flat-tire-countdown @ modules/playerUI/overlays_FULL.js:374
+  - flat-tire-distance @ modules/playerUI/overlays_FULL.js:375
+  - flat-tire-map @ modules/playerUI/overlays/flatTireOverlay.js:62
+  - flat-tire-map @ modules/playerUI/overlays_FULL.js:368
+  - flat-tire-message @ modules/playerUI/overlays_FULL.js:366
+  - flat-tire-note @ modules/playerUI/overlays_FULL.js:379
+  - flat-tire-overlay @ modules/playerUI/overlays/flatTireOverlay.js:43
+  - flat-tire-overlay @ modules/playerUI/overlays_FULL.js:332
+  - flat-tire-panel @ modules/playerUI/overlays_FULL.js:349
+  - flat-tire-table @ components/FlatTireControl/FlatTireControl.js:94
+  - flat-tire-table-body @ components/FlatTireControl/FlatTireControl.js:103
+  - flat-tire-toggle-auto @ components/FlatTireControl/FlatTireControl.js:24
+  - flat-tire-zone-diameter-east @ components/FlatTireControl/FlatTireControl.js:62
+  - flat-tire-zone-diameter-north @ components/FlatTireControl/FlatTireControl.js:36
+  - flat-tire-zone-diameter-south @ components/FlatTireControl/FlatTireControl.js:49
+  - flat-tire-zone-diameter-west @ components/FlatTireControl/FlatTireControl.js:75
+  - flat-tire-zone-gps-east @ components/FlatTireControl/FlatTireControl.js:60
+  - flat-tire-zone-gps-north @ components/FlatTireControl/FlatTireControl.js:34
+  - flat-tire-zone-gps-south @ components/FlatTireControl/FlatTireControl.js:47
+  - flat-tire-zone-gps-west @ components/FlatTireControl/FlatTireControl.js:73
+  - flat-tire-zone-map-east @ components/FlatTireControl/FlatTireControl.js:63
+  - flat-tire-zone-map-north @ components/FlatTireControl/FlatTireControl.js:37
+  - flat-tire-zone-map-south @ components/FlatTireControl/FlatTireControl.js:50
+  - flat-tire-zone-map-west @ components/FlatTireControl/FlatTireControl.js:76
+  - ft-chirp-input @ modules/playerUI/overlays_FULL.js:371
+  - ft-chirp-send @ modules/playerUI/overlays_FULL.js:372
+  - game-banner @ modules/zonesUtils.js:63
+  - game-controls-container @ control.html:19
+  - game-duration @ components/GameControls/GameControls.js:169
+  - game-over-overlay @ modules/zones.js:210
+  - game-status @ player.html:131
+  - gameover-overlay @ modules/playerUI/overlays/baseOverlays.js:28
+  - gameover-overlay @ modules/playerUI/overlays_FULL.js:628
+  - home-map @ index.html:32
+  - message @ 404.html:25
+  - msg-input-${safeName} @ modules/playerUI/core.js:94
+  - msg-send-${safeName} @ modules/playerUI/core.js:95
+  - opp-loc-${safeName} @ modules/playerUI/core.js:92
+  - opponents-table @ player.html:210
+  - opponents-tbody @ player.html:218
+  - outgoing-speedbump-list @ modules/chatManager/playerChat.js:98
+  - outgoing-speedbump-list @ player.html:201
+  - pause-btn @ components/GameControls/GameControls.js:152
+  - paused-overlay @ modules/playerUI/overlays/baseOverlays.js:10
+  - paused-overlay @ modules/playerUI/overlays_FULL.js:16
+  - player-answer-${zoneId} @ modules/zonesChallenge.js:161
+  - player-scoreboard-table @ player.html:144
+  - player-scoreboard-tbody @ player.html:151
+  - player-zones-table @ player.html:158
+  - player-zones-tbody @ player.html:167
+  - proceedAttack @ modules/teamSurpriseManager.js:314
+  - q-accept @ components/ZoneQuestions/ZoneQuestionsEditor.js:158
+  - q-add-mc @ components/ZoneQuestions/ZoneQuestionsEditor.js:152
+  - q-auto @ components/ZoneQuestions/ZoneQuestionsEditor.js:170
+  - q-cancel @ components/ZoneQuestions/ZoneQuestionsEditor.js:56
+  - q-correct @ components/ZoneQuestions/ZoneQuestionsEditor.js:136
+  - q-inc @ components/ZoneQuestions/ZoneQuestionsEditor.js:160
+  - q-mc @ components/ZoneQuestions/ZoneQuestionsEditor.js:151
+  - q-num @ components/ZoneQuestions/ZoneQuestionsEditor.js:144
+  - q-points @ components/ZoneQuestions/ZoneQuestionsEditor.js:51
+  - q-save @ components/ZoneQuestions/ZoneQuestionsEditor.js:55
+  - q-status @ components/ZoneQuestions/ZoneQuestionsEditor.js:57
+  - q-team @ components/ZoneQuestions/ZoneQuestionsEditor.js:167
+  - q-text @ components/ZoneQuestions/ZoneQuestionsEditor.js:31
+  - q-tol @ components/ZoneQuestions/ZoneQuestionsEditor.js:146
+  - q-trig @ components/ZoneQuestions/ZoneQuestionsEditor.js:165
+  - q-type @ components/ZoneQuestions/ZoneQuestionsEditor.js:36
+  - question-text-${zoneId} @ modules/zonesChallenge.js:94
+  - racer-management-container @ control.html:28
+  - racers-table @ components/RacerManagement/RacerManagement.js:9
+  - racers-table-body @ components/RacerManagement/RacerManagement.js:18
+  - randomize-btn @ components/GameControls/GameControls.js:162
+  - refresh-zones-btn @ components/ZoneManagement/zoneUI.js:30
+  - reset-game-btn @ components/GameControls/GameControls.js:155
+  - roster-modal @ control.html:50
+  - roster-modal-body @ control.html:55
+  - rules-section @ components/GameControls/GameControls.js:176
+  - rules-text @ components/GameControls/GameControls.js:179
+  - save-rules-btn @ components/GameControls/GameControls.js:183
+  - sb-chirp-input @ modules/playerUI/overlays_FULL.js:139
+  - sb-chirp-send @ modules/playerUI/overlays_FULL.js:146
+  - score-${teamName.replace(/\s/g,  @ components/Scoreboard/Scoreboard.js:114
+  - scoreboard-container @ control.html:22
+  - scoreboard-container @ player.html:142
+  - scoreboard-table @ components/Scoreboard/Scoreboard.js:28
+  - scoreboard-tbody @ components/Scoreboard/Scoreboard.js:38
+  - scoreboard-title @ components/Scoreboard/Scoreboard.js:25
+  - send-links-btn @ components/GameControls/GameControls.js:163
+  - shield-hud @ modules/playerUI/overlays/shieldAndWrecked.js:22
+  - shield-hud-timer @ modules/playerUI/overlays_FULL.js:751
+  - speedbump-admin-override @ components/SpeedBumpControl/SpeedBumpControl.js:20
+  - speedbump-bank-add @ components/SpeedBumpControl/SpeedBumpControl.js:58
+  - speedbump-bank-list @ components/SpeedBumpControl/SpeedBumpControl.js:54
+  - speedbump-bank-status @ components/SpeedBumpControl/SpeedBumpControl.js:61
+  - speedbump-chirp-row @ modules/playerUI/overlays_FULL.js:130
+  - speedbump-control-container @ control.html:34
+  - speedbump-dismiss @ modules/playerUI/overlays/speedBumpOverlay.js:21
+  - speedbump-overlay @ modules/playerUI/overlays/speedBumpOverlay.js:10
+  - speedbump-overlay @ modules/playerUI/overlays_FULL.js:66
+  - speedbump-overlay-actions @ modules/playerUI/overlays_FULL.js:115
+  - speedbump-overlay-challenge @ modules/playerUI/overlays_FULL.js:91
+  - speedbump-overlay-contact @ modules/playerUI/overlays_FULL.js:102
+  - speedbump-overlay-countdown @ modules/playerUI/overlays_FULL.js:108
+  - speedbump-overlay-message @ modules/playerUI/overlays_FULL.js:84
+  - speedbump-overlay-note @ modules/playerUI/overlays_FULL.js:153
+  - speedbump-proof-btn @ modules/playerUI/overlays_FULL.js:122
+  - speedbump-save-bank @ components/SpeedBumpControl/SpeedBumpControl.js:59
+  - speedbump-save-prompts @ components/SpeedBumpControl/SpeedBumpControl.js:28
+  - speedbump-shuffle-all @ components/SpeedBumpControl/SpeedBumpControl.js:27
+  - speedbump-table @ components/SpeedBumpControl/SpeedBumpControl.js:33
+  - speedbump-table-body @ components/SpeedBumpControl/SpeedBumpControl.js:42
+  - start-btn @ components/GameControls/GameControls.js:151
+  - starting-bugstrikes @ components/BugStrikeControl/BugStrikeControl.js:30
+  - submit-answer-${zoneId} @ modules/zonesChallenge.js:96
+  - submit-answer-btn @ player.html:176
+  - surprise-selector-container @ control.html:40
+  - surprise-table-body @ components/SurpriseSelector/SurpriseSelector.js:42
+  - team-chat-log @ player.html:225
+  - team-links-container @ control.html:25
+  - team-links-table @ components/TeamLinks/TeamLinks.js:26
+  - team-member-list @ player.html:136
+  - team-name @ player.html:125
+  - team-size @ components/GameControls/GameControls.js:161
+  - team-slogan @ player.html:126
+  - team-surprise-inventory @ modules/chatManager/playerChat.js:93
+  - team-surprise-inventory @ player.html:194
+  - team-surprises-body @ modules/chatManager/playerChat.js:87
+  - team-surprises-body @ player.html:188
+  - team-surprises-section @ modules/chatManager/playerChat.js:77
+  - team-surprises-section @ player.html:180
+  - timer-display @ player.html:132
+  - toggle-rules-btn @ components/GameControls/GameControls.js:164
+  - top3-banner @ components/GameControls/GameControls.js:37
+  - unique${qNum} @ components/ZoneManagement/zoneRender.js:190
+  - unique${qNum} @ components/ZoneManagement/zoneRender.js:194
+  - waiting-banner @ modules/gameUI.js:175
+  - waiting-banner @ player.js:229
+  - wrecked-count @ modules/playerUI/overlays/shieldAndWrecked.js:146
+  - wrecked-count @ modules/playerUI/overlays_FULL.js:889
+  - zone-body-${zoneId} @ components/ZoneQuestions/ZoneQuestionsUI.js:63
+  - zone-management-container @ control.html:31
+  - zone-questions-${zoneId} @ components/ZoneQuestions/ZoneQuestionsUI.js:64
+  - zone-questions-accordion @ components/ZoneQuestions/ZoneQuestionsUI.js:26
+  - zone-status-banner @ components/ZoneManagement/zoneUI.js:49
+  - zones-table @ components/ZoneManagement/zoneUI.js:57
+  - zones-table-body @ components/ZoneManagement/zoneUI.js:68
+
+CSS selectors (374):
+  - #add-zone-btn @ components/ZoneManagement/ZoneManagement.module.css:155
+  - #add-zone-btn:hover @ components/ZoneManagement/ZoneManagement.module.css:160
+  - #challenge-question @ style.css:218
+  - #refresh-zones-btn @ components/ZoneManagement/ZoneManagement.module.css:164
+  - #refresh-zones-btn:hover @ components/ZoneManagement/ZoneManagement.module.css:169
+  - #rules-text @ components/GameControls/GameControls.module.css:177
+  - #rules-text:focus @ components/GameControls/GameControls.module.css:191
+  - #speedbump-overlay button @ style.css:824
+  - #speedbump-overlay button:hover @ style.css:836
+  - #team-surprises-panel @ style.css:446
+  - #team-surprises-panel h3 @ style.css:452
+  - #team-surprises-section @ style.css:535
+  - #team-surprises-section .team-surprises-columns @ style.css:563
+  - #team-surprises-section .team-surprises-header @ style.css:539
+  - #team-surprises-section .team-surprises-outgoing h3 @ style.css:572
+  - #zone-status-banner @ components/ZoneManagement/ZoneManagement.module.css:237
+  - #zone-status-banner @ components/ZoneManagement/ZoneManagement.module.css:270
+  - #zone-status-banner.active @ components/ZoneManagement/ZoneManagement.module.css:250
+  - #zone-status-banner.error @ components/ZoneManagement/ZoneManagement.module.css:260
+  - #zone-status-banner.paused @ components/ZoneManagement/ZoneManagement.module.css:255
+  - .accordion @ components/ZoneQuestions/ZoneQuestions.module.css:177
+  - .actionBtn @ components/FlatTireControl/FlatTireControl.module.css:379
+  - .actionBtn @ components/SpeedBumpControl/SpeedBumpControl.module.css:234
+  - .actionBtn:disabled @ components/FlatTireControl/FlatTireControl.module.css:394
+  - .actionBtn:disabled @ components/SpeedBumpControl/SpeedBumpControl.module.css:250
+  - .actionBtn:hover:not(:disabled) @ components/FlatTireControl/FlatTireControl.module.css:389
+  - .actionBtn:hover:not(:disabled) @ components/SpeedBumpControl/SpeedBumpControl.module.css:245
+  - .actionsCell @ components/FlatTireControl/FlatTireControl.module.css:372
+  - .activeShield @ components/SurpriseSelector/SurpriseSelector.module.css:121
+  - .adjustBtn @ components/Scoreboard/Scoreboard.module.css:42
+  - .adjustBtn:hover @ components/Scoreboard/Scoreboard.module.css:53
+  - .assignBtn @ components/FlatTireControl/FlatTireControl.module.css:401
+  - .available @ components/ZoneManagement/ZoneManagement.module.css:223
+  - .back-link @ style.css:44
+  - .badge @ components/FlatTireControl/FlatTireControl.module.css:249
+  - .badgeActive @ components/FlatTireControl/FlatTireControl.module.css:262
+  - .badgeCleared @ components/FlatTireControl/FlatTireControl.module.css:274
+  - .badgeInRoute @ components/FlatTireControl/FlatTireControl.module.css:268
+  - .bankControls @ components/SpeedBumpControl/SpeedBumpControl.module.css:365
+  - .bankHeader @ components/SpeedBumpControl/SpeedBumpControl.module.css:288
+  - .bankHeader h3 @ components/SpeedBumpControl/SpeedBumpControl.module.css:282
+  - .bankHint @ components/SpeedBumpControl/SpeedBumpControl.module.css:294
+  - .bankStatus @ components/SpeedBumpControl/SpeedBumpControl.module.css:372
+  - .bankStatus.error @ components/SpeedBumpControl/SpeedBumpControl.module.css:378
+  - .broadcast-message-display @ style.css:151
+  - .broadcast-message-display @ style.css:347
+  - .broadcastBox @ components/Broadcast/Broadcast.module.css:11
+  - .button, .nav-link @ style.css:328
+  - .cancelBtn @ components/ZoneQuestions/ZoneQuestions.module.css:127
+  - .cancelBtn @ components/ZoneQuestions/ZoneQuestions.module.css:145
+  - .cancelBtn:hover @ components/ZoneQuestions/ZoneQuestions.module.css:148
+  - .challenge-btn @ style.css:174
+  - .challenge-btn @ style.css:198
+  - .challenge-btn:hover @ style.css:187
+  - .challengeBankSection @ components/SpeedBumpControl/SpeedBumpControl.module.css:273
+  - .challengeIndex @ components/SpeedBumpControl/SpeedBumpControl.module.css:317
+  - .challengeList @ components/SpeedBumpControl/SpeedBumpControl.module.css:300
+  - .challengeRow @ components/SpeedBumpControl/SpeedBumpControl.module.css:306
+  - .challengeText @ components/SpeedBumpControl/SpeedBumpControl.module.css:325
+  - .challengeText:focus @ components/SpeedBumpControl/SpeedBumpControl.module.css:338
+  - .challengeText[data-placeholder]:empty::before @ components/SpeedBumpControl/SpeedBumpControl.module.css:343
+  - .chat-input @ style.css:168
+  - .chat-input @ style.css:319
+  - .chirp-row @ style.css:675
+  - .chirp-row button @ style.css:696
+  - .chirp-row button:disabled @ style.css:712
+  - .chirp-row button:hover:not(:disabled) @ style.css:707
+  - .chirp-row input @ style.css:688
+  - .chirp-row label @ style.css:683
+  - .container @ style.css:17
+  - .container @ style.css:316
+  - .control-section @ style.css:89
+  - .control-section @ style.css:334
+  - .controlButton @ components/GameControls/GameControls.module.css:43
+  - .controlButton:hover @ components/GameControls/GameControls.module.css:57
+  - .controlSection @ components/Broadcast/Broadcast.module.css:3
+  - .controlSection @ components/BugStrikeControl/BugStrikeControl.module.css:6
+  - .controlSection @ components/FlatTireControl/FlatTireControl.module.css:6
+  - .controlSection @ components/GameControls/GameControls.module.css:8
+  - .controlSection @ components/RacerManagement/RacerManagement.module.css:3
+  - .controlSection @ components/Scoreboard/Scoreboard.module.css:3
+  - .controlSection @ components/SpeedBumpControl/SpeedBumpControl.module.css:6
+  - .controlSection @ components/TeamLinks/TeamLinks.module.css:3
+  - .controlSection @ components/ZoneManagement/ZoneManagement.module.css:10
+  - .controlSection @ components/ZoneQuestions/ZoneQuestions.module.css:9
+  - .controlSection h2 @ components/BugStrikeControl/BugStrikeControl.module.css:15
+  - .controlSection h2 @ components/GameControls/GameControls.module.css:24
+  - .controlSection h2 @ components/ZoneManagement/ZoneManagement.module.css:20
+  - .controlSection:hover @ components/GameControls/GameControls.module.css:19
+  - .cooldownActive @ components/ZoneManagement/ZoneManagement.module.css:213
+  - .cooldownNotice @ components/BugStrikeControl/BugStrikeControl.module.css:60
+  - .cooldownSetup @ components/ZoneManagement/ZoneManagement.module.css:31
+  - .cooldownSetup label @ components/ZoneManagement/ZoneManagement.module.css:36
+  - .cooldownSetup select @ components/ZoneManagement/ZoneManagement.module.css:42
+  - .cooldownSetup select:focus @ components/ZoneManagement/ZoneManagement.module.css:51
+  - .counterCell @ components/SurpriseSelector/SurpriseSelector.module.css:69
+  - .counterControls @ components/SurpriseSelector/SurpriseSelector.module.css:79
+  - .counterControls @ components/SurpriseSelector/SurpriseSelector.module.css:131
+  - .counterControls button @ components/SurpriseSelector/SurpriseSelector.module.css:88
+  - .counterControls button @ components/SurpriseSelector/SurpriseSelector.module.css:136
+  - .counterControls button:hover @ components/SurpriseSelector/SurpriseSelector.module.css:101
+  - .counterControls span @ components/SurpriseSelector/SurpriseSelector.module.css:106
+  - .counterLabel @ components/SurpriseSelector/SurpriseSelector.module.css:73
+  - .data-table @ style.css:105
+  - .data-table td @ style.css:116
+  - .data-table th @ style.css:123
+  - .data-table th, .data-table td @ style.css:317
+  - .data-table th, .data-table td @ style.css:338
+  - .data-table tr @ style.css:344
+  - .data-table tr:hover @ style.css:128
+  - .dataTable @ components/FlatTireControl/FlatTireControl.module.css:280
+  - .dataTable @ components/GameControls/GameControls.module.css:197
+  - .dataTable @ components/RacerManagement/RacerManagement.module.css:11
+  - .dataTable @ components/Scoreboard/Scoreboard.module.css:11
+  - .dataTable @ components/SpeedBumpControl/SpeedBumpControl.module.css:110
+  - .dataTable @ components/TeamLinks/TeamLinks.module.css:11
+  - .dataTable @ components/ZoneManagement/ZoneManagement.module.css:60
+  - .dataTable @ components/ZoneQuestions/ZoneQuestions.module.css:32
+  - .dataTable tbody tr:hover @ components/ZoneQuestions/ZoneQuestions.module.css:59
+  - .dataTable tbody tr:nth-child(odd) @ components/ZoneQuestions/ZoneQuestions.module.css:55
+  - .dataTable td @ components/FlatTireControl/FlatTireControl.module.css:289
+  - .dataTable td @ components/GameControls/GameControls.module.css:209
+  - .dataTable td @ components/RacerManagement/RacerManagement.module.css:18
+  - .dataTable td @ components/Scoreboard/Scoreboard.module.css:18
+  - .dataTable td @ components/SpeedBumpControl/SpeedBumpControl.module.css:119
+  - .dataTable td @ components/TeamLinks/TeamLinks.module.css:18
+  - .dataTable td @ components/ZoneManagement/ZoneManagement.module.css:70
+  - .dataTable td @ components/ZoneManagement/ZoneManagement.module.css:85
+  - .dataTable td @ components/ZoneManagement/ZoneManagement.module.css:284
+  - .dataTable td @ components/ZoneQuestions/ZoneQuestions.module.css:42
+  - .dataTable td[contenteditable="true"] @ components/RacerManagement/RacerManagement.module.css:30
+  - .dataTable td[contenteditable="true"] @ components/ZoneManagement/ZoneManagement.module.css:96
+  - .dataTable td[contenteditable="true"]:focus @ components/RacerManagement/RacerManagement.module.css:35
+  - .dataTable td[contenteditable="true"]:focus @ components/ZoneManagement/ZoneManagement.module.css:101
+  - .dataTable th @ components/FlatTireControl/FlatTireControl.module.css:296
+  - .dataTable th @ components/GameControls/GameControls.module.css:215
+  - .dataTable th @ components/RacerManagement/RacerManagement.module.css:25
+  - .dataTable th @ components/Scoreboard/Scoreboard.module.css:25
+  - .dataTable th @ components/SpeedBumpControl/SpeedBumpControl.module.css:126
+  - .dataTable th @ components/TeamLinks/TeamLinks.module.css:25
+  - .dataTable th @ components/ZoneManagement/ZoneManagement.module.css:77
+  - .dataTable thead th @ components/ZoneQuestions/ZoneQuestions.module.css:48
+  - .dataTable tr:hover @ components/GameControls/GameControls.module.css:223
+  - .dataTable tr:hover td @ components/ZoneManagement/ZoneManagement.module.css:91
+  - .dataTable tr:nth-child(even) td @ components/FlatTireControl/FlatTireControl.module.css:304
+  - .dataTable tr:nth-child(even) td @ components/SpeedBumpControl/SpeedBumpControl.module.css:135
+  - .diameterInput @ components/FlatTireControl/FlatTireControl.module.css:161
+  - .diameterInput:focus @ components/FlatTireControl/FlatTireControl.module.css:171
+  - .diameterLabel @ components/FlatTireControl/FlatTireControl.module.css:153
+  - .editor @ components/ZoneQuestions/ZoneQuestions.module.css:238
+  - .email-link-btn @ style.css:193
+  - .email-link-btn @ style.css:300
+  - .end @ components/GameControls/GameControls.module.css:84
+  - .end:hover @ components/GameControls/GameControls.module.css:89
+  - .expandBtn @ components/ZoneQuestions/ZoneQuestions.module.css:215
+  - .expandBtn:hover @ components/ZoneQuestions/ZoneQuestions.module.css:223
+  - .force-capture-btn @ components/ZoneManagement/ZoneManagement.module.css:192
+  - .force-capture-btn:hover @ components/ZoneManagement/ZoneManagement.module.css:197
+  - .formRow @ components/ZoneQuestions/ZoneQuestions.module.css:67
+  - .formRow label @ components/ZoneQuestions/ZoneQuestions.module.css:79
+  - .formRow select @ components/ZoneQuestions/ZoneQuestions.module.css:88
+  - .formRow select:focus @ components/ZoneQuestions/ZoneQuestions.module.css:100
+  - .ft-blurb @ style.css:717
+  - .gameControls @ components/GameControls/GameControls.module.css:34
+  - .gpsInput @ components/FlatTireControl/FlatTireControl.module.css:137
+  - .gpsInput:focus @ components/FlatTireControl/FlatTireControl.module.css:147
+  - .hasStock td @ components/SurpriseSelector/SurpriseSelector.module.css:113
+  - .headerRow @ components/FlatTireControl/FlatTireControl.module.css:16
+  - .headerRow @ components/SpeedBumpControl/SpeedBumpControl.module.css:16
+  - .headerRow h2 @ components/FlatTireControl/FlatTireControl.module.css:25
+  - .headerRow h2 @ components/SpeedBumpControl/SpeedBumpControl.module.css:25
+  - .help @ components/ZoneQuestions/ZoneQuestions.module.css:167
+  - .inactiveShield @ components/SurpriseSelector/SurpriseSelector.module.css:126
+  - .inline @ components/ZoneQuestions/ZoneQuestions.module.css:72
+  - .inlineActions @ components/SpeedBumpControl/SpeedBumpControl.module.css:185
+  - .intervalField @ components/FlatTireControl/FlatTireControl.module.css:44
+  - .intervalField input @ components/FlatTireControl/FlatTireControl.module.css:52
+  - .intervalField input:focus @ components/FlatTireControl/FlatTireControl.module.css:62
+  - .launchButton @ components/BugStrikeControl/BugStrikeControl.module.css:44
+  - .launchButton:hover @ components/BugStrikeControl/BugStrikeControl.module.css:55
+  - .legendBadges @ components/FlatTireControl/FlatTireControl.module.css:243
+  - .legendControls @ components/SpeedBumpControl/SpeedBumpControl.module.css:63
+  - .legendNote @ components/SpeedBumpControl/SpeedBumpControl.module.css:70
+  - .legendRow @ components/FlatTireControl/FlatTireControl.module.css:219
+  - .legendRow p @ components/FlatTireControl/FlatTireControl.module.css:236
+  - .legendRow strong @ components/FlatTireControl/FlatTireControl.module.css:232
+  - .liveTimer @ components/GameControls/GameControls.module.css:125
+  - .liveTimer @ style.css:206
+  - .liveTimer.flash @ components/GameControls/GameControls.module.css:148
+  - .liveTimerValue @ components/GameControls/GameControls.module.css:141
+  - .loading @ components/FlatTireControl/FlatTireControl.module.css:426
+  - .loading @ components/SpeedBumpControl/SpeedBumpControl.module.css:228
+  - .loading @ components/ZoneQuestions/ZoneQuestions.module.css:22
+  - .log-box @ style.css:133
+  - .log-box @ style.css:346
+  - .log-box p @ style.css:144
+  - .logBox @ components/Broadcast/Broadcast.module.css:18
+  - .logBox p @ components/Broadcast/Broadcast.module.css:31
+  - .manage-zone-btn @ components/ZoneManagement/ZoneManagement.module.css:174
+  - .manage-zone-btn:hover @ components/ZoneManagement/ZoneManagement.module.css:179
+  - .mapPlaceholder @ components/FlatTireControl/FlatTireControl.module.css:212
+  - .mapPreview @ components/FlatTireControl/FlatTireControl.module.css:195
+  - .mapPreview img @ components/FlatTireControl/FlatTireControl.module.css:206
+  - .mapPreviewRow @ components/ZoneManagement/ZoneManagement.module.css:109
+  - .mapPreviewRow td @ components/ZoneManagement/ZoneManagement.module.css:117
+  - .mapPreviewRow.visible @ components/ZoneManagement/ZoneManagement.module.css:113
+  - .mcRow @ components/ZoneQuestions/ZoneQuestions.module.css:109
+  - .mcRow input[type="text"] @ components/ZoneQuestions/ZoneQuestions.module.css:117
+  - .message-cell @ style.css:163
+  - .message-cell @ style.css:318
+  - .mini-map @ style.css:228
+  - .mini-map @ style.css:345
+  - .mini-map.status-available @ style.css:235
+  - .mini-map.status-taken @ style.css:236
+  - .miniMap @ components/ZoneManagement/ZoneManagement.module.css:123
+  - .miniMap @ components/ZoneManagement/ZoneManagement.module.css:278
+  - .modal-backdrop @ components/GameControls/GameControls.module.css:228
+  - .modal-backdrop @ style.css:256
+  - .modal-close-btn @ components/GameControls/GameControls.module.css:258
+  - .modal-close-btn @ style.css:282
+  - .modal-close-btn:hover @ components/GameControls/GameControls.module.css:268
+  - .modal-close-btn:hover @ style.css:291
+  - .modal-content @ components/GameControls/GameControls.module.css:239
+  - .modal-content @ style.css:269
+  - .nav-link @ style.css:70
+  - .nav-link:hover @ style.css:83
+  - .noStock td @ components/SurpriseSelector/SurpriseSelector.module.css:117
+  - .numberInput @ components/BugStrikeControl/BugStrikeControl.module.css:34
+  - .outgoing-bump-timer @ style.css:525
+  - .overrideToggle @ components/SpeedBumpControl/SpeedBumpControl.module.css:38
+  - .overrideToggle input @ components/SpeedBumpControl/SpeedBumpControl.module.css:50
+  - .ownedBy @ components/ZoneManagement/ZoneManagement.module.css:218
+  - .pause @ components/GameControls/GameControls.module.css:74
+  - .pause:hover @ components/GameControls/GameControls.module.css:79
+  - .pill @ components/ZoneQuestions/ZoneQuestions.module.css:152
+  - .pill:hover @ components/ZoneQuestions/ZoneQuestions.module.css:163
+  - .primaryBtn @ components/FlatTireControl/FlatTireControl.module.css:69
+  - .primaryBtn @ components/FlatTireControl/FlatTireControl.module.css:78
+  - .primaryBtn @ components/SpeedBumpControl/SpeedBumpControl.module.css:86
+  - .promptCell @ components/SpeedBumpControl/SpeedBumpControl.module.css:155
+  - .promptInput @ components/SpeedBumpControl/SpeedBumpControl.module.css:161
+  - .promptInput:focus @ components/SpeedBumpControl/SpeedBumpControl.module.css:173
+  - .promptLegend @ components/SpeedBumpControl/SpeedBumpControl.module.css:54
+  - .promptPreview @ components/SpeedBumpControl/SpeedBumpControl.module.css:179
+  - .questionsContainer @ components/ZoneQuestions/ZoneQuestions.module.css:254
+  - .refreshBtn @ components/FlatTireControl/FlatTireControl.module.css:177
+  - .refreshBtn:hover @ components/FlatTireControl/FlatTireControl.module.css:190
+  - .releaseBtn @ components/FlatTireControl/FlatTireControl.module.css:406
+  - .releaseBtn @ components/SpeedBumpControl/SpeedBumpControl.module.css:255
+  - .removeChallengeBtn @ components/SpeedBumpControl/SpeedBumpControl.module.css:349
+  - .removeChallengeBtn:hover @ components/SpeedBumpControl/SpeedBumpControl.module.css:360
+  - .reset-zone-btn @ components/ZoneManagement/ZoneManagement.module.css:183
+  - .reset-zone-btn:hover @ components/ZoneManagement/ZoneManagement.module.css:188
+  - .saveBtn:hover @ components/ZoneQuestions/ZoneQuestions.module.css:140
+  - .schedulerControls @ components/FlatTireControl/FlatTireControl.module.css:37
+  - .scoreInput @ components/Scoreboard/Scoreboard.module.css:31
+  - .secondaryBtn @ components/FlatTireControl/FlatTireControl.module.css:83
+  - .secondaryBtn @ components/SpeedBumpControl/SpeedBumpControl.module.css:77
+  - .secondaryBtn @ components/SpeedBumpControl/SpeedBumpControl.module.css:91
+  - .secondaryBtn:disabled @ components/FlatTireControl/FlatTireControl.module.css:95
+  - .secondaryBtn:disabled @ components/SpeedBumpControl/SpeedBumpControl.module.css:103
+  - .secondaryBtn:hover @ components/FlatTireControl/FlatTireControl.module.css:89
+  - .secondaryBtn:hover @ components/SpeedBumpControl/SpeedBumpControl.module.css:97
+  - .send-btn @ style.css:320
+  - .send-btn, .challenge-btn, .email-link-btn @ style.css:348
+  - .settingsRow @ components/BugStrikeControl/BugStrikeControl.module.css:21
+  - .settingsRow label @ components/BugStrikeControl/BugStrikeControl.module.css:29
+  - .shield-activate-btn @ style.css:489
+  - .shield-activate-btn:disabled @ style.css:506
+  - .shield-activate-btn:hover @ style.css:501
+  - .shield-active @ style.css:517
+  - .shield-empty @ style.css:521
+  - .shield-status @ style.css:511
+  - .shield-timer-overlay @ style.css:661
+  - .shuffleBtn @ components/SpeedBumpControl/SpeedBumpControl.module.css:260
+  - .shuffleBtn:hover @ components/SpeedBumpControl/SpeedBumpControl.module.css:269
+  - .slogan @ style.css:97
+  - .speedbump-actions @ style.css:413
+  - .speedbump-chirp-box @ style.css:723
+  - .speedbump-chirp-box button @ style.css:737
+  - .speedbump-chirp-box button:hover @ style.css:748
+  - .speedbump-chirp-box input @ style.css:730
+  - .speedbump-contact-info @ style.css:815
+  - .speedbump-overlay @ style.css:792
+  - .speedbump-overlay h2 @ style.css:809
+  - .speedbump-release-btn @ style.css:420
+  - .speedbump-release-btn @ style.css:430
+  - .speedbump-release-btn:disabled @ style.css:440
+  - .speedbump-release-btn:hover:not(:disabled) @ style.css:435
+  - .start @ components/GameControls/GameControls.module.css:64
+  - .start:hover @ components/GameControls/GameControls.module.css:69
+  - .status @ components/ZoneQuestions/ZoneQuestions.module.css:247
+  - .statusActive @ components/SpeedBumpControl/SpeedBumpControl.module.css:210
+  - .statusBadge @ components/SpeedBumpControl/SpeedBumpControl.module.css:192
+  - .statusCell @ components/FlatTireControl/FlatTireControl.module.css:324
+  - .statusCooldown @ components/SpeedBumpControl/SpeedBumpControl.module.css:222
+  - .statusCountdown @ components/FlatTireControl/FlatTireControl.module.css:361
+  - .statusDetail @ components/SpeedBumpControl/SpeedBumpControl.module.css:203
+  - .statusIdle @ components/SpeedBumpControl/SpeedBumpControl.module.css:216
+  - .statusSubtext @ components/FlatTireControl/FlatTireControl.module.css:367
+  - .statusTag @ components/FlatTireControl/FlatTireControl.module.css:331
+  - .statusTagAssigned @ components/FlatTireControl/FlatTireControl.module.css:343
+  - .statusTagCleared @ components/FlatTireControl/FlatTireControl.module.css:355
+  - .statusTagEnroute @ components/FlatTireControl/FlatTireControl.module.css:349
+  - .statusUpdated @ components/ZoneManagement/ZoneManagement.module.css:228
+  - .subhead @ components/FlatTireControl/FlatTireControl.module.css:31
+  - .subhead @ components/SpeedBumpControl/SpeedBumpControl.module.css:32
+  - .subtitle @ components/SurpriseSelector/SurpriseSelector.module.css:22
+  - .surprise-count @ style.css:385
+  - .surprise-counter @ style.css:362
+  - .surprise-counters @ style.css:355
+  - .surprise-icon @ style.css:374
+  - .surprise-label @ style.css:378
+  - .surprise-use-btn @ style.css:392
+  - .surprise-use-btn:disabled @ style.css:408
+  - .surprise-use-btn:hover:not(:disabled) @ style.css:403
+  - .surpriseSelector @ components/SurpriseSelector/SurpriseSelector.module.css:6
+  - .surpriseSelector h2 @ components/SurpriseSelector/SurpriseSelector.module.css:16
+  - .surpriseTable @ components/SurpriseSelector/SurpriseSelector.module.css:28
+  - .surpriseTable td @ components/SurpriseSelector/SurpriseSelector.module.css:37
+  - .surpriseTable th @ components/SurpriseSelector/SurpriseSelector.module.css:44
+  - .team-members ul @ style.css:239
+  - .team-roster-block @ style.css:293
+  - .team-roster-block:last-child @ style.css:298
+  - .team-surprises-empty @ style.css:643
+  - .team-surprises-list @ style.css:594
+  - .team-surprises-myteam @ style.css:580
+  - .team-surprises-outgoing @ style.css:652
+  - .team-surprises-outgoing .team-surprises-list @ style.css:657
+  - .team-surprises-placeholder @ style.css:588
+  - .team-surprises-row @ style.css:602
+  - .team-surprises-row .team-count @ style.css:625
+  - .team-surprises-row .team-count span[aria-hidden="true"] @ style.css:635
+  - .team-surprises-row .team-count.countdown @ style.css:639
+  - .team-surprises-row .team-name @ style.css:619
+  - .team-surprises-row.is-current-team @ style.css:613
+  - .team-surprises-shield @ style.css:547
+  - .team-surprises-shield.is-active @ style.css:557
+  - .teamCell @ components/FlatTireControl/FlatTireControl.module.css:308
+  - .teamCell @ components/SpeedBumpControl/SpeedBumpControl.module.css:139
+  - .teamCell @ components/SurpriseSelector/SurpriseSelector.module.css:52
+  - .teamCell small @ components/SurpriseSelector/SurpriseSelector.module.css:62
+  - .teamCell span @ components/FlatTireControl/FlatTireControl.module.css:319
+  - .teamCell span @ components/SpeedBumpControl/SpeedBumpControl.module.css:150
+  - .teamCell strong @ components/FlatTireControl/FlatTireControl.module.css:314
+  - .teamCell strong @ components/SpeedBumpControl/SpeedBumpControl.module.css:145
+  - .teamCell strong @ components/SurpriseSelector/SurpriseSelector.module.css:56
+  - .teamSetup @ components/GameControls/GameControls.module.css:106
+  - .teamSetup @ components/GameControls/GameControls.module.css:111
+  - .teamSetup label @ components/GameControls/GameControls.module.css:119
+  - .tire-celebration @ style.css:755
+  - .tire-celebration.fade-out @ style.css:787
+  - .tire-emoji @ style.css:766
+  - .warning @ components/GameControls/GameControls.module.css:94
+  - .warning:hover @ components/GameControls/GameControls.module.css:99
+  - .wildcard-card @ style.css:464
+  - .wildcard-card strong @ style.css:482
+  - .wildcard-grid @ style.css:457
+  - .wildcard-label @ style.css:474
+  - .zoneBody @ components/ZoneQuestions/ZoneQuestions.module.css:228
+  - .zoneCard @ components/FlatTireControl/FlatTireControl.module.css:109
+  - .zoneCardHeader @ components/FlatTireControl/FlatTireControl.module.css:119
+  - .zoneCardHeader h3 @ components/FlatTireControl/FlatTireControl.module.css:125
+  - .zoneCardHeader small @ components/FlatTireControl/FlatTireControl.module.css:132
+  - .zoneGrid @ components/FlatTireControl/FlatTireControl.module.css:102
+  - .zoneHeader @ components/ZoneQuestions/ZoneQuestions.module.css:194
+  - .zoneHeader:hover @ components/ZoneQuestions/ZoneQuestions.module.css:206
+  - .zoneId @ components/ZoneQuestions/ZoneQuestions.module.css:210
+  - .zonePanel @ components/ZoneQuestions/ZoneQuestions.module.css:181
+  - .zonePanel:hover @ components/ZoneQuestions/ZoneQuestions.module.css:189
+  - .zoneSelect @ components/FlatTireControl/FlatTireControl.module.css:411
+  - .zoneSelect:focus @ components/FlatTireControl/FlatTireControl.module.css:420
+  - .zoneStatusCell @ components/ZoneManagement/ZoneManagement.module.css:204
+  - .zoneStatusCell span @ components/ZoneManagement/ZoneManagement.module.css:209
+
+Firestore collections (16):
+  - _: modules/teamSurpriseManager.js
+  - bugStrikeLog: modules/bugStrikeManager.js
+  - bugStrikes: modules/bugStrikeManager.js
+  - communications: components/Broadcast/Broadcast.js, components/BugStrikeControl/BugStrikeControl.js, components/GameControls/GameControls.js, components/ZoneManagement/zoneFirestore.js, components/ZoneManagement/zoneHandlers.js, modules/bugStrikeManager.js, modules/chatManager/controlFeed.js, modules/chatManager/messageService.js, modules/chatManager/playerChat.js, modules/controlActions.js, modules/controlStatus.js, modules/controlUI.js, modules/gameMaintenance.js, modules/gameRulesManager.js, modules/playerBugStrikeUI.js, modules/scoreboardManager.js, modules/speedBump/comms.js, modules/speedBumpManager_FULL.js, modules/zonesFirestore.js
+  - conversations: modules/chatManager/controlFeed.js, modules/chatManager/messageService.js, modules/controlStatus.js
+  - flatTireAssignments: modules/flatTireManager.js, modules/gameRulesManager.js
+  - game: components/Broadcast/Broadcast.js, components/GameControls/GameControls.js, components/Scoreboard/Scoreboard.js, components/SpeedBumpControl/controller/promptBank.js, components/SpeedBumpControl/speedBumpControlController_FULL.js, control.js, gameTestState.html, modules/chatManager/controlFeed.js, modules/chatManager/playerChat.js, modules/controlActions.js, modules/controlUI.js, modules/gameMaintenance.js, modules/gameRulesManager.js, modules/gameStateManager.js, modules/gameTimer.js, modules/zones.js, player.js
+  - questions: components/ZoneQuestions/ZoneQuestionsEditor.js, components/ZoneQuestions/ZoneQuestionsUI.js, modules/zonesChallenge.js
+  - racers: components/FlatTireControl/controller/firestoreSync.js, components/FlatTireControl/flatTireControlController_FULL.js, components/GameControls/GameControls.js, components/RacerManagement/RacerManagement.js, components/SpeedBumpControl/controller/stateSync.js, components/SpeedBumpControl/speedBumpControlController_FULL.js, modules/gameMaintenance.js, modules/gameRulesManager.js, modules/playerUI/core.js
+  - scores: components/GameControls/GameControls.js, components/Scoreboard/Scoreboard.js, modules/controlActions.js, modules/gameMaintenance.js, modules/gameRulesManager.js, modules/scoreboardManager.js, modules/zones.js, modules/zonesChallenge.js
+  - settings: components/BugStrikeControl/BugStrikeControl.js, components/GameControls/GameControls.js, modules/bugStrikeManager.js, modules/flatTireManager.js, modules/gameRulesManager.js
+  - speedBumpAssignments: modules/gameRulesManager.js
+  - surpriseAudit: modules/teamSurpriseManager.js
+  - teamStatus: components/GameControls/GameControls.js, components/Scoreboard/Scoreboard.js, components/ZoneManagement/ZoneManagement.js, components/ZoneManagement/zoneFirestore.js, gameTestState.html, modules/chatManager/playerChat.js, modules/controlActions.js, modules/controlStatus.js, modules/gameMaintenance.js, modules/gameStateManager.js, modules/playerUI/core.js, modules/zonesFirestore.js
+  - teamSurprises: modules/teamSurpriseManager.js
+  - zones: components/ZoneManagement/ZoneManagement.js, components/ZoneManagement/zoneFirestore.js, components/ZoneManagement/zoneHandlers.js, components/ZoneManagement/zoneRender.js, components/ZoneQuestions/ZoneQuestionsUI.js, modules/controlActions.js, modules/controlStatus.js, modules/gameMaintenance.js, modules/gameRulesManager.js, modules/homeMap.js, modules/scoreboardManager.js, modules/zoneManager.js, modules/zones.js, modules/zonesChallenge.js
+
+TODO / FIXME / NOTE (2):
+  - modules/chatManager/messageService.js:62 — TODO: wire to team-specific Firestore chat doc
+  - modules/speedBumpManager_FULL.js:4 — NOTE: Uses broadcasts (communications collection) to sync state across clients.
+
+Duplicate filenames (3):
+  - core.js: modules/playerUI/core.js, modules/speedBump/core.js
+  - domHandlers.js: components/FlatTireControl/controller/domHandlers.js, components/SpeedBumpControl/controller/domHandlers.js
+  - utils.js: modules/chatManager/utils.js, modules/utils.js
+
+Legacy / *_FULL variants (4):
+  - components/FlatTireControl/flatTireControlController_FULL.js
+  - components/SpeedBumpControl/speedBumpControlController_FULL.js
+  - modules/playerUI/overlays_FULL.js
+  - modules/speedBumpManager_FULL.js
+ROUTERIOT_MAP

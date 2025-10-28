@@ -2,20 +2,8 @@
 // MODULE 1: gameRulesManager.js
 // Purpose: Handles loading, editing, and saving Route Riot game rules.
 // ============================================================================ 
-import { app, db, firebaseConfig } from './config.js';
-import {
-  doc,
-  getDoc,
-  setDoc,
-  collection,
-  getDocs,
-  deleteDoc,
-  writeBatch,
-  addDoc,
-  Timestamp,
-  serverTimestamp,
-  onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from '../modules/config.js';
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { clearAllTeamSurprises } from './teamSurpriseManager.js';
 
 export async function loadRules(rulesTextArea) {
@@ -39,10 +27,12 @@ export function toggleRules(rulesSection, toggleButton) {
   toggleButton.textContent = open ? '📜 Edit Rules' : '❌ Close Rules';
 }
 
-// ============================================================================
+// ============================================================================ 
 // MODULE 2: gameTimer.js
 // Purpose: Handles real-time countdown display for active games.
-// ============================================================================
+// ============================================================================ 
+import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 export function initializeGameTimer(timerDisplay) {
   const gameDocRef = doc(db, 'game', 'gameState');
   let gameTimerInterval;
@@ -78,6 +68,15 @@ export function initializeGameTimer(timerDisplay) {
 // ============================================================================ 
 import { allTeams } from '../data.js';
 import { emailAllTeams } from './emailTeams.js';
+import { db } from './config.js';
+import {
+  getDocs,
+  collection,
+  writeBatch,
+  doc,
+  setDoc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 export async function randomizeTeams(teamSize = 2) {
   const snap = await getDocs(collection(db, 'racers'));
@@ -118,12 +117,12 @@ export async function emailTeams(rulesDocRef) {
     }
   });
 
-  const teamNames = Object.keys(activeTeams);
-  if (teamNames.length === 0) {
-    alert(`❌ No racers assigned to teams yet.
+ const teamNames = Object.keys(activeTeams);
+if (teamNames.length === 0) {
+  alert(`❌ No racers assigned to teams yet.
 Please randomize teams first.`);
-    return;
-  }
+  return;
+}
 
   await setDoc(doc(db, 'game', 'gameState'), { zonesReleased: true }, { merge: true });
   await setDoc(doc(db, 'game', 'activeTeams'), { list: teamNames }, { merge: true });
@@ -138,10 +137,20 @@ Check your Gmail tabs.`);
   }
 }
 
-// ============================================================================
+// ============================================================================ 
 // MODULE 4: gameStateManager.js
 // Purpose: Handles start, pause, and end states of the game.
-// ============================================================================
+// ============================================================================ 
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  addDoc,
+  Timestamp,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 export async function startGame(gameDuration = 120) {
   const mins = Number(gameDuration) || 120;
   const endTime = Timestamp.fromMillis(Date.now() + mins * 60 * 1000);
@@ -219,10 +228,18 @@ export async function endGame() {
   }
 }
 
-// ============================================================================
+// ============================================================================ 
 // MODULE 5: gameMaintenance.js
 // Purpose: Handles resets, wipes, and maintenance tasks.
-// ============================================================================
+// ============================================================================ 
+import {
+  writeBatch,
+  getDocs,
+  doc,
+  collection
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from './config.js';
+
 export async function resetFullGame() {
   await clearGameSideEffects();
   if (!confirm('ARE YOU SURE?\nThis will permanently delete all game data.')) return;

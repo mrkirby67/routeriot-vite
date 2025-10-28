@@ -8,6 +8,8 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  deleteDoc,
   onSnapshot,
   runTransaction,
   setDoc,
@@ -231,6 +233,28 @@ function normalizeSurpriseKey(key) {
 // =========================================================
 export const activeWildCards = Object.create(null);   // { teamName: { type, expires } }
 export const activeCooldowns = Object.create(null);   // { teamName: timestamp }
+
+export async function clearAllTeamSurprises() {
+  for (const key of Object.keys(activeShields)) {
+    delete activeShields[key];
+  }
+  for (const key of Object.keys(activeWildCards)) {
+    delete activeWildCards[key];
+  }
+  for (const key of Object.keys(activeCooldowns)) {
+    delete activeCooldowns[key];
+  }
+
+  try {
+    const snap = await getDocs(collection(db, 'teamSurprises'));
+    const deletions = snap.docs.map((docSnap) => deleteDoc(docSnap.ref));
+    if (deletions.length) {
+      await Promise.allSettled(deletions);
+    }
+  } catch (err) {
+    console.warn('⚠️ Failed to clear teamSurprises collection:', err);
+  }
+}
 
 export function isUnderWildCard(team) {
   if (!team) return false;
