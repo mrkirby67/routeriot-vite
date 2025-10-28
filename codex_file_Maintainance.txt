@@ -8,3 +8,204 @@ modules/chatManager/playerChat.js                                               
 modules/gameRulesManager.js                                                                |   319 | ⚠️ >300 lines
 modules/flatTireUI.js                                                                      |   301 | ⚠️ >300 lines
 modules/speedBump/interactions.js                                                          |   334 | ⚠️ >300 lines
+🧩 1️⃣ Codex Integrity Scan — Import & Dependency Validation
+
+Purpose:
+Ensure every import or export points to a real file and all Firestore/Firebase imports match actual dependencies.
+
+Finds:
+	•	Broken imports (../../missing.js)
+	•	Unused exports
+	•	Duplicate or circular dependencies
+
+Why it helps:
+Catches subtle path errors before they cause runtime “undefined is not a function” bugs (like your playerChat ones).
+
+Extra bonus:
+Flag circular imports between flatTireManager.js and flatTireUI.js before they cause build loops.
+
+⸻
+#######################################
+# ============================================================
+# 🧩 CODEX SYSTEM INSTRUCTION BLOCK — INTEGRITY SCAN
+# ============================================================
+# PURPOSE:
+#   Verify all import/export statements resolve correctly,
+#   detect broken paths, circular dependencies, and missing modules.
+#   Preserve fonts and static assets (no renames or deletions).
+#
+# RULES:
+#   - Do NOT modify or move font files or CSS references.
+#   - Only auto-correct "./" vs "../" path depth mismatches.
+#   - Log findings in codex_integrity_scan.log.
+# ============================================================
+
+codex --mode=verify-integrity --fix=imports --safe --ignore=fonts,assets \
+      --report=codex_integrity_scan.log
+##################################################
+
+
+🔥 2️⃣ Codex Dead Code Purge — Unused Functions & Variables
+
+Purpose:
+Scan for functions, constants, and imports that are never called.
+
+Finds:
+	•	Functions declared but never used
+	•	Imports never referenced
+	•	Commented-out legacy code (like _FULL.js style leftovers)
+
+Why it helps:
+Trims dead weight, improves performance, and simplifies future debugging.
+
+Safety rule:
+Only delete if zero references found and file not imported by anyone.
+
+⸻
+#########################################
+# ============================================================
+# 🔥 CODEX SYSTEM INSTRUCTION BLOCK — DEAD CODE PURGE
+# ============================================================
+# PURPOSE:
+#   Identify unused imports, constants, and functions
+#   throughout modules and components.
+#
+# RULES:
+#   - Do NOT delete font imports or CSS.
+#   - Generate codex_deadcode_report.txt for manual review.
+#   - Auto-remove only if zero references exist in the project tree.
+# ============================================================
+
+codex --mode=deadcode-scan --safe --ignore=fonts,css \
+      --report=codex_deadcode_report.txt
+##################################
+
+🧮 3️⃣ Codex Complexity Analyzer — Cognitive Load Report
+
+Purpose:
+Measure “complexity” per function using cyclomatic complexity metrics.
+
+Finds:
+	•	Overly nested functions
+	•	Long if-else chains
+	•	Functions exceeding 50 logical paths
+
+Why it helps:
+Pinpoints which modules are hardest to debug before they break.
+(Usually things like gameStateManager.js or controlActions.js.)
+
+⸻
+####################
+# ============================================================
+# 🧮 CODEX SYSTEM INSTRUCTION BLOCK — COMPLEXITY ANALYZER
+# ============================================================
+# PURPOSE:
+#   Calculate function-level complexity across all JS modules.
+#   Highlight functions >50 logical paths or deeply nested blocks.
+#
+# RULES:
+#   - Read-only mode (no auto-changes).
+#   - Produce codex_complexity_report.txt.
+#   - Include per-function LOC and nesting depth.
+# ============================================================
+
+codex --mode=analyze-complexity --threshold=50 \
+      --report=codex_complexity_report.txt
+############################
+
+🧱 4️⃣ Codex Asset & Font Integrity Scan
+
+Purpose:
+Validate that all referenced assets (.png, .ico, .svg, and fonts) exist and are not broken links.
+
+Finds:
+	•	404 favicon or overlay references
+	•	Broken CSS font imports
+	•	Unused assets inflating dist size
+
+Why it helps:
+Keeps deployment lightweight and avoids missing resource bugs in production.
+
+Safety clause:
+☑️ “Do not modify or move font assets automatically.”
+Just flag and report them.
+
+⸻
+############################
+# ============================================================
+# 🧱 CODEX SYSTEM INSTRUCTION BLOCK — ASSET & FONT INTEGRITY
+# ============================================================
+# PURPOSE:
+#   Ensure all image, font, and CSS asset references are valid.
+#
+# RULES:
+#   - DO NOT move or rename font files.
+#   - Report broken or unused assets only.
+#   - Output report to codex_assets_report.txt.
+# ============================================================
+
+codex --mode=asset-verify --safe --ignore=backup,temp \
+      --report=codex_assets_report.txt
+############################
+🕹️ 5️⃣ Codex Firebase Interaction Map
+
+Purpose:
+Trace every Firebase Firestore collection and document reference across modules.
+
+Finds:
+	•	Every collection(db, '...') and doc(db, '...') call
+	•	Highlights duplicates, mismatched names, or unused collections
+
+Why it helps:
+Keeps database schema predictable — e.g., ensures flatTireAssignments, teamStatus, and communications are consistent across control and player UIs.
+
+Optional: Output to codex_firestore_map.txt
+
+⸻
+############################
+# ============================================================
+# 🕹️ CODEX SYSTEM INSTRUCTION BLOCK — FIREBASE MAP
+# ============================================================
+# PURPOSE:
+#   Locate and map all Firestore references (collection/doc)
+#   to visualize schema consistency across modules.
+#
+# RULES:
+#   - Read-only scan.
+#   - Generate codex_firestore_map.txt with callsites, file paths,
+#     and field usage.
+# ============================================================
+
+codex --mode=firestore-map --scan=db,collection,doc \
+      --report=codex_firestore_map.txt
+
+############################
+
+🧾 6️⃣ Codex Function.Map Deep Report (Existing, Extended)
+
+Purpose:
+You already run this one, but the next level adds:
+	•	Function length (lines)
+	•	Argument count
+	•	Internal comment ratio (%)
+	•	JSDoc presence
+
+Why it helps:
+Builds a “function quality index” for every module and lets you spot under-documented or overgrown functions before they rot.
+##################################
+# ============================================================
+# 🧾 CODEX SYSTEM INSTRUCTION BLOCK — FUNCTION.MAP DEEP REPORT
+# ============================================================
+# PURPOSE:
+#   Generate a detailed function inventory across the repo.
+#   Include line count, argument count, and documentation ratio.
+#
+# RULES:
+#   - Read-only.
+#   - Ignore node_modules, dist, and font directories.
+#   - Output codex_functionmap_deep.txt.
+# ============================================================
+
+codex --mode=function-map --extended \
+      --ignore=node_modules,dist,fonts \
+      --report=codex_functionmap_deep.txt
