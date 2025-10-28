@@ -180,10 +180,32 @@ export async function applyWildCardsToAllTeams(count) {
     : 0;
 
   const teamStatusSnap = await getDocs(collection(db, "teamStatus"));
-  const updates = teamStatusSnap.docs.map((docSnap) =>
-    updateDoc(docSnap.ref, { wildCards: target })
+
+  const statusUpdates = teamStatusSnap.docs.map((docSnap) =>
+    updateDoc(docSnap.ref, {
+      wildCards: target,
+      flatTireCount: target,
+      bugSplatCount: target,
+      shieldWaxCount: target,
+    })
   );
-  await Promise.all(updates);
+
+  const surprisesCollection = collection(db, 'teamSurprises');
+  const surpriseUpdates = teamStatusSnap.docs.map((docSnap) => {
+    const teamId = docSnap.id || '';
+    const sanitizedId = teamId.replace(/[\\/#?]/g, '_');
+    const ref = doc(surprisesCollection, sanitizedId);
+    return setDoc(ref, {
+      counts: {
+        flatTire: target,
+        bugSplat: target,
+        wildCard: target,
+      },
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  });
+
+  await Promise.all([...statusUpdates, ...surpriseUpdates]);
 
   showFlashMessage(`🃏 Wild cards set to ${target} for all teams.`, '#512da8', 2500);
   console.log(`🃏 Wild cards set to ${target} for ${teamStatusSnap.size} teamStatus docs.`);
