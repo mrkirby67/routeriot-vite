@@ -3,7 +3,7 @@
 // PURPOSE: Firebase read/write + broadcast helpers for zones
 // ============================================================================
 
-import { db } from '../../modules/config.js';
+import { db } from './config.js';
 import {
   doc,
   setDoc,
@@ -12,9 +12,9 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { flashPlayerLocation } from '../../modules/zonesUtils.js';
-import { updateControlledZones } from '../../modules/scoreboardManager.js';
-import { allTeams } from '../../modules/data.js';
+import { flashPlayerLocation } from './zonesUtils.js';
+import { updateControlledZones } from './scoreboardManager.js';
+import { allTeams } from '../data.js';
 
 /* ---------------------------------------------------------------------------
  * 📣 GENERIC BROADCAST EVENT

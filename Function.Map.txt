@@ -45,7 +45,12 @@
  - modules/chatManager.js
  - modules/chatManager/controlFeed.js
  - modules/chatManager/messageService.js
+ - modules/chatManager/playerChat.events.js
  - modules/chatManager/playerChat.js
+ - modules/chatManager/playerChat.state.js
+ - modules/chatManager/playerChat.surprises.js
+ - modules/chatManager/playerChat.ui.js
+ - modules/chatManager/playerChat.utils.js
  - modules/chatManager/registry.js
  - modules/chatManager/utils.js
  - modules/chirpCooldown.js

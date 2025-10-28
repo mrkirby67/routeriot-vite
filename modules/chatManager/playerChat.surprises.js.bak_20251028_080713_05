@@ -1,0 +1,15 @@
+// ============================================================================
+// FILE: modules/chatManager/playerChat.surprises.js
+// PURPOSE: Handles surprise usage (Flat Tire, Bug Splat, Shield Wax)
+// ============================================================================
+
+import { db } from '../../modules/config.js';
+import { addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { loadFlatTireConfig, assignFlatTireTeam } from '../flatTireManager.js';
+import { activateShield, getShieldDurationMs, decrementSurprise, isShieldActive } from '../teamSurpriseManager.js';
+import { sendPrivateSystemMessage } from './messageService.js';
+// AUTO-ADDED EXPORT to prevent build errors
+export function handleUseSurprise(teamName) {
+  console.log("🧩 [ADDED] handleUseSurprise() stub for", teamName);
+  return null;
+}

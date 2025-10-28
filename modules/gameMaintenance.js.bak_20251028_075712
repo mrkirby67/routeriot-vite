@@ -1,0 +1,98 @@
+// ============================================================================
+// FILE: modules/gameMaintenance.js
+// PURPOSE: Handles global resets, wipes, and maintenance tasks for Route Riot
+// This runs from Control only — never from player pages.
+// ============================================================================
+
+import { db } from './config.js';
+import {
+  writeBatch,
+  getDocs,
+  doc,
+  collection,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ---------------------------------------------------------------------------
+// 🧹 Reset the entire game (zones, scores, racers, state)
+// ---------------------------------------------------------------------------
+export async function resetFullGame() {
+  if (!confirm('⚠️ ARE YOU SURE?\nThis will permanently reset all game data!')) return;
+  alert('Resetting game data...');
+
+  try {
+    const batch = writeBatch(db);
+
+    // Reset game state
+    batch.set(doc(db, 'game', 'gameState'), {
+      status: 'not started',
+      zonesReleased: false,
+      startTime: null,
+      endTime: null,
+      remainingMs: null,
+      durationMinutes: null,
+      updatedAt: serverTimestamp()
+    });
+
+    // Remove list of active teams
+    batch.delete(doc(db, 'game', 'activeTeams'));
+
+    // Reset racers → team: '-'
+    const racersSnap = await getDocs(collection(db, 'racers'));
+    racersSnap.forEach(r => batch.update(r.ref, { team: '-' }));
+
+    // Reset zones → available
+    const zonesSnap = await getDocs(collection(db, 'zones'));
+    zonesSnap.forEach(z => batch.update(z.ref, {
+      status: 'Available',
+      controllingTeam: '',
+      lastUpdated: serverTimestamp()
+    }));
+
+    // Clear scores
+    const scoresSnap = await getDocs(collection(db, 'scores'));
+    scoresSnap.forEach(s => batch.delete(s.ref));
+
+    await batch.commit();
+
+    alert('✅ Game has been fully reset.');
+    console.log('🧹 All collections reset successfully.');
+  } catch (err) {
+    console.error('❌ Reset error:', err);
+    alert('An error occurred while resetting. Check console for details.');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 🧼 Partial Cleanups (optional, use as needed)
+// ---------------------------------------------------------------------------
+
+// Clear only chat + scores
+export async function clearChatsAndScores() {
+  try {
+    const comms = await getDocs(collection(db, 'communications'));
+    const scores = await getDocs(collection(db, 'scores'));
+
+    const batch = writeBatch(db);
+    comms.forEach(c => batch.delete(c.ref));
+    scores.forEach(s => batch.delete(s.ref));
+
+    await batch.commit();
+    console.log('💬🧮 Chats and scores cleared.');
+  } catch (err) {
+    console.error('❌ Failed to clear chats/scores:', err);
+  }
+}
+
+// Clear only teamStatus documents
+export async function clearTeamStatus() {
+  try {
+    const teamSnap = await getDocs(collection(db, 'teamStatus'));
+    const batch = writeBatch(db);
+    teamSnap.forEach(t => batch.delete(t.ref));
+    await batch.commit();
+    console.log('👥 Team statuses cleared.');
+  } catch (err) {
+    console.error('❌ Failed to clear teamStatus:', err);
+  }
+}

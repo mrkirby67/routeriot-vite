@@ -1,0 +1,21 @@
+Timestamp: Tue Oct 28 02:53:02 EDT 2025
+✅ No legacy FULL controllers detected.
+
+🧩 Verifying module import paths...
+❌ Broken import: ./config.js (in components/ZoneManagement/zoneFirestore.js)
+❌ Broken import: ./zonesUtils.js (in components/ZoneManagement/zoneFirestore.js)
+❌ Broken import: ./scoreboardManager.js (in components/ZoneManagement/zoneFirestore.js)
+❌ Broken import: ../data.js (in components/ZoneManagement/zoneFirestore.js)
+
+🧹 Running ESLint & syntax validation...
+⚠️ ESLint not available locally; network restrictions blocked npx from installing it.
+
+✅ Vite build successful.
+🔥 Firebase config found — verifying hosting target...
+    "public": "dist",
+
+==========================================================
+🧾 CODEX SYSTEM CHECK COMPLETE
+==========================================================
+Output saved to codex_system_check.txt
+==========================================================
