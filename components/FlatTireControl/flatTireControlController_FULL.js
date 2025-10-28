@@ -23,6 +23,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { escapeHtml } from '../../modules/utils.js';
 
+let flatTireControllerBootstrapped = false;
+
 const ZONE_KEYS = ['north', 'south', 'east', 'west'];
 const AUTO_RELEASE_MINUTES = 20;
 const DEFAULT_DIAMETER_METERS = 200;
@@ -84,6 +86,8 @@ class FlatTireControlController {
     this.tickerId = null;
     this.saveTimerId = null;
     this.ignoreConfigInput = false;
+    this.initialized = false;
+    this.listenersAttached = false;
 
     this.handleAssignmentSnapshot = this.handleAssignmentSnapshot.bind(this);
     this.handleTeamRegistry = this.handleTeamRegistry.bind(this);
@@ -97,6 +101,13 @@ class FlatTireControlController {
   }
 
   async initialize() {
+    if (this.initialized || flatTireControllerBootstrapped) {
+      console.info('ℹ️ [flatTireControl] initialize() skipped — already active.');
+      return () => {};
+    }
+    this.initialized = true;
+    flatTireControllerBootstrapped = true;
+
     this.captureDom();
     this.attachListeners();
 
@@ -141,6 +152,10 @@ class FlatTireControlController {
       this.saveTimerId = null;
     }
 
+    this.initialized = false;
+    this.listenersAttached = false;
+    flatTireControllerBootstrapped = false;
+
     console.info(`🧹 [flatTireControl] destroyed (${reason})`);
   }
 
@@ -166,6 +181,8 @@ class FlatTireControlController {
   }
 
   attachListeners() {
+    if (this.listenersAttached) return;
+
     this.dom.zoneInputs.forEach((input) => {
       input.addEventListener('input', this.onZoneInputChange);
       input.addEventListener('change', this.onZoneInputChange);
@@ -181,9 +198,13 @@ class FlatTireControlController {
     this.dom.tableBody?.addEventListener('change', this.onZoneSelectChange);
     this.dom.autoToggleBtn?.addEventListener('click', this.onAutoToggle);
     this.dom.autoIntervalInput?.addEventListener('change', this.onIntervalChange);
+
+    this.listenersAttached = true;
   }
 
   detachListeners() {
+    if (!this.listenersAttached) return;
+
     this.dom.zoneInputs.forEach((input) => {
       input.removeEventListener('input', this.onZoneInputChange);
       input.removeEventListener('change', this.onZoneInputChange);
@@ -199,6 +220,8 @@ class FlatTireControlController {
     this.dom.tableBody?.removeEventListener('change', this.onZoneSelectChange);
     this.dom.autoToggleBtn?.removeEventListener('click', this.onAutoToggle);
     this.dom.autoIntervalInput?.removeEventListener('change', this.onIntervalChange);
+
+    this.listenersAttached = false;
   }
 
   subscribeToRacers() {

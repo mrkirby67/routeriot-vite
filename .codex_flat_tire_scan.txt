@@ -1,0 +1,292 @@
+📁 Listing related files...
+components/FlatTireControl/FlatTireControl.js
+components/FlatTireControl/controller/autoScheduler.js
+components/FlatTireControl/controller/domHandlers.js
+components/FlatTireControl/flatTireControlController.js
+components/FlatTireControl/flatTireControlController_FULL.js
+components/SurpriseSelector/SurpriseSelector.js
+modules/chatManager/playerChat.js
+modules/flatTireManager.js
+modules/flatTireUI.js
+modules/gameRulesManager.js
+modules/messages/taunts.js
+modules/playerUI/overlays/flatTireOverlay.js
+modules/playerUI/overlays.js
+modules/playerUI/overlays_FULL.js
+modules/teamSurpriseManager.js
+
+🧭 Checking for missing map helpers...
+components/FlatTireControl/flatTireControlController_FULL.js:18: import { generateMiniMap } from '../../modules/zonesMap.js';
+components/FlatTireControl/flatTireControlController_FULL.js:351: map.innerHTML = generateMiniMap({
+modules/flatTireManager.js:7: import { calculateDistance } from './zonesUtils.js';
+modules/flatTireManager.js:63: const distanceKm = calculateDistance(center.lat, center.lng, position.lat, position.lng);
+modules/playerUI/overlays/flatTireOverlay.js:4: import { generateMiniMap } from '../../zonesMap.js';
+modules/playerUI/overlays/flatTireOverlay.js:56: const mapHtml = generateMiniMap({ gps, diameter: diameterMeters / 1000 });
+modules/playerUI/overlays_FULL.js:6: import { generateMiniMap } from '../zonesMap.js';
+modules/playerUI/overlays_FULL.js:450: mapWrapper.innerHTML = generateMiniMap({
+modules/zones.js:18: import { waitForElement, flashPlayerLocation, playRaceStartSequence, calculateDistance } from './zonesUtils.js';
+modules/zones.js:19: import { generateMiniMap } from './zonesMap.js';
+modules/zones.js:64: const zonesCollection = collection(db, 'zones');
+modules/zones.js:92: registerZoneListener('zonesCollection', onSnapshot(zonesCollection, (snapshot) => {
+modules/zones.js:109: <td>${generateMiniMap(zone)}</td>
+modules/zones.js:147: const dist = calculateDistance(
+modules/zonesMap.js:88: export function generateMiniMap(zoneData = {}) {
+modules/zonesUtils.js:115: export function calculateDistance(lat1, lon1, lat2, lon2) {
+
+🎧 Checking for duplicate event listeners...
+components/FlatTireControl/controller/firestoreSync.js:4: import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+components/FlatTireControl/controller/firestoreSync.js:10: return onSnapshot(racersRef, snapshot => {
+components/FlatTireControl/flatTireControlController_FULL.js:22: onSnapshot
+components/FlatTireControl/flatTireControlController_FULL.js:170: input.addEventListener('input', this.onZoneInputChange);
+components/FlatTireControl/flatTireControlController_FULL.js:171: input.addEventListener('change', this.onZoneInputChange);
+components/FlatTireControl/flatTireControlController_FULL.js:174: input.addEventListener('input', this.onDiameterInputChange);
+components/FlatTireControl/flatTireControlController_FULL.js:175: input.addEventListener('change', this.onDiameterInputChange);
+components/FlatTireControl/flatTireControlController_FULL.js:178: button.addEventListener('click', this.onRefreshClick);
+components/FlatTireControl/flatTireControlController_FULL.js:180: this.dom.tableBody?.addEventListener('click', this.onTableClick);
+components/FlatTireControl/flatTireControlController_FULL.js:181: this.dom.tableBody?.addEventListener('change', this.onZoneSelectChange);
+components/FlatTireControl/flatTireControlController_FULL.js:182: this.dom.autoToggleBtn?.addEventListener('click', this.onAutoToggle);
+components/FlatTireControl/flatTireControlController_FULL.js:183: this.dom.autoIntervalInput?.addEventListener('change', this.onIntervalChange);
+components/FlatTireControl/flatTireControlController_FULL.js:207: return onSnapshot(racersRef, (snapshot) => {
+
+👥 Checking for duplicated team name rendering...
+components/FlatTireControl/controller/domHandlers.js:35: activeTeams.forEach(teamName => {
+components/FlatTireControl/controller/domHandlers.js:37: row.dataset.team = teamName;
+components/FlatTireControl/controller/domHandlers.js:39: <td class="${styles.teamCell}"><strong>${escapeHtml(teamName)}</strong></td>
+components/FlatTireControl/controller/domHandlers.js:48: frag.appendChild(row);
+components/FlatTireControl/controller/domHandlers.js:50: body.appendChild(frag);
+components/FlatTireControl/flatTireControlController.js:25: this.assignments = new Map(list.map(i => [i.teamName, i]));
+components/FlatTireControl/flatTireControlController_FULL.js:211: const teamName = typeof data?.team === 'string' ? data.team.trim() : '';
+components/FlatTireControl/flatTireControlController_FULL.js:212: if (teamName && teamName !== '-') teams.add(teamName);
+components/FlatTireControl/flatTireControlController_FULL.js:226: handleTeamRegistry(teamNames = []) {
+components/FlatTireControl/flatTireControlController_FULL.js:228: teamNames
+components/FlatTireControl/flatTireControlController_FULL.js:240: const teamName = entry?.teamName;
+components/FlatTireControl/flatTireControlController_FULL.js:241: if (!teamName) return;
+components/FlatTireControl/flatTireControlController_FULL.js:242: map.set(teamName, entry);
+components/FlatTireControl/flatTireControlController_FULL.js:472: const teamName = availableTeams[index];
+components/FlatTireControl/flatTireControlController_FULL.js:484: this.assignTeam(teamName, zoneKey, { cause: 'auto' }).catch(err => {
+components/FlatTireControl/flatTireControlController_FULL.js:494: const teamName = row.dataset.team;
+components/FlatTireControl/flatTireControlController_FULL.js:504: this.assignTeam(teamName, zoneKey).catch(err => {
+components/FlatTireControl/flatTireControlController_FULL.js:506: alert(`Failed to assign Flat Tire to ${teamName}.`);
+components/FlatTireControl/flatTireControlController_FULL.js:509: this.releaseTeam(teamName).catch(err => {
+components/FlatTireControl/flatTireControlController_FULL.js:511: alert(`Failed to release ${teamName} from Flat Tire.`);
+components/FlatTireControl/flatTireControlController_FULL.js:522: async assignTeam(teamName, zoneKey, { cause = 'manual' } = {}) {
+components/FlatTireControl/flatTireControlController_FULL.js:533: await assignFlatTireTeam(teamName, {
+components/FlatTireControl/flatTireControlController_FULL.js:549: async releaseTeam(teamName) {
+components/FlatTireControl/flatTireControlController_FULL.js:550: await releaseFlatTireTeam(teamName);
+components/FlatTireControl/flatTireControlController_FULL.js:572: this.activeTeams.forEach(teamName => {
+components/FlatTireControl/flatTireControlController_FULL.js:573: const teamMeta = allTeams.find(t => t.name === teamName) || {};
+components/FlatTireControl/flatTireControlController_FULL.js:575: row.dataset.team = teamName;
+components/FlatTireControl/flatTireControlController_FULL.js:577: const assignment = this.assignments.get(teamName) || null;
+components/FlatTireControl/flatTireControlController_FULL.js:590: <strong>${escapeHtml(teamName)}</strong>
+components/FlatTireControl/flatTireControlController_FULL.js:606: fragment.appendChild(row);
+components/FlatTireControl/flatTireControlController_FULL.js:609: body.appendChild(fragment);
+components/FlatTireControl/flatTireControlController_FULL.js:614: const teamName = row.dataset.team;
+components/FlatTireControl/flatTireControlController_FULL.js:615: const assignment = this.assignments.get(teamName);
+components/FlatTireControl/flatTireControlController_FULL.js:674: this.releaseTeam(teamName).catch(err => {
+
+⏳ Checking for unawaited Firestore calls...
+modules/controlActions.js:180: updateDoc(docSnap.ref, { wildCards: target })
+modules/controlStatus.js:190: updateDoc(docSnap.ref, {
+modules/controlStatus.js:212: setDoc(
+
+🚗 Checking Tow Zone dropdown logic...
+components/FlatTireControl/FlatTireControl.js:3: // PURPOSE: Markup + bootstrapper for the Flat Tire — Tow Time control panel
+components/FlatTireControl/FlatTireControl.js:16: <h2>Flat Tire — Tow Time</h2>
+components/FlatTireControl/FlatTireControl.js:17: <p class="${styles.subhead}">Dispatch repair crews and monitor tow assignments.</p>
+components/FlatTireControl/FlatTireControl.js:28: <div class="${styles.zoneGrid}">
+components/FlatTireControl/FlatTireControl.js:29: <div class="${styles.zoneCard}" data-zone="north">
+components/FlatTireControl/FlatTireControl.js:30: <div class="${styles.zoneCardHeader}">
+components/FlatTireControl/FlatTireControl.js:34: <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-north" placeholder="45.0123,-93.1234" spellcheck="false" data-zone="north" />
+components/FlatTireControl/FlatTireControl.js:35: <label class="${styles.diameterLabel}" for="flat-tire-zone-diameter-north">Map Diameter (m)</label>
+components/FlatTireControl/FlatTireControl.js:36: <input type="number" class="${styles.diameterInput}" id="flat-tire-zone-diameter-north" min="50" step="10" value="200" data-zone="north" />
+components/FlatTireControl/FlatTireControl.js:37: <div class="${styles.mapPreview}" id="flat-tire-zone-map-north">
+components/FlatTireControl/FlatTireControl.js:42: <div class="${styles.zoneCard}" data-zone="south">
+components/FlatTireControl/FlatTireControl.js:43: <div class="${styles.zoneCardHeader}">
+components/FlatTireControl/FlatTireControl.js:47: <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-south" placeholder="44.9876,-93.2100" spellcheck="false" data-zone="south" />
+components/FlatTireControl/FlatTireControl.js:48: <label class="${styles.diameterLabel}" for="flat-tire-zone-diameter-south">Map Diameter (m)</label>
+components/FlatTireControl/FlatTireControl.js:49: <input type="number" class="${styles.diameterInput}" id="flat-tire-zone-diameter-south" min="50" step="10" value="200" data-zone="south" />
+components/FlatTireControl/FlatTireControl.js:50: <div class="${styles.mapPreview}" id="flat-tire-zone-map-south">
+components/FlatTireControl/FlatTireControl.js:55: <div class="${styles.zoneCard}" data-zone="east">
+components/FlatTireControl/FlatTireControl.js:56: <div class="${styles.zoneCardHeader}">
+components/FlatTireControl/FlatTireControl.js:60: <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-east" placeholder="44.9980,-93.0456" spellcheck="false" data-zone="east" />
+components/FlatTireControl/FlatTireControl.js:61: <label class="${styles.diameterLabel}" for="flat-tire-zone-diameter-east">Map Diameter (m)</label>
+components/FlatTireControl/FlatTireControl.js:62: <input type="number" class="${styles.diameterInput}" id="flat-tire-zone-diameter-east" min="50" step="10" value="200" data-zone="east" />
+components/FlatTireControl/FlatTireControl.js:63: <div class="${styles.mapPreview}" id="flat-tire-zone-map-east">
+components/FlatTireControl/FlatTireControl.js:68: <div class="${styles.zoneCard}" data-zone="west">
+components/FlatTireControl/FlatTireControl.js:69: <div class="${styles.zoneCardHeader}">
+components/FlatTireControl/FlatTireControl.js:73: <input type="text" class="${styles.gpsInput}" id="flat-tire-zone-gps-west" placeholder="45.0456,-93.2901" spellcheck="false" data-zone="west" />
+components/FlatTireControl/FlatTireControl.js:74: <label class="${styles.diameterLabel}" for="flat-tire-zone-diameter-west">Map Diameter (m)</label>
+components/FlatTireControl/FlatTireControl.js:75: <input type="number" class="${styles.diameterInput}" id="flat-tire-zone-diameter-west" min="50" step="10" value="200" data-zone="west" />
+components/FlatTireControl/FlatTireControl.js:76: <div class="${styles.mapPreview}" id="flat-tire-zone-map-west">
+components/FlatTireControl/FlatTireControl.js:85: <p>Assign a tow zone to a stranded team. Countdown auto-releases after 20 minutes unless control releases early.</p>
+components/FlatTireControl/FlatTireControl.js:98: <th>Assigned Zone</th>
+components/FlatTireControl/controller/autoScheduler.js:28: const zoneKeys = Object.keys(controller.config.zones).filter(k => controller.config.zones[k].gps);
+components/FlatTireControl/controller/autoScheduler.js:29: const zoneKey = zoneKeys[Math.floor(Math.random() * zoneKeys.length)];
+components/FlatTireControl/controller/autoScheduler.js:30: if (!zoneKey) return;
+components/FlatTireControl/controller/autoScheduler.js:31: const zone = controller.config.zones[zoneKey];
+components/FlatTireControl/controller/autoScheduler.js:33: zoneKey,
+components/FlatTireControl/controller/autoScheduler.js:34: depotId: zoneKey,
+components/FlatTireControl/controller/autoScheduler.js:35: zoneName: zone.name,
+components/FlatTireControl/controller/autoScheduler.js:36: gps: zone.gps,
+components/FlatTireControl/controller/domHandlers.js:14: dom.zoneInputs.set(key, document.getElementById(`flat-tire-zone-gps-${key}`));
+components/FlatTireControl/controller/domHandlers.js:15: dom.zoneMaps.set(key, document.getElementById(`flat-tire-zone-map-${key}`));
+components/FlatTireControl/controller/domHandlers.js:16: dom.zoneDiameterInputs.set(key, document.getElementById(`flat-tire-zone-diameter-${key}`));
+components/FlatTireControl/controller/domHandlers.js:17: const btn = document.querySelector(`button[data-role="refresh"][data-zone="${key}"]`);
+components/FlatTireControl/controller/domHandlers.js:18: if (btn) dom.zoneRefreshButtons.set(key, btn);
+components/FlatTireControl/controller/domHandlers.js:40: <td><select class="${styles.zoneSelect}" data-role="zone-select">
+components/FlatTireControl/controller/domHandlers.js:41: <option value="">Select tow zone…</option>
+components/FlatTireControl/controller/domHandlers.js:42: </select></td>
+components/FlatTireControl/controller/firestoreSync.js:26: if (!config?.zones) return;
+components/FlatTireControl/controller/firestoreSync.js:31: const zone = config.zones[k];
+components/FlatTireControl/controller/firestoreSync.js:32: const input = controller.dom.zoneInputs.get(k);
+components/FlatTireControl/controller/firestoreSync.js:33: if (input) input.value = zone.gps || '';
+components/FlatTireControl/flatTireControlController.js:11: this.dom = { zoneInputs: new Map(), zoneMaps: new Map(), zoneDiameterInputs: new Map(), zoneRefreshButtons: new Map() };
+components/FlatTireControl/flatTireControlController_FULL.js:3: // PURPOSE: UI orchestration for Flat Tire — Tow Time control panel
+components/FlatTireControl/flatTireControlController_FULL.js:18: import { generateMiniMap } from '../../modules/zonesMap.js';
+components/FlatTireControl/flatTireControlController_FULL.js:26: const ZONE_KEYS = ['north', 'south', 'east', 'west'];
+components/FlatTireControl/flatTireControlController_FULL.js:48: function pickLeastBusyZone(assignmentsByZone = {}, availableKeys = []) {
+components/FlatTireControl/flatTireControlController_FULL.js:51: availableKeys.forEach((zoneKey) => {
+components/FlatTireControl/flatTireControlController_FULL.js:52: const count = assignmentsByZone[zoneKey] || 0;
+components/FlatTireControl/flatTireControlController_FULL.js:55: bestKey = zoneKey;
+components/FlatTireControl/flatTireControlController_FULL.js:71: zoneInputs: new Map(),
+components/FlatTireControl/flatTireControlController_FULL.js:72: zoneMaps: new Map(),
+components/FlatTireControl/flatTireControlController_FULL.js:73: zoneDiameterInputs: new Map(),
+components/FlatTireControl/flatTireControlController_FULL.js:74: zoneRefreshButtons: new Map()
+components/FlatTireControl/flatTireControlController_FULL.js:77: zones: JSON.parse(JSON.stringify(__flatTireDefaults.DEFAULT_ZONES)),
+components/FlatTireControl/flatTireControlController_FULL.js:90: this.onZoneInputChange = this.onZoneInputChange.bind(this);
+components/FlatTireControl/flatTireControlController_FULL.js:94: this.onZoneSelectChange = this.onZoneSelectChange.bind(this);
+components/FlatTireControl/flatTireControlController_FULL.js:156: ZONE_KEYS.forEach((key) => {
+components/FlatTireControl/flatTireControlController_FULL.js:157: const input = document.getElementById(`flat-tire-zone-gps-${key}`);
+components/FlatTireControl/flatTireControlController_FULL.js:158: const map = document.getElementById(`flat-tire-zone-map-${key}`);
+components/FlatTireControl/flatTireControlController_FULL.js:159: const diameterInput = document.getElementById(`flat-tire-zone-diameter-${key}`);
+components/FlatTireControl/flatTireControlController_FULL.js:160: const refreshBtn = document.querySelector(`button[data-role="refresh"][data-zone="${key}"]`);
+components/FlatTireControl/flatTireControlController_FULL.js:161: if (input) this.dom.zoneInputs.set(key, input);
+components/FlatTireControl/flatTireControlController_FULL.js:162: if (map) this.dom.zoneMaps.set(key, map);
+components/FlatTireControl/flatTireControlController_FULL.js:163: if (diameterInput) this.dom.zoneDiameterInputs.set(key, diameterInput);
+components/FlatTireControl/flatTireControlController_FULL.js:164: if (refreshBtn) this.dom.zoneRefreshButtons.set(key, refreshBtn);
+components/FlatTireControl/flatTireControlController_FULL.js:169: this.dom.zoneInputs.forEach((input) => {
+components/FlatTireControl/flatTireControlController_FULL.js:170: input.addEventListener('input', this.onZoneInputChange);
+components/FlatTireControl/flatTireControlController_FULL.js:171: input.addEventListener('change', this.onZoneInputChange);
+components/FlatTireControl/flatTireControlController_FULL.js:173: this.dom.zoneDiameterInputs.forEach((input) => {
+components/FlatTireControl/flatTireControlController_FULL.js:177: this.dom.zoneRefreshButtons.forEach((button) => {
+components/FlatTireControl/flatTireControlController_FULL.js:181: this.dom.tableBody?.addEventListener('change', this.onZoneSelectChange);
+components/FlatTireControl/flatTireControlController_FULL.js:187: this.dom.zoneInputs.forEach((input) => {
+components/FlatTireControl/flatTireControlController_FULL.js:188: input.removeEventListener('input', this.onZoneInputChange);
+components/FlatTireControl/flatTireControlController_FULL.js:189: input.removeEventListener('change', this.onZoneInputChange);
+components/FlatTireControl/flatTireControlController_FULL.js:191: this.dom.zoneDiameterInputs.forEach((input) => {
+components/FlatTireControl/flatTireControlController_FULL.js:195: this.dom.zoneRefreshButtons.forEach((button) => {
+components/FlatTireControl/flatTireControlController_FULL.js:199: this.dom.tableBody?.removeEventListener('change', this.onZoneSelectChange);
+components/FlatTireControl/flatTireControlController_FULL.js:249: if (!config?.zones) return;
+components/FlatTireControl/flatTireControlController_FULL.js:253: ZONE_KEYS.forEach((key) => {
+components/FlatTireControl/flatTireControlController_FULL.js:254: const zone = { ...(config.zones[key] || {}) };
+components/FlatTireControl/flatTireControlController_FULL.js:255: const input = this.dom.zoneInputs.get(key);
+components/FlatTireControl/flatTireControlController_FULL.js:256: const diameterInput = this.dom.zoneDiameterInputs.get(key);
+components/FlatTireControl/flatTireControlController_FULL.js:257: const card = document.querySelector(`.${styles.zoneCard}[data-zone="${key}"] h3`);
+components/FlatTireControl/flatTireControlController_FULL.js:258: if (card) card.textContent = zone.name || `Zone ${key.toUpperCase()}`;
+components/FlatTireControl/flatTireControlController_FULL.js:259: if (input && input.value !== zone.gps) {
+components/FlatTireControl/flatTireControlController_FULL.js:260: input.value = zone.gps || '';
+components/FlatTireControl/flatTireControlController_FULL.js:262: const diameterMeters = Number.isFinite(zone.diameterMeters) && zone.diameterMeters > 0
+components/FlatTireControl/flatTireControlController_FULL.js:263: ? zone.diameterMeters
+components/FlatTireControl/flatTireControlController_FULL.js:264: : (Number.isFinite(zone.diameter) && zone.diameter > 0
+components/FlatTireControl/flatTireControlController_FULL.js:265: ? zone.diameter * 1000
+components/FlatTireControl/flatTireControlController_FULL.js:267: const normalizedZone = {
+components/FlatTireControl/flatTireControlController_FULL.js:268: ...zone,
+components/FlatTireControl/flatTireControlController_FULL.js:272: this.config.zones[key] = normalizedZone;
+components/FlatTireControl/flatTireControlController_FULL.js:273: config.zones[key] = normalizedZone;
+components/FlatTireControl/flatTireControlController_FULL.js:280: this.updateZonePreview(key);
+components/FlatTireControl/flatTireControlController_FULL.js:299: const zones = {};
+components/FlatTireControl/flatTireControlController_FULL.js:300: ZONE_KEYS.forEach((key) => {
+components/FlatTireControl/flatTireControlController_FULL.js:301: const input = this.dom.zoneInputs.get(key);
+components/FlatTireControl/flatTireControlController_FULL.js:302: const diameterInput = this.dom.zoneDiameterInputs.get(key);
+components/FlatTireControl/flatTireControlController_FULL.js:303: const current = this.config.zones[key] || {};
+components/FlatTireControl/flatTireControlController_FULL.js:311: name: current.name || `Zone ${key.toUpperCase()}`,
+components/FlatTireControl/flatTireControlController_FULL.js:325: zones[key] = updated;
+components/FlatTireControl/flatTireControlController_FULL.js:326: this.config.zones[key] = updated;
+components/FlatTireControl/flatTireControlController_FULL.js:331: zones,
+components/FlatTireControl/flatTireControlController_FULL.js:340: updateZonePreview(zoneKey) {
+components/FlatTireControl/flatTireControlController_FULL.js:341: const map = this.dom.zoneMaps.get(zoneKey);
+components/FlatTireControl/flatTireControlController_FULL.js:343: const zone = this.config.zones[zoneKey] || {};
+components/FlatTireControl/flatTireControlController_FULL.js:344: if (zone.gps) {
+components/FlatTireControl/flatTireControlController_FULL.js:345: const diameterMeters = Number.isFinite(zone.diameterMeters) && zone.diameterMeters > 0
+components/FlatTireControl/flatTireControlController_FULL.js:346: ? zone.diameterMeters
+components/FlatTireControl/flatTireControlController_FULL.js:347: : (Number.isFinite(zone.diameter) && zone.diameter > 0
+components/FlatTireControl/flatTireControlController_FULL.js:348: ? zone.diameter * 1000
+components/FlatTireControl/flatTireControlController_FULL.js:352: name: zone.name || `Zone ${zoneKey.toUpperCase()}`,
+components/FlatTireControl/flatTireControlController_FULL.js:353: gps: zone.gps,
+components/FlatTireControl/flatTireControlController_FULL.js:362: onZoneInputChange(event) {
+components/FlatTireControl/flatTireControlController_FULL.js:364: const zoneKey = input?.dataset?.zone;
+components/FlatTireControl/flatTireControlController_FULL.js:365: if (zoneKey) {
+components/FlatTireControl/flatTireControlController_FULL.js:366: const existing = this.config.zones[zoneKey] || {};
+components/FlatTireControl/flatTireControlController_FULL.js:367: this.config.zones[zoneKey] = {
+components/FlatTireControl/flatTireControlController_FULL.js:377: const zoneKey = input?.dataset?.zone;
+components/FlatTireControl/flatTireControlController_FULL.js:378: if (zoneKey) {
+components/FlatTireControl/flatTireControlController_FULL.js:381: const existing = this.config.zones[zoneKey] || {};
+components/FlatTireControl/flatTireControlController_FULL.js:382: this.config.zones[zoneKey] = {
+components/FlatTireControl/flatTireControlController_FULL.js:386: delete this.config.zones[zoneKey].diameter;
+components/FlatTireControl/flatTireControlController_FULL.js:394: const zoneKey = button.dataset.zone;
+components/FlatTireControl/flatTireControlController_FULL.js:395: if (!zoneKey) return;
+components/FlatTireControl/flatTireControlController_FULL.js:397: const gpsInput = this.dom.zoneInputs.get(zoneKey);
+components/FlatTireControl/flatTireControlController_FULL.js:398: const diameterInput = this.dom.zoneDiameterInputs.get(zoneKey);
+components/FlatTireControl/flatTireControlController_FULL.js:407: const existing = this.config.zones[zoneKey] || {};
+components/FlatTireControl/flatTireControlController_FULL.js:408: this.config.zones[zoneKey] = {
+components/FlatTireControl/flatTireControlController_FULL.js:412: name: existing.name || `Zone ${zoneKey.toUpperCase()}`
+components/FlatTireControl/flatTireControlController_FULL.js:414: delete this.config.zones[zoneKey].diameter;
+components/FlatTireControl/flatTireControlController_FULL.js:416: this.updateZonePreview(zoneKey);
+components/FlatTireControl/flatTireControlController_FULL.js:461: const availableZones = ZONE_KEYS.filter(key => {
+components/FlatTireControl/flatTireControlController_FULL.js:462: const zone = this.config.zones[key];
+components/FlatTireControl/flatTireControlController_FULL.js:463: return zone && zone.gps;
+components/FlatTireControl/flatTireControlController_FULL.js:466: if (!availableTeams.length || !availableZones.length) {
+components/FlatTireControl/flatTireControlController_FULL.js:467: console.info('ℹ️ Flat Tire auto scheduler idle (no teams or zones).');
+components/FlatTireControl/flatTireControlController_FULL.js:475: const assignmentsByZone = {};
+components/FlatTireControl/flatTireControlController_FULL.js:477: if (!assignment?.zoneKey) return;
+components/FlatTireControl/flatTireControlController_FULL.js:478: assignmentsByZone[assignment.zoneKey] = (assignmentsByZone[assignment.zoneKey] || 0) + 1;
+components/FlatTireControl/flatTireControlController_FULL.js:481: const zoneKey = pickLeastBusyZone(assignmentsByZone, availableZones);
+components/FlatTireControl/flatTireControlController_FULL.js:482: if (!zoneKey) return;
+components/FlatTireControl/flatTireControlController_FULL.js:484: this.assignTeam(teamName, zoneKey, { cause: 'auto' }).catch(err => {
+components/FlatTireControl/flatTireControlController_FULL.js:496: const select = row.querySelector('select[data-role="zone-select"]');
+components/FlatTireControl/flatTireControlController_FULL.js:497: const zoneKey = select?.value || null;
+components/FlatTireControl/flatTireControlController_FULL.js:500: if (!zoneKey) {
+components/FlatTireControl/flatTireControlController_FULL.js:501: alert('Select a tow zone before dispatching.');
+components/FlatTireControl/flatTireControlController_FULL.js:504: this.assignTeam(teamName, zoneKey).catch(err => {
+components/FlatTireControl/flatTireControlController_FULL.js:516: onZoneSelectChange(event) {
+components/FlatTireControl/flatTireControlController_FULL.js:517: if (event.target.matches('select[data-role="zone-select"]')) {
+components/FlatTireControl/flatTireControlController_FULL.js:522: async assignTeam(teamName, zoneKey, { cause = 'manual' } = {}) {
+components/FlatTireControl/flatTireControlController_FULL.js:523: const zone = this.config.zones[zoneKey];
+components/FlatTireControl/flatTireControlController_FULL.js:524: if (!zone || !zone.gps) {
+components/FlatTireControl/flatTireControlController_FULL.js:525: alert('Configure this tow zone GPS before dispatching.');
+components/FlatTireControl/flatTireControlController_FULL.js:529: const coords = parseGps(zone.gps);
+components/FlatTireControl/flatTireControlController_FULL.js:530: const diameterMeters = Number.isFinite(zone.diameterMeters) && zone.diameterMeters > 0
+components/FlatTireControl/flatTireControlController_FULL.js:531: ? zone.diameterMeters
+components/FlatTireControl/flatTireControlController_FULL.js:534: zoneKey,
+components/FlatTireControl/flatTireControlController_FULL.js:535: depotId: zoneKey,
+components/FlatTireControl/flatTireControlController_FULL.js:536: zoneName: zone.name,
+components/FlatTireControl/flatTireControlController_FULL.js:537: gps: zone.gps,
+components/FlatTireControl/flatTireControlController_FULL.js:578: const zoneKey = assignment?.zoneKey || '';
+components/FlatTireControl/flatTireControlController_FULL.js:580: const zoneSelectOptions = ZONE_KEYS.map(key => {
+components/FlatTireControl/flatTireControlController_FULL.js:581: const zone = this.config.zones[key];
+components/FlatTireControl/flatTireControlController_FULL.js:582: const label = zone?.name || `Zone ${key.toUpperCase()}`;
+components/FlatTireControl/flatTireControlController_FULL.js:583: const disabled = zone?.gps ? '' : 'disabled';
+components/FlatTireControl/flatTireControlController_FULL.js:584: const selected = zoneKey === key ? 'selected' : '';
+components/FlatTireControl/flatTireControlController_FULL.js:585: return `<option value="${key}" ${disabled} ${selected}>${escapeHtml(label)}</option>`;
+components/FlatTireControl/flatTireControlController_FULL.js:594: <select class="${styles.zoneSelect}" data-role="zone-select">
+components/FlatTireControl/flatTireControlController_FULL.js:595: <option value="">Select tow zone…</option>
+components/FlatTireControl/flatTireControlController_FULL.js:596: ${zoneSelectOptions}
+components/FlatTireControl/flatTireControlController_FULL.js:597: </select>
+components/FlatTireControl/flatTireControlController_FULL.js:613: Array.from(body.querySelectorAll('tr[data-team]')).forEach(row => {
+components/FlatTireControl/flatTireControlController_FULL.js:616: const statusCell = row.querySelector('[data-role="status-cell"]');
+components/FlatTireControl/flatTireControlController_FULL.js:617: const assignBtn = row.querySelector('button[data-action="assign"]');
+components/FlatTireControl/flatTireControlController_FULL.js:618: const releaseBtn = row.querySelector('button[data-action="release"]');
+components/FlatTireControl/flatTireControlController_FULL.js:619: const zoneSelect = row.querySelector('select[data-role="zone-select"]');
+components/FlatTireControl/flatTireControlController_FULL.js:625: <span class="${styles.statusSubtext}">No tow dispatched.</span>
+components/FlatTireControl/flatTireControlController_FULL.js:629: if (zoneSelect && !zoneSelect.dataset.changed) {
+components/FlatTireControl/flatTireControlController_FULL.js:630: zoneSelect.value = '';
+components/FlatTireControl/flatTireControlController_FULL.js:631: delete zoneSelect.dataset.changed;
+components/FlatTireControl/flatTireControlController_FULL.js:642: const zoneName = assignment.zoneName || assignment.zoneKey || 'Tow Zone';
+components/FlatTireControl/flatTireControlController_FULL.js:643: const zoneKey = assignment.zoneKey || '';
+components/FlatTireControl/flatTireControlController_FULL.js:644: if (zoneSelect && zoneKey) {
+components/FlatTireControl/flatTireControlController_FULL.js:645: zoneSelect.value = zoneKey;
+components/FlatTireControl/flatTireControlController_FULL.js:646: delete zoneSelect.dataset.changed;
+components/FlatTireControl/flatTireControlController_FULL.js:666: <span class="${styles.statusSubtext}">${escapeHtml(zoneName)}</span>
+
+📊 Flat Tire diagnostic complete. Review: .codex_flat_tire_scan.txt
+Use this report to decide if randomizeAssignedZones button will patch cleanly.
