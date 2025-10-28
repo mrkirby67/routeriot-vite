@@ -375,6 +375,12 @@ class FlatTireControlController {
   }
 
   updateZonePreview(zoneKey) {
+    // ✅ Guard: ensure Google Maps exists
+    if (!window.google || !window.google.maps) {
+      console.warn(`⏳ [flatTireControl] Maps not ready → retrying ${zoneKey} in 1 s`);
+      setTimeout(() => this.updateZonePreview(zoneKey), 1000);
+      return;
+    }
     const map = this.dom.zoneMaps.get(zoneKey);
     if (!map) return;
     const zone = this.config.zones[zoneKey] || {};
