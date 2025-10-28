@@ -14,12 +14,20 @@ import {
 } from '../../modules/teamSurpriseManager.js';
 import { escapeHtml } from '../../modules/utils.js';
 import { applyWildCardsToAllTeams } from '../../modules/controlActions.js';
+import { db } from '../../modules/config.js';
+import { doc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const TYPE_CONFIG = [
   { key: SurpriseTypes.FLAT_TIRE, label: 'Flat Tire' },
   { key: SurpriseTypes.BUG_SPLAT, label: 'Bug Splat' },
   { key: SurpriseTypes.WILD_CARD, label: 'Super SHIELD Wax' }
 ];
+
+const STATUS_FIELD_MAP = {
+  [SurpriseTypes.FLAT_TIRE]: 'flatTireCount',
+  [SurpriseTypes.BUG_SPLAT]: 'bugSplatCount',
+  [SurpriseTypes.WILD_CARD]: 'shieldWaxCount'
+};
 
 let cleanupHandle = null;
 
@@ -132,14 +140,27 @@ function createClickHandler() {
 
     if (!team || !type || !action) return;
 
+    const delta = action === 'increment' ? 1 : action === 'decrement' ? -1 : 0;
+    if (!delta) return;
+
+    const valueSpan = button.closest(`.${styles.counterControls}`)?.querySelector('span');
+    const current = Number.parseInt(valueSpan?.textContent || '0', 10) || 0;
+    const next = Math.max(0, current + delta);
+    if (next === current) return; // no change
+
+    if (valueSpan) valueSpan.textContent = String(next);
+
     try {
-      if (action === 'increment') {
+      if (delta > 0) {
         await increment(team, type);
-      } else if (action === 'decrement') {
+      } else {
         await decrement(team, type);
       }
+      await syncTeamStatusCount(team, type, next);
     } catch (err) {
+      if (valueSpan) valueSpan.textContent = String(current);
       console.error(`❌ Failed to ${action} surprise for ${team}/${type}:`, err);
+      alert('Failed to update wild card count. See console for details.');
     }
   };
 }
@@ -241,4 +262,25 @@ function refreshShieldTimers(tbody) {
 function normalizeCount(value) {
   const num = Number(value);
   return Number.isFinite(num) && num >= 0 ? num : 0;
+}
+
+async function syncTeamStatusCount(teamName, typeKey, value) {
+  const field = STATUS_FIELD_MAP[typeKey];
+  if (!field || !teamName) return;
+
+  const safeValue = Math.max(0, Number.parseInt(value, 10) || 0);
+  const ref = doc(db, 'teamStatus', teamName);
+  try {
+    await updateDoc(ref, { [field]: safeValue });
+  } catch (err) {
+    if (err?.code === 'not-found') {
+      try {
+        await setDoc(ref, { [field]: safeValue }, { merge: true });
+      } catch (innerErr) {
+        console.error(`❌ Failed to upsert teamStatus for ${teamName}:`, innerErr);
+      }
+    } else {
+      console.error(`❌ Failed to sync teamStatus ${field} for ${teamName}:`, err);
+    }
+  }
 }
