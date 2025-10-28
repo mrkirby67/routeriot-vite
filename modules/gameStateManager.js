@@ -47,45 +47,93 @@ function publishStateDiagnostics(state) {
   }
 }
 
+function handleWaitingState() {
+  clearElapsedTimer?.();
+  showFlashMessage?.('Waiting for host...', '#616161');
+  countdownShown = false;
+  console.debug('[GameState]', 'waiting', { remainingMs: null, endTime: null });
+  return { status: 'waiting', remainingMs: null, endTime: null };
+}
+
+function computeEndMs({ startTime, endTime, durationMinutes, remainingMs }) {
+  let endMs = normalizeTimestamp(endTime);
+  if (!Number.isFinite(endMs) && Number.isFinite(durationMinutes)) {
+    const startMs = normalizeTimestamp(startTime);
+    if (Number.isFinite(startMs)) {
+      endMs = startMs + durationMinutes * 60_000;
+    }
+  }
+  if (!Number.isFinite(endMs) && typeof remainingMs === 'number') {
+    endMs = Date.now() + remainingMs;
+  }
+  return Number.isFinite(endMs) ? endMs : null;
+}
+
+function handleActiveState(snapshotData) {
+  if (!countdownShown) {
+    countdownShown = true;
+    showCountdownBanner?.({ parent: document.body });
+    showFlashMessage?.('🏁 The Race is ON!', '#2e7d32');
+  }
+
+  const endMs = computeEndMs(snapshotData);
+  if (endMs) {
+    startCountdownTimer?.(endMs);
+  } else {
+    clearElapsedTimer?.();
+    console.warn('⚠️ No valid end time for countdown.');
+  }
+
+  const remaining = endMs ? Math.max(0, endMs - Date.now()) : null;
+  console.debug('[GameState]', 'active', { remainingMs: remaining, endTime: endMs });
+  return { status: 'active', remainingMs: remaining, endTime: endMs };
+}
+
+function handlePausedState(snapshotData) {
+  clearElapsedTimer?.();
+  showFlashMessage?.('⏸️ Game paused by host.', '#ff9800', 2500);
+  const remaining = typeof snapshotData?.remainingMs === 'number'
+    ? Math.max(0, snapshotData.remainingMs)
+    : null;
+  console.debug('[GameState]', 'paused', { remainingMs: remaining, endTime: null });
+  return { status: 'paused', remainingMs: remaining, endTime: null };
+}
+
+function handleOverState(status) {
+  clearElapsedTimer?.();
+  showFlashMessage?.('🏁 Game Over! Return to base.', '#c62828', 4000);
+  console.debug('[GameState]', status, { remainingMs: null, endTime: null });
+  return { status, remainingMs: null, endTime: null };
+}
+
 export function getCachedGameState() {
   return cachedGameState;
 }
 
-function deriveRemainingMs(snapshotData) {
-  const now = Date.now();
-  const primary = snapshotData?.remainingMs;
-  if (typeof primary === 'number' && primary > 0) return primary;
-
-  const endTime = snapshotData?.endTime;
-  if (endTime?.toMillis) {
-    const diff = endTime.toMillis() - now;
-    if (diff > 0) return diff;
-  } else if (typeof endTime === 'number') {
-    const diff = endTime - now;
-    if (diff > 0) return diff;
-  } else if (typeof endTime?.seconds === 'number') {
-    const millis = endTime.seconds * 1000 + Math.floor((endTime.nanoseconds || 0) / 1e6);
-    const diff = millis - now;
-    if (diff > 0) return diff;
+function normalizeTimestamp(ts) {
+  if (ts && typeof ts.toMillis === 'function') {
+    const millis = ts.toMillis();
+    return Number.isFinite(millis) ? millis : null;
   }
-
-  const startTime = snapshotData?.startTime;
-  const durationMinutes = snapshotData?.durationMinutes;
-  if (typeof durationMinutes === 'number') {
-    if (startTime?.toMillis) {
-      const diff = startTime.toMillis() + durationMinutes * 60_000 - now;
-      if (diff > 0) return diff;
-    } else if (typeof startTime?.seconds === 'number') {
-      const millis = startTime.seconds * 1000 + Math.floor((startTime.nanoseconds || 0) / 1e6);
-      const diff = millis + durationMinutes * 60_000 - now;
-      if (diff > 0) return diff;
-    }
+  if (ts instanceof Date) {
+    const millis = ts.getTime();
+    return Number.isFinite(millis) ? millis : null;
   }
-
-  if (cachedGameState?.remainingMs && cachedGameState.remainingMs > 0) {
-    return cachedGameState.remainingMs;
+  if (typeof ts === 'string') {
+    const parsed = Date.parse(ts);
+    return Number.isFinite(parsed) ? parsed : null;
   }
-  return 0;
+  if (typeof ts === 'number' && Number.isFinite(ts)) {
+    return ts;
+  }
+  return null;
+}
+
+export function deriveRemainingMs(snapshotData) {
+  const endTimeMs = normalizeTimestamp(snapshotData?.endTime);
+  if (!Number.isFinite(endTimeMs)) return 0;
+  const diff = endTimeMs - Date.now();
+  return diff > 0 ? diff : 0;
 }
 
 const gameStateRef = doc(db, "game", "gameState");
@@ -238,6 +286,12 @@ export async function resumeGame() {
 
     let remainingMs = deriveRemainingMs(data);
     if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+      const stored = typeof data.remainingMs === 'number' ? data.remainingMs : null;
+      if (Number.isFinite(stored) && stored > 0) {
+        remainingMs = stored;
+      }
+    }
+    if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
       console.warn('resumeGame() aborted — no remaining time detected. Use start to launch a new game.');
       return;
     }
@@ -300,50 +354,20 @@ function handleGameStateUpdate({
 
   switch (status) {
     case 'waiting':
-      clearElapsedTimer?.();
-      showFlashMessage?.('Waiting for host...', '#616161');
-      countdownShown = false;
-      break;
-
-    case 'active': {
-      if (!countdownShown) {
-        countdownShown = true;
-        showCountdownBanner?.({ parent: document.body });
-        showFlashMessage?.('🏁 The Race is ON!', '#2e7d32');
-      }
-
-      let endMs = null;
-      if (endTime?.toMillis) {
-        endMs = endTime.toMillis();
-      } else if (startTime?.toMillis && durationMinutes) {
-        endMs = startTime.toMillis() + durationMinutes * 60_000;
-      } else if (remainingMs) {
-        endMs = Date.now() + remainingMs;
-      }
-
-      if (endMs) startCountdownTimer?.(endMs);
-      else {
-        clearElapsedTimer?.();
-        console.warn("⚠️ No valid end time for countdown.");
-      }
-      break;
-    }
-
+      return handleWaitingState();
+    case 'active':
+      return handleActiveState({ startTime, endTime, durationMinutes, remainingMs });
     case 'paused':
-      clearElapsedTimer?.();
-      showFlashMessage?.('⏸️ Game paused by host.', '#ff9800', 2500);
-      break;
-
+      return handlePausedState({ remainingMs });
     case 'finished':
     case 'ended':
     case 'over':
-      clearElapsedTimer?.();
-      showFlashMessage?.('🏁 Game Over! Return to base.', '#c62828', 4000);
-      break;
-
+      return handleOverState(status);
     default:
       console.warn(`⚠️ Unknown status "${status}"`);
       clearElapsedTimer?.();
+      console.debug('[GameState]', 'unknown', { status, remainingMs: null, endTime: null });
+      return { status, remainingMs: null, endTime: null };
   }
 }
 
@@ -448,3 +472,5 @@ export async function updateTeamState(teamName, data = {}) {
     console.warn(`⚠️ Could not update teamState for ${teamName}:`, err);
   }
 }
+
+export const __testHooks = { normalizeTimestamp, handleActiveState };

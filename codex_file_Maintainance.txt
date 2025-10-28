@@ -78,8 +78,7 @@ Only delete if zero references found and file not imported by anyone.
 
 codex --mode=deadcode-scan --safe --ignore=fonts,css \
       --report=codex_deadcode_report.txt
-##################################
-
+#*****************************************************#
 🧮 3️⃣ Codex Complexity Analyzer — Cognitive Load Report
 
 Purpose:
