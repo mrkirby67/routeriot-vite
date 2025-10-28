@@ -1,0 +1,10 @@
+File Path | Line Count | ⚠️ Warning Level
+components/GameControls/GameControls.js                                                    |   327 | ⚠️ >300 lines
+components/SpeedBumpControl/speedBumpControlController.js                                  |   301 | ⚠️ >300 lines
+components/SpeedBumpControl/SpeedBumpControl.module.css                                    |   380 | ⚠️ >300 lines
+components/FlatTireControl/FlatTireControl.module.css                                      |   436 | ⚠️ >300 lines
+modules/teamSurpriseManager.js                                                             |   359 | ⚠️ >300 lines
+modules/chatManager/playerChat.js                                                          |   767 | 🚨 >500 lines
+modules/gameRulesManager.js                                                                |   319 | ⚠️ >300 lines
+modules/flatTireUI.js                                                                      |   301 | ⚠️ >300 lines
+modules/speedBump/interactions.js                                                          |   334 | ⚠️ >300 lines

@@ -74,10 +74,10 @@
  - modules/playerUI/core.js
  - modules/playerUI/overlays.js
  - modules/playerUI/overlays/baseOverlays.js
+ - modules/playerUI/overlays/confetti.js
  - modules/playerUI/overlays/flatTireOverlay.js
  - modules/playerUI/overlays/shieldAndWrecked.js
  - modules/playerUI/overlays/speedBumpOverlay.js
- - modules/playerUI/overlays_FULL.js
  - modules/scoreboardManager.js
  - modules/speedBump/comms.js
  - modules/speedBump/core.js
@@ -86,7 +86,6 @@
  - modules/speedBump/reversals.js
  - modules/speedBump/timers.js
  - modules/speedBumpChallenges.js
- - modules/speedBumpManager_FULL.js
  - modules/speedBumpPlayer.js
  - modules/teamSurpriseManager.js
  - modules/utils.js
