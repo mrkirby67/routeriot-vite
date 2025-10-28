@@ -17,6 +17,7 @@ import {
 
 import { db } from './config.js';
 import { showFlashMessage } from './gameUI.js';
+import { clearAllTeamSurprises } from './teamSurpriseManager.js';
 
 const GAME_STATE_REF = doc(db, "game", "gameState");
 
@@ -126,6 +127,9 @@ export async function safelyEndGameAndResetZones() {
     // 4️⃣ Clear scoreboard
     await clearAllScores(true);
 
+    // 4b️⃣ Remove transient power-ups & assignments
+    await clearTransientGameCollections();
+
     // 5️⃣ Broadcast end message
     await addDoc(collection(db, "communications"), {
       teamName: "Game Master",
@@ -188,4 +192,24 @@ export async function applyWildCardsToAllTeams(count) {
 
 if (typeof window !== 'undefined') {
   window.applyWildCardsToAllTeams = applyWildCardsToAllTeams;
+}
+
+// ---------------------------------------------------------------------------
+// 🧹 Transient cleanup: flat tire assignments, surprise stock, shields
+// ---------------------------------------------------------------------------
+export async function clearTransientGameCollections() {
+  const targets = ["flatTireAssignments", "teamSurprises", "shields"];
+  try {
+    for (const colName of targets) {
+      const snap = await getDocs(collection(db, colName));
+      const deletions = snap.docs.map((docSnap) => deleteDoc(docSnap.ref));
+      if (deletions.length) {
+        await Promise.allSettled(deletions);
+      }
+      console.log(`🧹 Cleared ${snap.size} docs from ${colName}`);
+    }
+    await clearAllTeamSurprises();
+  } catch (err) {
+    console.error("❌ Error clearing transient game data:", err);
+  }
 }
