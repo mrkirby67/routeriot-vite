@@ -100,6 +100,7 @@ class FlatTireControlController {
     this.onAutoToggle = this.onAutoToggle.bind(this);
     this.onIntervalChange = this.onIntervalChange.bind(this);
     this.onRandomizeZones = this.onRandomizeZones.bind(this);
+    this.ensureConfigLoaded = this.ensureConfigLoaded.bind(this);
   }
 
   async initialize() {
@@ -119,6 +120,8 @@ class FlatTireControlController {
     } catch (err) {
       console.warn('⚠️ Flat Tire config load failed:', err);
     }
+
+    await this.ensureConfigLoaded();
 
     this.subscriptions.push(subscribeFlatTireConfig(config => this.applyConfig(config)));
     this.subscriptions.push(subscribeFlatTireAssignments(this.handleAssignmentSnapshot));
@@ -314,6 +317,7 @@ class FlatTireControlController {
     }
 
     this.ignoreConfigInput = false;
+    void this.ensureConfigLoaded();
     this.renderRows();
   }
 
@@ -490,6 +494,24 @@ class FlatTireControlController {
     this.dom.autoToggleBtn.classList.add(styles.secondaryBtn);
   }
 
+  async ensureConfigLoaded() {
+    const zones = this.config?.zones || {};
+    const missingGps = ZONE_KEYS.filter((key) => {
+      const gps = zones[key]?.gps;
+      return !gps || !gps.trim();
+    });
+
+    if (missingGps.length) {
+      console.warn(`⚠️ [flatTireControl] Missing GPS config for zones: ${missingGps.join(', ')}`);
+    }
+
+    if (this.dom.randomizeBtn) {
+      this.dom.randomizeBtn.disabled = missingGps.length === ZONE_KEYS.length;
+    }
+
+    return missingGps.length === 0;
+  }
+
   async randomizeAssignedZones() {
     const button = this.dom.randomizeBtn;
     const teams = Array.isArray(this.activeTeams) ? [...this.activeTeams] : [];
@@ -497,6 +519,8 @@ class FlatTireControlController {
       alert('No teams available to randomize.');
       return;
     }
+
+    await this.ensureConfigLoaded();
 
     const availableZones = ZONE_KEYS.filter((key) => {
       const zone = this.config.zones[key];
@@ -525,6 +549,7 @@ class FlatTireControlController {
       this.renderRows(true);
     } catch (err) {
       console.error('❌ Flat Tire randomize failed:', err);
+      console.warn('⚠️ [flatTireControl] Randomize aborted — verify zone configuration and assignments.');
       alert('Failed to randomize tow zones. Check console for details.');
     } finally {
       if (button) button.disabled = false;

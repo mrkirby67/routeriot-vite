@@ -32,10 +32,31 @@ function parseGpsString(gps = '') {
   return { lat, lng };
 }
 
+async function waitForValidFlatTireConfig({ maxAttempts = 20, delayMs = 500 } = {}) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const config = await loadFlatTireConfig();
+      const zones = config?.zones || {};
+      const hasGps = Object.values(zones).some(zone => typeof zone?.gps === 'string' && zone.gps.trim());
+      if (hasGps) {
+        return config;
+      }
+      if (attempt === 0) {
+        console.warn('⚠️ Waiting for Flat Tire GPS configuration to sync...');
+      }
+    } catch (err) {
+      console.warn('⚠️ Failed to fetch Flat Tire configuration:', err);
+    }
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  throw new Error('Flat Tire configuration missing GPS data for all depots.');
+}
+
 export function initializeFlatTireUI(teamName) {
   if (!teamName) return () => {};
 
   let unsubscribe = null;
+  let cancelled = false;
 
   const handleSnapshot = (entries = []) => {
     const assignment = entries.find(entry => entry?.teamName === teamName);
@@ -186,9 +207,20 @@ export function initializeFlatTireUI(teamName) {
     });
   };
 
-  unsubscribe = subscribeFlatTireAssignments(handleSnapshot);
+  (async () => {
+    try {
+      await waitForValidFlatTireConfig();
+      if (cancelled) return;
+      unsubscribe = subscribeFlatTireAssignments(handleSnapshot);
+      console.log('✅ Flat Tire UI ready — listening for assignments.');
+    } catch (err) {
+      console.error('❌ Flat Tire UI aborted — configuration incomplete:', err);
+      alert('Flat Tire depots are not configured yet. Please try again once control has GPS values.');
+    }
+  })();
 
   return (reason = 'manual') => {
+    cancelled = true;
     unsubscribe?.();
     unsubscribe = null;
     hideFlatTireOverlay();
