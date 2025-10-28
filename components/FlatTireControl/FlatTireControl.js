@@ -91,9 +91,14 @@ export function FlatTireControlComponent() {
         </div>
       </div>
 
-      <button type="button" id="ft-randomize-zones-btn" class="${styles.secondaryBtn}">
-        Randomize Assigned Zones
-      </button>
+      <div class="${styles.buttonRow}">
+        <button type="button" id="ft-randomize-zones-btn" class="${styles.secondaryBtn}">
+          Randomize Assigned Zones
+        </button>
+        <button type="button" id="ft-refresh-zones-btn" class="${styles.secondaryBtn}">
+          🔁 Refresh Zones
+        </button>
+      </div>
 
       <table class="${styles.dataTable}" id="flat-tire-table">
         <thead>

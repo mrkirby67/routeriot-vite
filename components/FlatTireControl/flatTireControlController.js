@@ -7,7 +7,6 @@ import { startAutoScheduler, stopAutoScheduler } from './controller/autoSchedule
 import styles from './FlatTireControl.module.css';
 import {
   CAPTURE_RADIUS_METERS,
-  assignFlatTireTeam,
   loadFlatTireConfig,
   subscribeFlatTireAssignments,
   subscribeFlatTireConfig
@@ -28,12 +27,17 @@ export class FlatTireControlController {
     this._lastZoneSignature = '';
     this._renderTimer = null;
     this._teamSignature = '';
+    this.selectedZones = new Map();
     this.handleRandomizeClick = this.handleRandomizeClick.bind(this);
+    this.handleRefreshZonesClick = this.handleRefreshZonesClick.bind(this);
+    this.handleZoneSelectChange = this.handleZoneSelectChange.bind(this);
   }
 
   async initialize() {
     setupDomRefs(this);
     this.dom.randomizeBtn?.addEventListener('click', this.handleRandomizeClick);
+    this.dom.refreshZonesBtn?.addEventListener('click', this.handleRefreshZonesClick);
+    this.dom.tableBody?.addEventListener('change', this.handleZoneSelectChange);
     const cfg = await loadFlatTireConfig();
     applyConfig(this, cfg);
     await this.ensureMapsAndZonesReady();
@@ -45,6 +49,12 @@ export class FlatTireControlController {
     }));
     this.subscriptions.push(subscribeFlatTireAssignments(list => {
       this.assignments = new Map(list.map(i => [i.teamName, i]));
+      list.forEach((entry) => {
+        const teamName = typeof entry?.teamName === 'string' ? entry.teamName.trim() : '';
+        if (teamName && entry?.zoneKey) {
+          this.selectedZones.set(teamName, entry.zoneKey);
+        }
+      });
       this.queueRefresh();
     }));
     this.subscriptions.push(subscribeToRacers(this));
@@ -64,6 +74,10 @@ export class FlatTireControlController {
     this._teamSignature = signature;
 
     this.activeTeams = normalized;
+    const activeSet = new Set(normalized);
+    this.selectedZones.forEach((_, key) => {
+      if (!activeSet.has(key)) this.selectedZones.delete(key);
+    });
     this.queueRefresh(true);
   }
 
@@ -80,6 +94,8 @@ export class FlatTireControlController {
       this.renderTicker = null;
     }
     this.dom.randomizeBtn?.removeEventListener('click', this.handleRandomizeClick);
+    this.dom.refreshZonesBtn?.removeEventListener('click', this.handleRefreshZonesClick);
+    this.dom.tableBody?.removeEventListener('change', this.handleZoneSelectChange);
     stopAutoScheduler(this);
     this.mapReady = false;
     this._lastZoneSignature = '';
@@ -88,6 +104,7 @@ export class FlatTireControlController {
       this._renderTimer = null;
     }
     this._teamSignature = '';
+    this.selectedZones.clear();
   }
 
   async ensureMapsAndZonesReady() {
@@ -147,6 +164,30 @@ export class FlatTireControlController {
     }, 300);
   }
 
+  handleRefreshZonesClick() {
+    const button = this.dom.refreshZonesBtn;
+    if (button) button.disabled = true;
+
+    loadFlatTireConfig()
+      .then((cfg) => {
+        applyConfig(this, cfg);
+        return this.ensureMapsAndZonesReady();
+      })
+      .then(() => this.queueRefresh(true))
+      .catch((err) => console.error('❌ Failed to refresh Flat Tire zones:', err))
+      .finally(() => {
+        if (button) button.disabled = false;
+      });
+  }
+
+  handleZoneSelectChange(event) {
+    const select = event?.target;
+    if (!select || !select.matches('select[data-role="zone-select"]')) return;
+    const team = select.closest('tr[data-team]')?.dataset.team;
+    if (!team) return;
+    this.selectedZones.set(team, select.value || '');
+  }
+
   async handleRandomizeClick(event) {
     event?.preventDefault?.();
 
@@ -194,30 +235,12 @@ export class FlatTireControlController {
     console.log('🎲 Randomizing Flat Tire zones for teams:', this.activeTeams);
     const shuffledZones = shuffleArray(zoneKeys);
 
-    const operations = this.activeTeams.map((teamName, index) => {
+    this.activeTeams.forEach((teamName, index) => {
       const zoneKey = shuffledZones[index % shuffledZones.length];
-      const zone = this.config.zones[zoneKey] || {};
-      const now = Date.now();
-      const diameterMeters = Number(zone.diameterMeters)
-        || (Number(zone.diameter) || 0) * 1000
-        || 200;
-      return assignFlatTireTeam(teamName, {
-        zoneKey,
-        depotId: zoneKey,
-        zoneName: zone.name || `Zone ${zoneKey.toUpperCase()}`,
-        gps: zone.gps || '',
-        lat: Number.isFinite(zone.lat) ? zone.lat : undefined,
-        lng: Number.isFinite(zone.lng) ? zone.lng : undefined,
-        diameterMeters,
-        captureRadiusMeters: zone.captureRadiusMeters || CAPTURE_RADIUS_METERS,
-        assignedAt: now,
-        autoReleaseAt: now + 20 * 60_000,
-        assignedBy: 'Control Randomize',
-        status: 'auto-assigned'
-      });
+      this.selectedZones.set(teamName, zoneKey);
+      const select = this.dom.tableBody?.querySelector(`tr[data-team="${escapeSelector(teamName)}"] select[data-role="zone-select"]`);
+      if (select) select.value = zoneKey;
     });
-
-    await Promise.allSettled(operations);
   }
 }
 
@@ -242,4 +265,11 @@ function shuffleArray(array) {
     [clone[i], clone[j]] = [clone[j], clone[i]];
   }
   return clone;
+}
+
+function escapeSelector(value) {
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+    return CSS.escape(value);
+  }
+  return String(value).replace(/["]/g, '\\$&');
 }

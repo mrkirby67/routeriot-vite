@@ -10,6 +10,7 @@ export function setupDomRefs(controller) {
   dom.autoIntervalInput = document.getElementById('flat-tire-auto-interval');
   dom.autoToggleBtn = document.getElementById('flat-tire-toggle-auto');
   dom.randomizeBtn = document.getElementById('ft-randomize-zones-btn');
+  dom.refreshZonesBtn = document.getElementById('ft-refresh-zones-btn');
 
   ['north', 'south', 'east', 'west'].forEach(key => {
     dom.zoneInputs.set(key, document.getElementById(`flat-tire-zone-gps-${key}`));
@@ -52,7 +53,9 @@ export function renderRows(controller, forceFullRender = false) {
     body.innerHTML = '';
     activeTeams.forEach(teamName => {
       const assigned = assignments.get(teamName);
-      const selectedZone = assigned?.zoneKey || '';
+      if (assigned?.zoneKey) controller.selectedZones?.set(teamName, assigned.zoneKey);
+      const cachedZone = controller.selectedZones?.get(teamName) || '';
+      const selectedZone = assigned?.zoneKey || cachedZone || '';
       const row = document.createElement('tr');
       row.dataset.team = teamName;
       row.innerHTML = `
@@ -73,9 +76,11 @@ export function renderRows(controller, forceFullRender = false) {
       const row = body.querySelector(`tr[data-team="${cssEscape(teamName)}"]`);
       if (!row) return;
       const assigned = assignments.get(teamName);
+      if (assigned?.zoneKey) controller.selectedZones?.set(teamName, assigned.zoneKey);
       const select = row.querySelector('select[data-role="zone-select"]');
       if (select) {
-        const selectedZone = assigned?.zoneKey || '';
+        const cachedZone = controller.selectedZones?.get(teamName) || '';
+        const selectedZone = assigned?.zoneKey || cachedZone || '';
         select.innerHTML = buildOptions(selectedZone);
       }
       const statusCell = row.querySelector('[data-role="status-cell"]');
