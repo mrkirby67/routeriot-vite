@@ -9,7 +9,9 @@ import {
   CAPTURE_RADIUS_METERS,
   loadFlatTireConfig,
   subscribeFlatTireAssignments,
-  subscribeFlatTireConfig
+  subscribeFlatTireConfig,
+  assignFlatTireTeam,
+  releaseFlatTireTeam
 } from '../../modules/flatTireManager.js';
 import { generateMiniMap } from '../../modules/zonesMap.js';
 import { loadGoogleMapsApi } from '../../modules/googleMapsLoader.js';
@@ -31,10 +33,15 @@ export class FlatTireControlController {
     this.handleRandomizeClick = this.handleRandomizeClick.bind(this);
     this.handleRefreshZonesClick = this.handleRefreshZonesClick.bind(this);
     this.handleZoneSelectChange = this.handleZoneSelectChange.bind(this);
+    this.handleTableClick = this.handleTableClick.bind(this);
+    this.handleBulkSendClick = this.handleBulkSendClick.bind(this);
   }
 
   async initialize() {
     setupDomRefs(this);
+    this.dom.tableBody?.addEventListener('click', this.handleTableClick);
+    this.dom.sendBtn?.addEventListener('click', this.handleBulkSendClick);
+    this.updateSendButtonState();
     this.dom.randomizeBtn?.addEventListener('click', this.handleRandomizeClick);
     this.dom.refreshZonesBtn?.addEventListener('click', this.handleRefreshZonesClick);
     this.dom.tableBody?.addEventListener('change', this.handleZoneSelectChange);
@@ -56,6 +63,7 @@ export class FlatTireControlController {
         }
       });
       this.queueRefresh();
+      this.updateSendButtonState();
     }));
     this.subscriptions.push(subscribeToRacers(this));
 
@@ -79,6 +87,7 @@ export class FlatTireControlController {
       if (!activeSet.has(key)) this.selectedZones.delete(key);
     });
     this.queueRefresh(true);
+    this.updateSendButtonState();
   }
 
   toggleAuto() {
@@ -95,7 +104,9 @@ export class FlatTireControlController {
     }
     this.dom.randomizeBtn?.removeEventListener('click', this.handleRandomizeClick);
     this.dom.refreshZonesBtn?.removeEventListener('click', this.handleRefreshZonesClick);
+    this.dom.tableBody?.removeEventListener('click', this.handleTableClick);
     this.dom.tableBody?.removeEventListener('change', this.handleZoneSelectChange);
+    this.dom.sendBtn?.removeEventListener('click', this.handleBulkSendClick);
     stopAutoScheduler(this);
     this.mapReady = false;
     this._lastZoneSignature = '';
@@ -186,6 +197,7 @@ export class FlatTireControlController {
     const team = select.closest('tr[data-team]')?.dataset.team;
     if (!team) return;
     this.selectedZones.set(team, select.value || '');
+    this.updateSendButtonState();
   }
 
   async handleRandomizeClick(event) {
@@ -241,6 +253,192 @@ export class FlatTireControlController {
       const select = this.dom.tableBody?.querySelector(`tr[data-team="${escapeSelector(teamName)}"] select[data-role="zone-select"]`);
       if (select) select.value = zoneKey;
     });
+    this.updateSendButtonState();
+  }
+
+  updateSendButtonState() {
+    const button = this.dom.sendBtn;
+    if (!button) return;
+    const hasReadyAssignment = this.activeTeams.some((teamName) => {
+      const zoneKey = this.getSelectedZoneKey(teamName);
+      if (!zoneKey) return false;
+      const zone = this.config?.zones?.[zoneKey];
+      if (!zone?.gps) return false;
+      const currentAssignment = this.assignments.get(teamName);
+      return !currentAssignment || currentAssignment.zoneKey !== zoneKey;
+    });
+    button.disabled = !hasReadyAssignment;
+  }
+
+  getSelectedZoneKey(teamName) {
+    if (this.selectedZones.has(teamName)) {
+      const stored = this.selectedZones.get(teamName);
+      if (stored) return stored;
+    }
+    const select = this.dom.tableBody?.querySelector(`tr[data-team="${escapeSelector(teamName)}"] select[data-role="zone-select"]`);
+    return select?.value || '';
+  }
+
+  handleTableClick(event) {
+    const target = event?.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest('button[data-action]');
+    if (!button) return;
+    const row = button.closest('tr[data-team]');
+    if (!row) return;
+    const teamName = row.dataset.team;
+    if (!teamName) return;
+
+    const action = button.dataset.action;
+    if (action === 'assign') {
+      this.assignTeam(teamName, button).catch((err) => {
+        console.error(`❌ Flat Tire send failed for ${teamName}:`, err);
+      });
+    } else if (action === 'release') {
+      this.releaseTeam(teamName, button).catch((err) => {
+        console.error(`❌ Flat Tire release failed for ${teamName}:`, err);
+      });
+    }
+  }
+
+  async handleBulkSendClick(event) {
+    event?.preventDefault?.();
+    const button = this.dom.sendBtn;
+    if (!button) return;
+
+    if (!this.activeTeams.length) {
+      alert('No teams available to send. Wait for racers to register.');
+      return;
+    }
+
+    const teamsToSend = this.activeTeams.filter((teamName) => {
+      const zoneKey = this.getSelectedZoneKey(teamName);
+      if (!zoneKey) return false;
+      const zone = this.config?.zones?.[zoneKey];
+      if (!zone?.gps) return false;
+      const currentAssignment = this.assignments.get(teamName);
+      return !currentAssignment || currentAssignment.zoneKey !== zoneKey;
+    });
+
+    if (!teamsToSend.length) {
+      alert('Select tow zones for at least one team before sending.');
+      return;
+    }
+
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = '⏳ Sending...';
+
+    try {
+      for (const teamName of teamsToSend) {
+        // Sequential to propagate alerts accurately and simplify UI feedback.
+        await this.assignTeam(teamName);
+      }
+      button.textContent = '✅ Sent!';
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.disabled = false;
+      }, 2500);
+    } catch (err) {
+      console.error('❌ Bulk Flat Tire send failed:', err);
+      alert('Failed to send one or more tow assignments. Check console for details.');
+      button.textContent = '⚠️ Error — Retry';
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.disabled = false;
+      }, 3500);
+    }
+  }
+
+  async assignTeam(teamName, button) {
+    const zoneKey = this.getSelectedZoneKey(teamName);
+    if (!zoneKey) {
+      alert(`Select a tow zone for ${teamName} before sending.`);
+      throw new Error(`No tow zone selected for ${teamName}.`);
+    }
+
+    const zone = this.config?.zones?.[zoneKey];
+    if (!zone?.gps) {
+      alert(`The ${zone?.name || zoneKey} zone is missing GPS details. Configure it before sending.`);
+      throw new Error(`Tow zone ${zoneKey} missing GPS details.`);
+    }
+
+    this.selectedZones.set(teamName, zoneKey);
+    const originalText = button?.textContent;
+    if (button) {
+      button.disabled = true;
+      button.textContent = '⏳ Sending...';
+    }
+
+    try {
+      await assignFlatTireTeam(teamName, {
+        depotId: zoneKey,
+        zoneKey,
+        zoneName: zone.name || `Zone ${zoneKey.toUpperCase()}`,
+        gps: zone.gps,
+        lat: zone.lat,
+        lng: zone.lng,
+        diameterMeters: zone.diameterMeters,
+        captureRadiusMeters: zone.captureRadiusMeters,
+        assignedBy: 'Control Panel',
+        status: 'control-assigned'
+      });
+      this.assignments.set(teamName, { zoneKey });
+      if (button) {
+        button.textContent = '✅ Sent!';
+        setTimeout(() => {
+          button.textContent = originalText || '🚨 Send';
+          button.disabled = false;
+        }, 2500);
+      }
+      this.queueRefresh();
+      this.updateSendButtonState();
+      return true;
+    } catch (err) {
+      if (button) {
+        button.textContent = '⚠️ Error — Retry';
+        setTimeout(() => {
+          button.textContent = originalText || '🚨 Send';
+          button.disabled = false;
+        }, 3500);
+      } else {
+        alert(`Failed to send a tow crew to ${teamName}. Check console for details.`);
+      }
+      throw err;
+    }
+  }
+
+  async releaseTeam(teamName, button) {
+    const originalText = button?.textContent;
+    if (button) {
+      button.disabled = true;
+      button.textContent = '⏳ Releasing...';
+    }
+    try {
+      await releaseFlatTireTeam(teamName);
+      this.assignments.delete(teamName);
+      if (button) {
+        button.textContent = '✅ Released';
+        setTimeout(() => {
+          button.textContent = originalText || '✅ Release';
+          button.disabled = true;
+        }, 2000);
+      }
+      this.queueRefresh();
+    } catch (err) {
+      if (button) {
+        button.textContent = '⚠️ Error — Retry';
+        setTimeout(() => {
+          button.textContent = originalText || '✅ Release';
+          button.disabled = false;
+        }, 3500);
+      } else {
+        alert(`Failed to release ${teamName}. Check console for details.`);
+      }
+      throw err;
+    } finally {
+      this.updateSendButtonState();
+    }
   }
 }
 

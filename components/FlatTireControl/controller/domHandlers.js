@@ -11,6 +11,7 @@ export function setupDomRefs(controller) {
   dom.autoToggleBtn = document.getElementById('flat-tire-toggle-auto');
   dom.randomizeBtn = document.getElementById('ft-randomize-zones-btn');
   dom.refreshZonesBtn = document.getElementById('ft-refresh-zones-btn');
+  dom.sendBtn = document.getElementById('flat-tire-send-btn');
 
   ['north', 'south', 'east', 'west'].forEach(key => {
     dom.zoneInputs.set(key, document.getElementById(`flat-tire-zone-gps-${key}`));
