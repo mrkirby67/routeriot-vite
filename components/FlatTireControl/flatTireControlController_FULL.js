@@ -120,11 +120,12 @@ class FlatTireControlController {
     try {
       const initialConfig = await loadFlatTireConfig();
       this.applyConfig(initialConfig);
+      await this.waitForGoogleMapsReady();
+      this.ensureConfigLoaded();
+      this.renderRows(true);
     } catch (err) {
       console.warn('⚠️ Flat Tire config load failed:', err);
     }
-
-    this.ensureConfigLoaded();
 
     this.subscriptions.push(subscribeFlatTireConfig(config => this.applyConfig(config)));
     this.subscriptions.push(subscribeFlatTireAssignments(this.handleAssignmentSnapshot));
@@ -497,6 +498,26 @@ class FlatTireControlController {
     this.dom.autoToggleBtn.classList.add(styles.secondaryBtn);
   }
 
+  async waitForGoogleMapsReady(timeoutMs = 10000) {
+    if (typeof window === 'undefined') return;
+    const deadline = Date.now() + timeoutMs;
+    await new Promise((resolve) => {
+      const tick = () => {
+        if (window.google?.maps) {
+          resolve();
+          return;
+        }
+        if (Date.now() >= deadline) {
+          console.warn('⚠️ [flatTireControl] Google Maps still unavailable after wait window.');
+          resolve();
+          return;
+        }
+        setTimeout(tick, 250);
+      };
+      tick();
+    });
+  }
+
   ensureConfigLoaded() {
     const zones = this.config?.zones || {};
     const configuredZones = ZONE_KEYS.filter((key) => {
@@ -697,6 +718,9 @@ class FlatTireControlController {
       || this.renderedTeamSignature !== teamSignature;
 
     if (shouldRebuild) {
+      if (this.renderedTeamSignature === teamSignature && !forceFullRender) {
+        return;
+      }
       body.innerHTML = '';
       const fragment = document.createDocumentFragment();
 
