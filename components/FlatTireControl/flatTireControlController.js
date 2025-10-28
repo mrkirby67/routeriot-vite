@@ -7,6 +7,7 @@ import { startAutoScheduler, stopAutoScheduler } from './controller/autoSchedule
 import styles from './FlatTireControl.module.css';
 import {
   CAPTURE_RADIUS_METERS,
+  assignFlatTireTeam,
   loadFlatTireConfig,
   subscribeFlatTireAssignments,
   subscribeFlatTireConfig
@@ -26,10 +27,13 @@ export class FlatTireControlController {
     this.renderTicker = null;
     this._lastZoneSignature = '';
     this._renderTimer = null;
+    this._teamSignature = '';
+    this.handleRandomizeClick = this.handleRandomizeClick.bind(this);
   }
 
   async initialize() {
     setupDomRefs(this);
+    this.dom.randomizeBtn?.addEventListener('click', this.handleRandomizeClick);
     const cfg = await loadFlatTireConfig();
     applyConfig(this, cfg);
     await this.ensureMapsAndZonesReady();
@@ -48,8 +52,18 @@ export class FlatTireControlController {
     this.renderTicker = setInterval(() => this.queueRefresh(), 1000);
   }
 
-  handleTeamRegistry(teams = []) {
-    this.activeTeams = teams.sort((a, b) => a.localeCompare(b));
+  handleTeamRegistry(teamNames = []) {
+    const normalized = Array.from(new Set(
+      teamNames
+        .map((name) => (typeof name === 'string' ? name.trim() : ''))
+        .filter(Boolean)
+    )).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+    const signature = JSON.stringify(normalized);
+    if (signature === this._teamSignature) return;
+    this._teamSignature = signature;
+
+    this.activeTeams = normalized;
     this.queueRefresh(true);
   }
 
@@ -65,6 +79,7 @@ export class FlatTireControlController {
       clearInterval(this.renderTicker);
       this.renderTicker = null;
     }
+    this.dom.randomizeBtn?.removeEventListener('click', this.handleRandomizeClick);
     stopAutoScheduler(this);
     this.mapReady = false;
     this._lastZoneSignature = '';
@@ -72,6 +87,7 @@ export class FlatTireControlController {
       clearTimeout(this._renderTimer);
       this._renderTimer = null;
     }
+    this._teamSignature = '';
   }
 
   async ensureMapsAndZonesReady() {
@@ -130,6 +146,79 @@ export class FlatTireControlController {
       this.refreshZonesDisplay();
     }, 300);
   }
+
+  async handleRandomizeClick(event) {
+    event?.preventDefault?.();
+
+    if (!this.activeTeams.length) {
+      alert('No teams registered to randomize.');
+      return;
+    }
+
+    const configuredZones = this.getConfiguredZoneKeys();
+    if (!configuredZones.length) {
+      alert('Tow zones not ready — please configure GPS coordinates.');
+      return;
+    }
+
+    const button = this.dom.randomizeBtn;
+    if (button) button.disabled = true;
+
+    try {
+      await this.randomizeAssignedZones(configuredZones);
+      this.queueRefresh(true);
+    } catch (err) {
+      console.error('❌ Randomize tow zones failed:', err);
+      alert('Failed to randomize tow zones. Check console for details.');
+    } finally {
+      const enabled = this.activeTeams.length > 0 && this.getConfiguredZoneKeys().length > 0;
+      if (button) button.disabled = !enabled;
+      this.queueRefresh();
+    }
+  }
+
+  getConfiguredZoneKeys() {
+    if (!this.config?.zones) return [];
+    return Object.keys(this.config.zones).filter((key) => {
+      const zone = this.config.zones[key];
+      return zone && typeof zone.gps === 'string' && zone.gps.trim();
+    });
+  }
+
+  async randomizeAssignedZones(zoneKeys = this.getConfiguredZoneKeys()) {
+    if (!zoneKeys.length) {
+      alert('Configure at least one tow zone with GPS before randomizing.');
+      return;
+    }
+
+    console.log('🎲 Randomizing Flat Tire zones for teams:', this.activeTeams);
+    const shuffledZones = shuffleArray(zoneKeys);
+
+    const operations = this.activeTeams.map((teamName, index) => {
+      const zoneKey = shuffledZones[index % shuffledZones.length];
+      const zone = this.config.zones[zoneKey] || {};
+      const now = Date.now();
+      const diameterMeters = Number(zone.diameterMeters)
+        || (Number(zone.diameter) || 0) * 1000
+        || 200;
+      return assignFlatTireTeam(teamName, {
+        zoneKey,
+        depotId: zoneKey,
+        zoneName: zone.name || `Zone ${zoneKey.toUpperCase()}`,
+        gps: zone.gps || '',
+        lat: Number.isFinite(zone.lat) ? zone.lat : undefined,
+        lng: Number.isFinite(zone.lng) ? zone.lng : undefined,
+        diameterMeters,
+        captureRadiusMeters: zone.captureRadiusMeters || CAPTURE_RADIUS_METERS,
+        assignedAt: now,
+        autoReleaseAt: now + 20 * 60_000,
+        assignedBy: 'Control Randomize',
+        status: 'auto-assigned'
+      });
+    });
+
+    await Promise.allSettled(operations);
+  }
 }
 
 export function createFlatTireControlController() {
@@ -144,4 +233,13 @@ function generateZoneSignature(zones = {}) {
     normalized[key] = { gps, diameter };
   });
   return JSON.stringify(normalized);
+}
+
+function shuffleArray(array) {
+  const clone = array.slice();
+  for (let i = clone.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [clone[i], clone[j]] = [clone[j], clone[i]];
+  }
+  return clone;
 }

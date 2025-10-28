@@ -9,6 +9,7 @@ export function setupDomRefs(controller) {
   dom.tableBody = document.getElementById('flat-tire-table-body');
   dom.autoIntervalInput = document.getElementById('flat-tire-auto-interval');
   dom.autoToggleBtn = document.getElementById('flat-tire-toggle-auto');
+  dom.randomizeBtn = document.getElementById('ft-randomize-zones-btn');
 
   ['north', 'south', 'east', 'west'].forEach(key => {
     dom.zoneInputs.set(key, document.getElementById(`flat-tire-zone-gps-${key}`));
@@ -32,6 +33,8 @@ export function renderRows(controller, forceFullRender = false) {
   const zones = controller.config?.zones || {};
   const zoneKeys = Object.keys(zones);
   const hasConfiguredZones = zoneKeys.some(key => zones[key]?.gps);
+  const randomizeBtn = controller.dom.randomizeBtn;
+  if (randomizeBtn) randomizeBtn.disabled = !(hasConfiguredZones && activeTeams.length);
   const buildOptions = (selectedKey = '') => {
     let html = `<option value="">Select tow zone…</option>`;
     zoneKeys.forEach((key) => {
