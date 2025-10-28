@@ -13,6 +13,7 @@ import {
   getShieldTimeRemaining
 } from '../../modules/teamSurpriseManager.js';
 import { escapeHtml } from '../../modules/utils.js';
+import { applyWildCardsToAllTeams } from '../../modules/controlActions.js';
 
 const TYPE_CONFIG = [
   { key: SurpriseTypes.FLAT_TIRE, label: 'Flat Tire' },
@@ -29,6 +30,11 @@ export function SurpriseSelectorComponent() {
       <p class="${styles.subtitle}">
         Monitor and adjust each team’s surprise inventory in real time.
       </p>
+      <div class="${styles.masterControls}">
+        <label for="wildcard-dashboard-input">Set All Wild Cards to:</label>
+        <input id="wildcard-dashboard-input" type="number" min="0" value="1">
+        <button type="button" id="wildcard-dashboard-apply">Apply to All Teams</button>
+      </div>
       <table class="${styles.surpriseTable}">
         <thead>
           <tr>
@@ -54,6 +60,32 @@ export function initializeSurpriseSelector() {
     return () => {};
   }
 
+  const masterInput = document.getElementById('wildcard-dashboard-input');
+  const masterApplyBtn = document.getElementById('wildcard-dashboard-apply');
+  let masterApplyHandler = null;
+
+  if (masterInput && masterApplyBtn) {
+    masterApplyHandler = async () => {
+      const raw = Number.parseInt(masterInput.value, 10);
+      if (!Number.isFinite(raw) || raw < 0) {
+        alert('Please enter a non-negative number.');
+        return;
+      }
+      const target = Math.floor(raw);
+      masterApplyBtn.disabled = true;
+      try {
+        await applyWildCardsToAllTeams(target);
+        alert(`✅ All teams set to ${target} wild card${target === 1 ? '' : 's'}.`);
+      } catch (err) {
+        console.error('❌ Failed to apply wild cards to all teams:', err);
+        alert('❌ Failed to update wild cards. Check console for details.');
+      } finally {
+        masterApplyBtn.disabled = false;
+      }
+    };
+    masterApplyBtn.addEventListener('click', masterApplyHandler);
+  }
+
   const handleClick = createClickHandler();
   tbody.addEventListener('click', handleClick);
 
@@ -70,6 +102,9 @@ export function initializeSurpriseSelector() {
     unsubscribe?.();
     tbody.removeEventListener('click', handleClick);
     clearInterval(timerId);
+    if (masterApplyBtn && masterApplyHandler) {
+      masterApplyBtn.removeEventListener('click', masterApplyHandler);
+    }
     cleanupHandle = null;
     console.info(`🧹 [SurpriseSelector] cleaned up (${reason})`);
   };

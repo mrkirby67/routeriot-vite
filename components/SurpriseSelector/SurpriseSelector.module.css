@@ -25,6 +25,43 @@
   color: #b0bec5;
 }
 
+.masterControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.masterControls label {
+  font-weight: 600;
+  color: #ffe082;
+}
+
+.masterControls input {
+  width: 70px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 214, 79, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.masterControls button {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #1976d2;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.masterControls button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(25, 118, 210, 0.35);
+}
+
 .surpriseTable {
   width: 100%;
   border-collapse: collapse;
