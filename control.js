@@ -27,6 +27,9 @@ import {
   ScoreboardComponent, initializeScoreboardListener
 } from './components/Scoreboard/Scoreboard.js';
 import {
+  TeamWildCardsComponent, initializeTeamWildCardsDashboard
+} from './components/TeamWildCards/TeamWildCards.js';
+import {
   BroadcastComponent, initializeBroadcastLogic
 } from './components/Broadcast/Broadcast.js';
 import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
@@ -81,6 +84,14 @@ async function main() {
   renderAllSections();
 
   registerCleanup(initializeScoreboardListener() || null, 'scoreboard');
+  try {
+    const teamWildCardsCleanup = await initializeTeamWildCardsDashboard();
+    registerCleanup(teamWildCardsCleanup || null, 'teamWildCards');
+  } catch (err) {
+    console.error('⚠️ Team Wild Cards dashboard init failed:', err);
+    showFlashMessage('⚠️ Failed to load Team Wild Cards dashboard.', '#ff9800', 3000);
+  }
+
   registerCleanup(initializeGameControlsLogic() || null, 'gameControls');
   registerCleanup(initializeRacerManagementLogic() || null, 'racerManagement');
   registerCleanup(initializeBroadcastLogic() || null, 'broadcast');
@@ -186,6 +197,7 @@ function renderAllSections() {
   // Core control panels
   safeSetHTML('game-controls-container', GameControlsComponent());
   safeSetHTML('scoreboard-container', ScoreboardComponent());
+  safeSetHTML('team-wildcards-container', TeamWildCardsComponent());
   safeSetHTML('bugstrike-control-container', BugStrikeControlComponent());
   safeSetHTML('flat-tire-control-container', FlatTireControlComponent());
   safeSetHTML('speedbump-control-container', SpeedBumpControlComponent());

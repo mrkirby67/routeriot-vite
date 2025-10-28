@@ -77,46 +77,6 @@ export function initializeScoreboardListener({ editable = true } = {}) {
 
     scoreboardBody.innerHTML = '';
 
-    // 🃏 Wild card summary row
-    const wildRow = document.createElement('tr');
-    const wildCell = document.createElement('td');
-    wildCell.colSpan = 5;
-    wildCell.style.padding = '8px 12px';
-    const wildContainer = document.createElement('div');
-    wildContainer.style.display = 'flex';
-    wildContainer.style.flexWrap = 'wrap';
-    wildContainer.style.justifyContent = 'space-between';
-    wildContainer.style.alignItems = 'center';
-    const wildLabel = document.createElement('strong');
-    wildLabel.textContent = '🃏 Wild Cards';
-    const wildList = document.createElement('div');
-    wildList.style.display = 'flex';
-    wildList.style.flexWrap = 'wrap';
-    wildList.style.gap = '12px';
-    for (const teamName of activeTeams) {
-      const statusInfo = statusData[teamName] || {};
-      const parsed = Number(statusInfo.wildCards);
-      const count = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-      const item = document.createElement('span');
-      item.style.display = 'flex';
-      item.style.alignItems = 'center';
-      item.style.gap = '6px';
-      const nameElem = document.createElement('span');
-      nameElem.textContent = teamName;
-      const countElem = document.createElement('span');
-      countElem.textContent = String(count);
-      countElem.setAttribute('data-team', teamName);
-      item.appendChild(nameElem);
-      item.appendChild(document.createTextNode(':'));
-      item.appendChild(countElem);
-      wildList.appendChild(item);
-    }
-    wildContainer.appendChild(wildLabel);
-    wildContainer.appendChild(wildList);
-    wildCell.appendChild(wildContainer);
-    wildRow.appendChild(wildCell);
-    scoreboardBody.appendChild(wildRow);
-
     for (const teamName of activeTeams) {
       const scoreInfo = scoresData[teamName] || {};
       const statusInfo = statusData[teamName] || {};
