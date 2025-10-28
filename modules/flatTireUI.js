@@ -1,7 +1,7 @@
-// ============================================================================
+// ============================================================================ 
 // FILE: modules/flatTireUI.js
 // PURPOSE: Player-side Flat Tire (Tow Time) overlay + interactions
-// ============================================================================
+// ============================================================================ 
 
 import {
   subscribeFlatTireAssignments,
@@ -9,7 +9,8 @@ import {
   releaseFlatTireTeam,
   CAPTURE_RADIUS_METERS,
   isWithinCaptureRadius,
-  getDistanceMetersToDepot
+  getDistanceMetersToDepot,
+  loadFlatTireConfig
 } from './flatTireManager.js';
 import {
   showFlatTireOverlay,
@@ -20,9 +21,7 @@ import {
 import { getRandomTaunt } from './messages/taunts.js';
 import { sendPrivateMessage } from './chatManager/messageService.js';
 import { broadcastEvent } from './zonesFirestore.js';
-
-const FLAT_TIRE_CHIRP_COOLDOWN_MS = 60_000;
-const flatTireChirpCooldowns = new Map();
+import { isShieldActive, isUnderWildCard } from './teamSurpriseManager.js';
 
 function parseGpsString(gps = '') {
   if (typeof gps !== 'string') return null;
@@ -33,48 +32,6 @@ function parseGpsString(gps = '') {
   return { lat, lng };
 }
 
-function buildChirpKey(victimTeam, aggressorTeam, kind) {
-  const sender = (victimTeam || '').trim().toLowerCase();
-  const recipient = (aggressorTeam || '').trim().toLowerCase();
-  const category = (kind || 'flatTire').trim().toLowerCase();
-  return `${sender}->${recipient}:${category}`;
-}
-
-async function sendFlatTireChirp({ victimTeam, aggressorTeam, message, kind = 'flatTire' }) {
-  const sender = typeof victimTeam === 'string' ? victimTeam.trim() : '';
-  let recipient = typeof aggressorTeam === 'string' ? aggressorTeam.trim() : '';
-  if (!sender) return { ok: false, reason: 'missing_sender' };
-  if (!recipient || recipient === sender) {
-    recipient = 'Game Control';
-  }
-
-  const key = buildChirpKey(sender, recipient, kind);
-  const now = Date.now();
-  const last = flatTireChirpCooldowns.get(key) || 0;
-  if (now - last < FLAT_TIRE_CHIRP_COOLDOWN_MS) {
-    return {
-      ok: false,
-      reason: 'rate_limited',
-      retryInMs: FLAT_TIRE_CHIRP_COOLDOWN_MS - (now - last)
-    };
-  }
-
-  const trimmed = typeof message === 'string' ? message.trim() : '';
-  const text = trimmed || getRandomTaunt(kind);
-
-  try {
-    const result = await sendPrivateMessage(sender, recipient, text);
-    if (!result?.ok) {
-      return { ok: false, reason: result?.reason || 'send_failed' };
-    }
-    flatTireChirpCooldowns.set(key, now);
-    return { ok: true };
-  } catch (err) {
-    console.error('❌ Failed to send Flat Tire chirp:', err);
-    return { ok: false, reason: err?.message || 'send_failed' };
-  }
-}
-
 export function initializeFlatTireUI(teamName) {
   if (!teamName) return () => {};
 
@@ -82,6 +39,14 @@ export function initializeFlatTireUI(teamName) {
 
   const handleSnapshot = (entries = []) => {
     const assignment = entries.find(entry => entry?.teamName === teamName);
+
+    if (isUnderWildCard(teamName) || isShieldActive(teamName)) {
+        if (assignment) {
+            hideFlatTireOverlay();
+        }
+        return;
+    }
+
     if (!assignment) {
       hideFlatTireOverlay();
       return;
@@ -202,13 +167,6 @@ export function initializeFlatTireUI(teamName) {
       }
     };
 
-    const handleChirp = (value) => sendFlatTireChirp({
-      victimTeam: teamName,
-      aggressorTeam: assignedBy,
-      message: value,
-      kind: 'flatTire'
-    });
-
     showFlatTireOverlay({
       zoneName,
       depotId,
@@ -222,7 +180,7 @@ export function initializeFlatTireUI(teamName) {
       assignedAtMs,
       assignedBy,
       onCheckIn,
-      onChirp: handleChirp,
+      onChirp: () => sendPrivateMessage(teamName, assignedBy, getRandomTaunt('flatTire')),
       onManualRelease: releaseTeam,
       onAutoRelease: releaseTeam
     });

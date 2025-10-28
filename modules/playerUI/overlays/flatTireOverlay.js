@@ -4,24 +4,83 @@
 import { generateMiniMap } from '../../zonesMap.js';
 import { escapeHtml } from '../../utils.js';
 
-export function showFlatTireOverlay({ zoneName = 'Tow Zone' } = {}) {
-  const el = document.createElement('div');
-  el.id = 'flat-tire-overlay';
-  el.innerHTML = `
-    <h2>🚗 Flat Tire</h2>
-    <p>Head to <strong>${escapeHtml(zoneName)}</strong> to check in!</p>
-    <div id="flat-tire-map">${generateMiniMap({ name: zoneName, gps: '' })}</div>
-    <button id="flat-tire-close">Got It</button>`;
-  Object.assign(el.style, {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)',
-    color: '#fff', display: 'flex', flexDirection: 'column',
-    alignItems: 'center', justifyContent: 'center', zIndex: 6100
-  });
-  document.body.appendChild(el);
-  document.getElementById('flat-tire-close').onclick = () => el.remove();
+let countdownInterval = null;
+
+function startCountdown(elementId, autoReleaseAtMs) {
+    const countdownEl = document.getElementById(elementId);
+    if (!countdownEl) return;
+
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+
+    const update = () => {
+        const now = Date.now();
+        const remainingMs = Math.max(0, autoReleaseAtMs - now);
+        const seconds = Math.floor(remainingMs / 1000) % 60;
+        const minutes = Math.floor(remainingMs / (1000 * 60));
+        countdownEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        if (remainingMs === 0) {
+            clearInterval(countdownInterval);
+        }
+    };
+
+    update();
+    countdownInterval = setInterval(update, 1000);
+}
+
+export function showFlatTireOverlay({
+  zoneName,
+  gps,
+  diameterMeters,
+  autoReleaseAtMs,
+  onCheckIn,
+  onChirp
+}) {
+  let overlay = document.getElementById('flat-tire-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'flat-tire-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.background = 'rgba(0,0,0,0.9)';
+    overlay.style.color = '#fff';
+    overlay.style.display = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '6100';
+    document.body.appendChild(overlay);
+  }
+
+  const mapHtml = generateMiniMap({ gps, diameter: diameterMeters / 1000 });
+
+  overlay.innerHTML = `
+    <div style="text-align: center;">
+        <h2>🚧 Flat Tire</h2>
+        <p>Head to <strong>${escapeHtml(zoneName)}</strong> to check in!</p>
+        <div id="flat-tire-map">${mapHtml}</div>
+        <div id="flat-tire-countdown" style="font-size: 1.5rem; margin: 1rem 0;"></div>
+        <div>
+            <button id="flat-tire-checkin-btn" style="padding: 10px 20px; font-size: 1rem; margin-right: 10px;">I’m Here</button>
+            <button id="flat-tire-chirp-btn" style="padding: 10px 20px; font-size: 1rem;">🐦 Chirp</button>
+        </div>
+    </div>
+  `;
+
+  document.getElementById('flat-tire-checkin-btn')?.addEventListener('click', onCheckIn);
+  document.getElementById('flat-tire-chirp-btn')?.addEventListener('click', onChirp);
+
+  if (autoReleaseAtMs) {
+    startCountdown('flat-tire-countdown', autoReleaseAtMs);
+  }
 }
 
 export function hideFlatTireOverlay() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
   document.getElementById('flat-tire-overlay')?.remove();
 }
 

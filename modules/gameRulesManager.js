@@ -1,15 +1,16 @@
-// ============================================================================
+// ============================================================================ 
 // MODULE 1: gameRulesManager.js
 // Purpose: Handles loading, editing, and saving Route Riot game rules.
-// ============================================================================
+// ============================================================================ 
 import { db } from '../modules/config.js';
-import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { clearAllTeamSurprises } from './teamSurpriseManager.js';
 
 export async function loadRules(rulesTextArea) {
   const rulesDocRef = doc(db, 'settings', 'rules');
   const snap = await getDoc(rulesDocRef);
-  rulesTextArea.value = snap.exists()
-    ? (snap.data().content || '')
+  rulesTextArea.value = snap.exists() 
+    ? (snap.data().content || '') 
     : 'Enter your Route Riot rules here...';
 }
 
@@ -26,11 +27,11 @@ export function toggleRules(rulesSection, toggleButton) {
   toggleButton.textContent = open ? '📜 Edit Rules' : '❌ Close Rules';
 }
 
-// ============================================================================
+// ============================================================================ 
 // MODULE 2: gameTimer.js
 // Purpose: Handles real-time countdown display for active games.
-// ============================================================================
-import { onSnapshot, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// ============================================================================ 
+import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 export function initializeGameTimer(timerDisplay) {
   const gameDocRef = doc(db, 'game', 'gameState');
@@ -61,10 +62,10 @@ export function initializeGameTimer(timerDisplay) {
   });
 }
 
-// ============================================================================
+// ============================================================================ 
 // MODULE 3: teamManager.js
 // Purpose: Randomizes teams and sends player emails.
-// ============================================================================
+// ============================================================================ 
 import { allTeams } from '../data.js';
 import { emailAllTeams } from './emailTeams.js';
 import { db } from './config.js';
@@ -118,7 +119,8 @@ export async function emailTeams(rulesDocRef) {
 
   const teamNames = Object.keys(activeTeams);
   if (teamNames.length === 0) {
-    alert('❌ No racers assigned to teams yet.\nPlease randomize teams first.');
+    alert('❌ No racers assigned to teams yet.
+Please randomize teams first.');
     return;
   }
 
@@ -130,14 +132,15 @@ export async function emailTeams(rulesDocRef) {
 
   if (confirm(`Email links to ${teamNames.length} active teams now?`)) {
     emailAllTeams(currentRules, activeTeams);
-    alert(`📧 Emails prepared for ${teamNames.length} active teams.\nCheck your Gmail tabs.`);
+    alert(`📧 Emails prepared for ${teamNames.length} active teams.
+Check your Gmail tabs.`);
   }
 }
 
-// ============================================================================
+// ============================================================================ 
 // MODULE 4: gameStateManager.js
 // Purpose: Handles start, pause, and end states of the game.
-// ============================================================================
+// ============================================================================ 
 import {
   collection,
   doc,
@@ -176,7 +179,8 @@ export async function startGame(gameDuration = 120) {
     timestamp: serverTimestamp()
   });
 
-  alert(`🏁 Game Started — Zones Released!\n${teamsInPlay.size} teams active.`);
+  alert(`🏁 Game Started — Zones Released!
+${teamsInPlay.size} teams active.`);
 }
 
 export async function pauseGame() {
@@ -224,10 +228,10 @@ export async function endGame() {
   }
 }
 
-// ============================================================================
+// ============================================================================ 
 // MODULE 5: gameMaintenance.js
 // Purpose: Handles resets, wipes, and maintenance tasks.
-// ============================================================================
+// ============================================================================ 
 import {
   writeBatch,
   getDocs,
@@ -237,6 +241,7 @@ import {
 import { db } from './config.js';
 
 export async function resetFullGame() {
+  await clearGameSideEffects();
   if (!confirm('ARE YOU SURE?\nThis will permanently delete all game data.')) return;
   alert('Resetting game data...');
 
@@ -264,4 +269,22 @@ export async function resetFullGame() {
     console.error('Reset error:', err);
     alert('An error occurred while resetting. Check console.');
   }
+}
+
+async function clearGameSideEffects() {
+  const flatTireCol = collection(db, 'flatTireAssignments');
+  const speedBumpCol = collection(db, 'speedBumpAssignments');
+
+  async function wipe(col) {
+    const snap = await getDocs(col);
+    for (const docSnap of snap.docs) {
+      await deleteDoc(docSnap.ref);
+    }
+  }
+
+  await wipe(flatTireCol);
+  await wipe(speedBumpCol);
+
+  // Reset shields / cooldowns / traps / wildcards
+  await clearAllTeamSurprises();
 }
