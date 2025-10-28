@@ -77,6 +77,94 @@ export function initializeScoreboardListener({ editable = true } = {}) {
 
     scoreboardBody.innerHTML = '';
 
+    // 🃏 Wild card summary row
+    const wildRow = document.createElement('tr');
+    const wildCell = document.createElement('td');
+    wildCell.colSpan = 5;
+    wildCell.style.padding = '8px 12px';
+    const wildContainer = document.createElement('div');
+    wildContainer.style.display = 'flex';
+    wildContainer.style.flexWrap = 'wrap';
+    wildContainer.style.justifyContent = 'space-between';
+    wildContainer.style.alignItems = 'center';
+    const wildLabel = document.createElement('strong');
+    wildLabel.textContent = '🃏 Wild Cards';
+    const wildList = document.createElement('div');
+    wildList.style.display = 'flex';
+    wildList.style.flexWrap = 'wrap';
+    wildList.style.gap = '12px';
+    for (const teamName of activeTeams) {
+      const statusInfo = statusData[teamName] || {};
+      const parsed = Number(statusInfo.wildCards);
+      const count = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+      const item = document.createElement('span');
+      item.style.display = 'flex';
+      item.style.alignItems = 'center';
+      item.style.gap = '6px';
+      const nameElem = document.createElement('span');
+      nameElem.textContent = teamName;
+      const countElem = document.createElement('span');
+      countElem.textContent = String(count);
+      countElem.setAttribute('data-team', teamName);
+      item.appendChild(nameElem);
+      item.appendChild(document.createTextNode(':'));
+      item.appendChild(countElem);
+      wildList.appendChild(item);
+    }
+    wildContainer.appendChild(wildLabel);
+    wildContainer.appendChild(wildList);
+    wildCell.appendChild(wildContainer);
+    wildRow.appendChild(wildCell);
+    scoreboardBody.appendChild(wildRow);
+
+    // 🃏 Global wild card controls (control view only)
+    if (editable) {
+      const controlRow = document.createElement('tr');
+      const controlCell = document.createElement('td');
+      controlCell.colSpan = 5;
+      controlCell.style.textAlign = 'center';
+      controlCell.style.padding = '8px 12px';
+      controlCell.innerHTML = `
+        <label for="wildcard-master-input" style="margin-right:6px;">Set all wild cards to:</label>
+        <input id="wildcard-master-input"
+               type="number"
+               min="0"
+               value="1"
+               style="width:70px;margin-right:8px;">
+        <button id="apply-wildcards-btn">Apply to All Teams</button>
+      `;
+      controlRow.appendChild(controlCell);
+      scoreboardBody.appendChild(controlRow);
+
+      const applyBtn = controlCell.querySelector('#apply-wildcards-btn');
+      const inputEl = controlCell.querySelector('#wildcard-master-input');
+      if (applyBtn && inputEl) {
+        applyBtn.addEventListener('click', async () => {
+          const rawValue = Number.parseInt(inputEl.value, 10);
+          const target = Number.isFinite(rawValue) && rawValue >= 0 ? rawValue : 0;
+          if (!Number.isFinite(rawValue) || rawValue < 0) {
+            alert('Invalid number.');
+            return;
+          }
+          if (!confirm(`Overwrite all team wild cards to ${target}?`)) return;
+          if (typeof window.applyWildCardsToAllTeams !== 'function') {
+            alert('Wild card helper unavailable.');
+            return;
+          }
+          applyBtn.disabled = true;
+          try {
+            await window.applyWildCardsToAllTeams(target);
+            alert(`✅ Updated all teams to ${target} wild cards.`);
+          } catch (err) {
+            console.error(err);
+            alert('❌ Failed to update wild cards.');
+          } finally {
+            applyBtn.disabled = false;
+          }
+        });
+      }
+    }
+
     for (const teamName of activeTeams) {
       const scoreInfo = scoresData[teamName] || {};
       const statusInfo = statusData[teamName] || {};

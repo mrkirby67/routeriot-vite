@@ -166,3 +166,26 @@ export async function resetFullGameState() {
     showFlashMessage('Reset failed.', '#c62828', 2500);
   }
 }
+
+// ---------------------------------------------------------------------------
+// 🃏 Apply Wild Cards to every teamStatus document
+// ---------------------------------------------------------------------------
+export async function applyWildCardsToAllTeams(count) {
+  const target = Number.isFinite(Number(count)) && Number(count) >= 0
+    ? Math.floor(Number(count))
+    : 0;
+
+  const teamStatusSnap = await getDocs(collection(db, "teamStatus"));
+  const updates = teamStatusSnap.docs.map((docSnap) =>
+    updateDoc(docSnap.ref, { wildCards: target })
+  );
+  await Promise.all(updates);
+
+  showFlashMessage(`🃏 Wild cards set to ${target} for all teams.`, '#512da8', 2500);
+  console.log(`🃏 Wild cards set to ${target} for ${teamStatusSnap.size} teamStatus docs.`);
+  return target;
+}
+
+if (typeof window !== 'undefined') {
+  window.applyWildCardsToAllTeams = applyWildCardsToAllTeams;
+}
