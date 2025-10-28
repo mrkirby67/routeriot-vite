@@ -24,6 +24,8 @@ export class FlatTireControlController {
     this.autoScheduler = { running: false, timerId: null };
     this.mapReady = false;
     this.renderTicker = null;
+    this._lastZoneSignature = '';
+    this._renderTimer = null;
   }
 
   async initialize() {
@@ -31,24 +33,24 @@ export class FlatTireControlController {
     const cfg = await loadFlatTireConfig();
     applyConfig(this, cfg);
     await this.ensureMapsAndZonesReady();
-    this.refreshZonesDisplay(true);
+    this.queueRefresh(true);
 
     this.subscriptions.push(subscribeFlatTireConfig((config) => {
       applyConfig(this, config);
-      this.ensureMapsAndZonesReady().then(() => this.refreshZonesDisplay());
+      this.ensureMapsAndZonesReady().then(() => this.queueRefresh());
     }));
     this.subscriptions.push(subscribeFlatTireAssignments(list => {
       this.assignments = new Map(list.map(i => [i.teamName, i]));
-      this.refreshZonesDisplay();
+      this.queueRefresh();
     }));
     this.subscriptions.push(subscribeToRacers(this));
 
-    this.renderTicker = setInterval(() => this.refreshZonesDisplay(), 1000);
+    this.renderTicker = setInterval(() => this.queueRefresh(), 1000);
   }
 
   handleTeamRegistry(teams = []) {
     this.activeTeams = teams.sort((a, b) => a.localeCompare(b));
-    this.refreshZonesDisplay(true);
+    this.queueRefresh(true);
   }
 
   toggleAuto() {
@@ -65,6 +67,11 @@ export class FlatTireControlController {
     }
     stopAutoScheduler(this);
     this.mapReady = false;
+    this._lastZoneSignature = '';
+    if (this._renderTimer) {
+      clearTimeout(this._renderTimer);
+      this._renderTimer = null;
+    }
   }
 
   async ensureMapsAndZonesReady() {
@@ -78,7 +85,7 @@ export class FlatTireControlController {
     }
 
     if (!this.config?.zones) return;
-    Object.keys(this.config.zones).forEach((key) => this.updateZonePreview(key));
+    this.forceMapRefresh();
   }
 
   updateZonePreview(zoneKey) {
@@ -100,13 +107,41 @@ export class FlatTireControlController {
   }
 
   refreshZonesDisplay(forceFullRender = false) {
-    if (this.config?.zones) {
-      Object.keys(this.config.zones).forEach((key) => this.updateZonePreview(key));
-    }
+    this.forceMapRefresh();
     renderRows(this, forceFullRender);
+  }
+
+  forceMapRefresh() {
+    if (!this.config?.zones) return;
+    const signature = generateZoneSignature(this.config.zones);
+    if (signature === this._lastZoneSignature) return;
+    this._lastZoneSignature = signature;
+    Object.keys(this.config.zones).forEach((key) => this.updateZonePreview(key));
+  }
+
+  queueRefresh(force = false) {
+    if (force) {
+      this.refreshZonesDisplay(true);
+      return;
+    }
+    if (this._renderTimer) clearTimeout(this._renderTimer);
+    this._renderTimer = setTimeout(() => {
+      this._renderTimer = null;
+      this.refreshZonesDisplay();
+    }, 300);
   }
 }
 
 export function createFlatTireControlController() {
   return new FlatTireControlController();
+}
+
+function generateZoneSignature(zones = {}) {
+  const normalized = {};
+  Object.entries(zones).forEach(([key, zone]) => {
+    const gps = typeof zone?.gps === 'string' ? zone.gps.trim() : '';
+    const diameter = Number(zone?.diameterMeters) || Number(zone?.diameter) || 0;
+    normalized[key] = { gps, diameter };
+  });
+  return JSON.stringify(normalized);
 }
