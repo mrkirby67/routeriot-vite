@@ -155,3 +155,50 @@ export function listenForMyMessages(myTeamName, logBox) {
 
   return () => clearRegistry('playerMessages');
 }
+
+/**
+ * sendChirp(teamName, from, text, btnEl?)
+ * Enforces the chirp cooldown before delivering the message. Optional btnEl
+ * parameter will show a countdown and re-enable when cooldown expires.
+ */
+export async function sendChirp(teamName, from, text, btnEl) {
+  const { canChirp, markChirp, chirpRemainingMs } = await import('../chirpCooldown.js');
+  if (!canChirp(teamName)) {
+    const secs = Math.ceil(chirpRemainingMs(teamName) / 1000);
+    throw new Error(`Chirp on cooldown. Try again in ${secs}s.`);
+  }
+
+  const result = await sendPrivateMessage(from, teamName, text);
+  if (result?.ok === false) {
+    throw new Error(result?.reason || 'send_failed');
+  }
+
+  markChirp(teamName);
+
+  if (btnEl && btnEl instanceof HTMLElement) {
+    if (btnEl.dataset.chirpTimer) {
+      clearInterval(Number(btnEl.dataset.chirpTimer));
+    }
+    const originalText = btnEl.dataset.originalText || btnEl.textContent || 'Chirp';
+    btnEl.dataset.originalText = originalText;
+    btnEl.disabled = true;
+
+    const update = () => {
+      const remaining = chirpRemainingMs(teamName);
+      if (remaining <= 0) {
+        btnEl.textContent = originalText;
+        btnEl.disabled = false;
+        if (btnEl.dataset.chirpTimer) {
+          clearInterval(Number(btnEl.dataset.chirpTimer));
+          delete btnEl.dataset.chirpTimer;
+        }
+        return;
+      }
+      btnEl.textContent = `Chirp (${Math.ceil(remaining / 1000)}s)`;
+    };
+
+    update();
+    const timerId = window.setInterval(update, 1000);
+    btnEl.dataset.chirpTimer = String(timerId);
+  }
+}

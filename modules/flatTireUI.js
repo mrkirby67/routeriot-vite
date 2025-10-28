@@ -23,6 +23,15 @@ import { sendPrivateMessage } from './chatManager/messageService.js';
 import { broadcastEvent } from './zonesFirestore.js';
 import { isShieldActive, isUnderWildCard } from './teamSurpriseManager.js';
 
+let chirpCooldownModulePromise = null;
+
+function loadChirpCooldown() {
+  if (!chirpCooldownModulePromise) {
+    chirpCooldownModulePromise = import('./chirpCooldown.js');
+  }
+  return chirpCooldownModulePromise;
+}
+
 function parseGpsString(gps = '') {
   if (typeof gps !== 'string') return null;
   const [latStr, lngStr] = gps.split(',');
@@ -201,7 +210,70 @@ export function initializeFlatTireUI(teamName) {
       assignedAtMs,
       assignedBy,
       onCheckIn,
-      onChirp: () => sendPrivateMessage(teamName, assignedBy, getRandomTaunt('flatTire')),
+      onChirp: async (btnEl) => {
+        try {
+          const { canChirp, markChirp, chirpRemainingMs } = await loadChirpCooldown();
+          if (!canChirp(teamName)) {
+            const ms = chirpRemainingMs(teamName);
+            const secs = Math.ceil(ms / 1000);
+            alert(`⏳ Chirp on cooldown. Try again in ${secs}s.`);
+            return;
+          }
+
+          const message = getRandomTaunt('flatTire');
+          const result = await sendPrivateMessage(teamName, assignedBy, message);
+          if (result?.ok === false) {
+            const reason = result?.reason || 'send_failed';
+            throw new Error(reason);
+          }
+          markChirp(teamName);
+
+          if (btnEl instanceof HTMLElement) {
+            try {
+              if (btnEl.dataset.chirpTimer) {
+                clearInterval(Number(btnEl.dataset.chirpTimer));
+              }
+              const originalText = btnEl.dataset.originalText || btnEl.textContent || 'Chirp';
+              btnEl.dataset.originalText = originalText;
+              btnEl.disabled = true;
+
+              const updateLabel = () => {
+                const remaining = chirpRemainingMs(teamName);
+                if (remaining <= 0) {
+                  btnEl.textContent = originalText;
+                  btnEl.disabled = false;
+                  clearInterval(Number(btnEl.dataset.chirpTimer));
+                  delete btnEl.dataset.chirpTimer;
+                  return;
+                }
+                btnEl.textContent = `Chirp (${Math.ceil(remaining / 1000)}s)`;
+              };
+
+              updateLabel();
+              const timerId = window.setInterval(updateLabel, 1000);
+              btnEl.dataset.chirpTimer = String(timerId);
+            } catch (countdownErr) {
+              console.warn('⚠️ Chirp countdown failed:', countdownErr);
+              btnEl.disabled = false;
+              btnEl.textContent = btnEl.dataset.originalText || 'Chirp';
+            }
+          }
+        } catch (err) {
+          console.warn('⚠️ Chirp failed:', err);
+          if (btnEl instanceof HTMLElement) {
+            btnEl.disabled = false;
+            if (btnEl.dataset.chirpTimer) {
+              clearInterval(Number(btnEl.dataset.chirpTimer));
+              delete btnEl.dataset.chirpTimer;
+            }
+            if (btnEl.dataset.originalText) {
+              btnEl.textContent = btnEl.dataset.originalText;
+            }
+          }
+          const msg = err?.message ? String(err.message) : 'Chirp failed. Please try again.';
+          alert(msg.startsWith('Chirp on cooldown') ? msg : 'Chirp failed. Please try again.');
+        }
+      },
       onManualRelease: releaseTeam,
       onAutoRelease: releaseTeam
     });

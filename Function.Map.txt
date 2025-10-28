@@ -48,6 +48,7 @@
  - modules/chatManager/playerChat.js
  - modules/chatManager/registry.js
  - modules/chatManager/utils.js
+ - modules/chirpCooldown.js
  - modules/config.js
  - modules/controlActions.js
  - modules/controlStatus.js
