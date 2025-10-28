@@ -1,7 +1,7 @@
 // ============================================================================
 // BASE OVERLAYS: pause, game over, confetti, tire celebration
 // ============================================================================
-import { startConfetti, stopConfetti } from '../overlays_FULL.js'; // temporary until migration complete
+import { startConfetti, stopConfetti } from './confetti.js';
 
 export function showPausedOverlay() {
   const existing = document.getElementById('paused-overlay');
@@ -52,4 +52,4 @@ export function showTireCelebration() {
   setTimeout(() => container.remove(), 2500);
 }
 
-export { startConfetti, stopConfetti } from '../overlays_FULL.js';
+export { startConfetti, stopConfetti } from './confetti.js';
