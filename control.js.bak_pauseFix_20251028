@@ -180,7 +180,6 @@ function handleControlTimer(state) {
 
     case 'finished':
     case 'ended':
-    case 'over':
       clearElapsedTimer?.();
       timerEl.hidden = false;
       timerEl.textContent = '00:00';

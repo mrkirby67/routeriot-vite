@@ -1,101 +1,100 @@
-# =========================================================
-# 📘 ROUTE RIOT FILE SIZE SCAN
-# =========================================================
-# Timestamp: Tue Oct 28 02:22:49 EDT 2025
-
-File Path | Line Count | ⚠️ Warning Level
------------------------------------------
-components/BugStrikeControl/BugStrikeControl.module.css                                    |    63 | ✅ OK
-components/BugStrikeControl/BugStrikeControl.js                                            |   160 | ✅ OK
-components/GameControls/GameControls.js                                                    |   327 | ⚠️ >300 lines
-components/GameControls/GameControls.module.css                                            |   285 | ✅ OK
-components/SpeedBumpControl/speedBumpControlController.js                                  |   301 | ⚠️ >300 lines
-components/SpeedBumpControl/SpeedBumpControl.module.css                                    |   380 | ⚠️ >300 lines
-components/SpeedBumpControl/controller/promptBank.js                                       |    33 | ✅ OK
-components/SpeedBumpControl/controller/domHandlers.js                                      |   142 | ✅ OK
-components/SpeedBumpControl/controller/stateSync.js                                        |    31 | ✅ OK
-components/SpeedBumpControl/controller/teamPrompts.js                                      |    37 | ✅ OK
-components/SpeedBumpControl/SpeedBumpControl.js                                            |    76 | ✅ OK
-components/ZoneManagement/zoneRender.js                                                    |   229 | ✅ OK
-components/ZoneManagement/ZoneManagement.js                                                |   258 | ✅ OK
-components/ZoneManagement/ZoneManagement.module.css                                        |   293 | ✅ OK
-components/ZoneManagement/zoneFirestore.js                                                 |   134 | ✅ OK
-components/ZoneManagement/zoneHandlers.js                                                  |   216 | ✅ OK
-components/ZoneManagement/zoneUI.js                                                        |    77 | ✅ OK
-components/TeamLinks/TeamLinks.module.css                                                  |    27 | ✅ OK
-components/TeamLinks/TeamLinks.js                                                          |    46 | ✅ OK
-components/ZoneQuestions/ZoneQuestions.js                                                  |    21 | ✅ OK
-components/ZoneQuestions/ZoneQuestionsUI.js                                                |   167 | ✅ OK
-components/ZoneQuestions/ZoneQuestions.module.css                                          |   263 | ✅ OK
-components/ZoneQuestions/ZoneQuestionsEditor.js                                            |   260 | ✅ OK
-components/ZoneQuestions/ZoneQuestionsTypes.js                                             |    80 | ✅ OK
-components/ZoneQuestions/ZoneQuestionsLogic.js                                             |   108 | ✅ OK
-components/RacerManagement/RacerManagement.js                                              |    56 | ✅ OK
-components/RacerManagement/RacerManagement.module.css                                      |    37 | ✅ OK
-components/Scoreboard/Scoreboard.module.css                                                |    56 | ✅ OK
-components/Scoreboard/Scoreboard.js                                                        |   233 | ✅ OK
-components/SurpriseSelector/SurpriseSelector.module.css                                    |   177 | ✅ OK
-components/SurpriseSelector/SurpriseSelector.js                                            |   286 | ✅ OK
-components/Broadcast/Broadcast.module.css                                                  |    36 | ✅ OK
-components/Broadcast/Broadcast.js                                                          |    55 | ✅ OK
-components/FlatTireControl/FlatTireControl.module.css                                      |   436 | ⚠️ >300 lines
-components/FlatTireControl/controller/firestoreSync.js                                     |    39 | ✅ OK
-components/FlatTireControl/controller/domHandlers.js                                       |   141 | ✅ OK
-components/FlatTireControl/controller/autoScheduler.js                                     |    41 | ✅ OK
-components/FlatTireControl/flatTireControlController.js                                    |   275 | ✅ OK
-components/FlatTireControl/FlatTireControl.js                                              |   131 | ✅ OK
-modules/teamSurpriseManager.js                                                             |   359 | ⚠️ >300 lines
-modules/bugStrikeManager.js                                                                |   199 | ✅ OK
-modules/chirpCooldown.js                                                                   |    59 | ✅ OK
-modules/flatTire_fixGPS.js                                                                 |    79 | ✅ OK
-modules/playerBugStrikeUI.js                                                               |   258 | ✅ OK
-modules/googleMapsLoader.js                                                                |    71 | ✅ OK
-modules/messages/taunts.js                                                                 |    44 | ✅ OK
-modules/diagnostics_flatTireZones.js                                                       |    65 | ✅ OK
-modules/controlUI.js                                                                       |   138 | ✅ OK
-modules/controlStatus.js                                                                   |   263 | ✅ OK
-modules/gameMaintenance.js                                                                 |    97 | ✅ OK
-modules/playerUI/core.js                                                                   |   161 | ✅ OK
-modules/playerUI/overlays/shieldAndWrecked.js                                              |   160 | ✅ OK
-modules/playerUI/overlays/confetti.js                                                      |   107 | ✅ OK
-modules/playerUI/overlays/baseOverlays.js                                                  |    55 | ✅ OK
-modules/playerUI/overlays/flatTireOverlay.js                                               |    88 | ✅ OK
-modules/playerUI/overlays/speedBumpOverlay.js                                              |    26 | ✅ OK
-modules/playerUI/overlays.js                                                               |     5 | ✅ OK
-modules/playerUI/autoInit.js                                                               |    13 | ✅ OK
-modules/auth.js                                                                            |    43 | ✅ OK
-modules/zoneManager.js                                                                     |   169 | ✅ OK
-modules/gameStateManager.js                                                                |   290 | ✅ OK
-modules/chatManager.js                                                                     |     8 | ✅ OK
-modules/flatTireManager.js                                                                 |   233 | ✅ OK
-modules/zonesMap.js                                                                        |   136 | ✅ OK
-modules/chatManager/registry.js                                                            |    39 | ✅ OK
-modules/chatManager/playerChat.js                                                          |   767 | 🚨 >500 lines
-modules/chatManager/controlFeed.js                                                         |    90 | ✅ OK
-modules/chatManager/messageService.js                                                      |   204 | ✅ OK
-modules/chatManager/utils.js                                                               |    30 | ✅ OK
-modules/config.js                                                                          |    61 | ✅ OK
-modules/gameTimer.js                                                                       |   198 | ✅ OK
-modules/zonesFirestore.js                                                                  |    86 | ✅ OK
-modules/flatTire_normalizeGPS.js                                                           |    45 | ✅ OK
-modules/zonesChallenge.js                                                                  |   262 | ✅ OK
-modules/scoreboardManager.js                                                               |   203 | ✅ OK
-modules/gameRulesManager.js                                                                |   319 | ⚠️ >300 lines
-modules/playerUI.js                                                                        |     9 | ✅ OK
-modules/gameUI.js                                                                          |   194 | ✅ OK
-modules/zones.js                                                                           |   255 | ✅ OK
-modules/speedBumpChallenges.js                                                             |    54 | ✅ OK
-modules/utils.js                                                                           |     5 | ✅ OK
-modules/controlActions.js                                                                  |   237 | ✅ OK
-modules/homeMap.js                                                                         |   134 | ✅ OK
-modules/zonesUtils.js                                                                      |   185 | ✅ OK
-modules/flatTireUI.js                                                                      |   301 | ⚠️ >300 lines
-modules/gameCountdown.js                                                                   |    99 | ✅ OK
-modules/speedBump/core.js                                                                  |    40 | ✅ OK
-modules/speedBump/comms.js                                                                 |    79 | ✅ OK
-modules/speedBump/index.js                                                                 |    36 | ✅ OK
-modules/speedBump/timers.js                                                                |    44 | ✅ OK
-modules/speedBump/interactions.js                                                          |   334 | ⚠️ >300 lines
-modules/speedBump/reversals.js                                                             |    27 | ✅ OK
-modules/speedBumpPlayer.js                                                                 |    97 | ✅ OK
-modules/emailTeams.js                                                                      |    87 | ✅ OK
+   13635 total
+     473 components/FlatTireControl/flatTireControlController.js
+     436 components/FlatTireControl/FlatTireControl.module.css
+     380 components/SpeedBumpControl/SpeedBumpControl.module.css
+     377 modules/gameStateManager.js
+     359 modules/teamSurpriseManager.js
+     334 modules/speedBump/interactions.js
+     327 components/GameControls/GameControls.js
+     319 modules/gameRulesManager.js
+     301 modules/flatTireUI.js
+     301 components/SpeedBumpControl/speedBumpControlController.js
+     293 components/ZoneManagement/ZoneManagement.module.css
+     286 components/SurpriseSelector/SurpriseSelector.js
+     285 components/GameControls/GameControls.module.css
+     264 modules/controlStatus.js
+     263 components/ZoneQuestions/ZoneQuestions.module.css
+     262 modules/zonesChallenge.js
+     260 components/ZoneQuestions/ZoneQuestionsEditor.js
+     258 modules/playerBugStrikeUI.js
+     258 components/ZoneManagement/ZoneManagement.js
+     255 modules/zones.js
+     237 modules/controlActions.js
+     235 modules/gameTimer.js
+     233 modules/flatTireManager.js
+     233 components/Scoreboard/Scoreboard.js
+     229 components/ZoneManagement/zoneRender.js
+     219 modules/chatManager/playerChat.ui.js
+     216 components/ZoneManagement/zoneHandlers.js
+     204 modules/chatManager/messageService.js
+     203 modules/scoreboardManager.js
+     199 modules/bugStrikeManager.js
+     194 modules/gameUI.js
+     190 modules/controlUI.js
+     185 modules/zonesUtils.js
+     177 components/SurpriseSelector/SurpriseSelector.module.css
+     169 modules/zoneManager.js
+     167 components/ZoneQuestions/ZoneQuestionsUI.js
+     161 modules/playerUI/core.js
+     160 modules/playerUI/overlays/shieldAndWrecked.js
+     160 components/BugStrikeControl/BugStrikeControl.js
+     142 components/SpeedBumpControl/controller/domHandlers.js
+     142 components/FlatTireControl/controller/domHandlers.js
+     136 modules/zonesMap.js
+     134 modules/homeMap.js
+     134 components/ZoneManagement/zoneFirestore.js
+     134 components/FlatTireControl/FlatTireControl.js
+     108 components/ZoneQuestions/ZoneQuestionsLogic.js
+     107 modules/playerUI/overlays/confetti.js
+      99 modules/gameCountdown.js
+      97 modules/speedBumpPlayer.js
+      97 modules/gameMaintenance.js
+      90 modules/chatManager/controlFeed.js
+      88 modules/playerUI/overlays/flatTireOverlay.js
+      87 modules/emailTeams.js
+      86 modules/zonesFirestore.js
+      80 components/ZoneQuestions/ZoneQuestionsTypes.js
+      79 modules/speedBump/comms.js
+      79 modules/flatTire_fixGPS.js
+      77 components/ZoneManagement/zoneUI.js
+      76 components/SpeedBumpControl/SpeedBumpControl.js
+      71 modules/googleMapsLoader.js
+      65 modules/diagnostics_flatTireZones.js
+      63 components/BugStrikeControl/BugStrikeControl.module.css
+      61 modules/config.js
+      60 modules/chatManager/playerChat.utils.js
+      59 modules/chirpCooldown.js
+      56 components/Scoreboard/Scoreboard.module.css
+      56 components/RacerManagement/RacerManagement.js
+      55 modules/playerUI/overlays/baseOverlays.js
+      55 components/Broadcast/Broadcast.js
+      54 modules/speedBumpChallenges.js
+      46 components/TeamLinks/TeamLinks.js
+      45 modules/flatTire_normalizeGPS.js
+      44 modules/speedBump/timers.js
+      44 modules/messages/taunts.js
+      43 modules/auth.js
+      41 components/FlatTireControl/controller/autoScheduler.js
+      40 modules/speedBump/core.js
+      39 modules/chatManager/registry.js
+      39 components/FlatTireControl/controller/firestoreSync.js
+      37 components/SpeedBumpControl/controller/teamPrompts.js
+      37 components/RacerManagement/RacerManagement.module.css
+      36 modules/speedBump/index.js
+      36 components/Broadcast/Broadcast.module.css
+      33 components/SpeedBumpControl/controller/promptBank.js
+      31 components/SpeedBumpControl/controller/stateSync.js
+      30 modules/chatManager/utils.js
+      28 modules/chatManager/playerChat.state.js
+      28 modules/chatManager/playerChat.js
+      27 modules/speedBump/reversals.js
+      27 components/TeamLinks/TeamLinks.module.css
+      26 modules/playerUI/overlays/speedBumpOverlay.js
+      21 components/ZoneQuestions/ZoneQuestions.js
+      15 modules/chatManager/playerChat.surprises.js
+      13 modules/playerUI/autoInit.js
+      13 modules/chatManager/playerChat.events.js
+       9 modules/playerUI.js
+       8 modules/chatManager.js
+       5 modules/utils.js
+       5 modules/playerUI/overlays.js

@@ -47,7 +47,6 @@ export function watchLiveGameStatus() {
         break;
       case 'finished':
       case 'ended':
-      case 'over':
         showFlashMessage('🏁 Game Over!', '#7b1fa2');
         await broadcastTopThree();
         break;

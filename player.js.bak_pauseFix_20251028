@@ -211,13 +211,6 @@ function handleLiveGameState(state) {
       pausePlayerTimer();
       setInlineTimer('00:00:00');
       hidePausedOverlay();
-      showFlashMessage('🏁 Game has concluded.', '#c62828', 2400);
-      break;
-
-    case 'over':
-      pausePlayerTimer();
-      setInlineTimer('00:00:00');
-      hidePausedOverlay();
       showGameOverOverlay();
       showFlashMessage('🏁 Game Over! Return to base.', '#c62828', 3000);
       break;

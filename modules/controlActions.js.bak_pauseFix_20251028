@@ -92,12 +92,12 @@ export async function safelyEndGameAndResetZones() {
   try {
     console.group("🏁 SAFE END GAME");
 
-    // 1️⃣ Mark game as over
+    // 1️⃣ Mark game as finished
     await updateDoc(GAME_STATE_REF, {
-      status: 'over',
+      status: 'finished',
       updatedAt: serverTimestamp(),
     });
-    console.log("🕹️ Game status updated → over");
+    console.log("🕹️ Game status updated → finished");
 
     // 2️⃣ Reset zones to Available
     const zonesSnap = await getDocs(collection(db, "zones"));

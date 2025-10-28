@@ -146,13 +146,6 @@ export async function startGame(gameDuration = 120) {
   const mins = Number(gameDuration) || 120;
   const endTime = Timestamp.fromMillis(Date.now() + mins * 60 * 1000);
 
-  const stateSnap = await getDoc(doc(db, 'game', 'gameState'));
-  const currentStatus = stateSnap.exists() ? String(stateSnap.data().status || '').toLowerCase() : 'waiting';
-  if (currentStatus === 'active' || currentStatus === 'paused') {
-    alert('⚠️ Game already running — use Pause/Resume or End Game instead of Start.');
-    return;
-  }
-
   const racersSnap = await getDocs(collection(db, 'racers'));
   const teamsInPlay = new Set();
   racersSnap.forEach(d => {
@@ -188,7 +181,7 @@ export async function pauseGame() {
 
 export async function endGame() {
   try {
-    await setDoc(doc(db, 'game', 'gameState'), { status: 'over' }, { merge: true });
+    await setDoc(doc(db, 'game', 'gameState'), { status: 'finished' }, { merge: true });
 
     const scoresSnap = await getDocs(collection(db, 'scores'));
     const scores = scoresSnap.docs

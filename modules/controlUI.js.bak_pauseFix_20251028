@@ -5,7 +5,7 @@
 // ============================================================================
 
 import { showCountdownBanner, showFlashMessage } from './gameUI.js';
-import { pauseGame, resumeGame, releaseZones, listenForGameStatus } from './gameStateManager.js';
+import { pauseGame, resumeGame, releaseZones } from './gameStateManager.js';
 import { safelyEndGameAndResetZones, resetFullGameState } from './controlActions.js';
 import { clearAllChatAndScores } from './controlStatus.js'; // ✅ NEW IMPORT
 import { db } from './config.js';
@@ -16,9 +16,6 @@ import {
 const GAME_STATE_REF = doc(db, "game", "gameState");
 const DEFAULT_DURATION_MIN = 30;
 
-let detachStatusListener = null;
-let latestStatus = null;
-
 export function wireGameControls() {
   const startBtn   = document.getElementById('start-btn');
   const pauseBtn   = document.getElementById('pause-btn');
@@ -27,48 +24,9 @@ export function wireGameControls() {
   const resetBtn   = document.getElementById('reset-game-btn');
   const clearBtn   = document.getElementById('clear-scores-btn'); // 🧹 "Clear All"
 
-  const applyButtonState = (statusValue) => {
-    const status = (statusValue || '').toLowerCase();
-    const isActive = status === 'active';
-    const isPaused = status === 'paused';
-    const inProgress = isActive || isPaused;
-
-    if (startBtn) {
-      const disableStart = inProgress;
-      startBtn.disabled = disableStart;
-      startBtn.setAttribute('aria-disabled', String(disableStart));
-    }
-    if (pauseBtn) {
-      pauseBtn.disabled = !inProgress;
-      pauseBtn.textContent = isPaused ? 'Resume Game' : 'Pause Game';
-    }
-    if (releaseBtn) {
-      releaseBtn.disabled = !isActive;
-    }
-    if (endBtn) {
-      endBtn.disabled = !inProgress;
-    }
-  };
-
-  applyButtonState(latestStatus);
-
-  detachStatusListener?.('rebind');
-  detachStatusListener = listenForGameStatus((state) => {
-    latestStatus = state?.status || 'waiting';
-    applyButtonState(latestStatus);
-  });
-
   // 🏁 START GAME
   if (startBtn) {
     startBtn.addEventListener('click', async () => {
-      if (latestStatus === 'active' || latestStatus === 'paused') {
-        showFlashMessage('Game already in progress — use Pause/Resume or End Game instead.', '#ffb300', 2800);
-        return;
-      }
-
-      startBtn.disabled = true;
-      startBtn.setAttribute('aria-disabled', 'true');
-
       try {
         await clearAllChatAndScores(); // 🧹 Clears everything before starting
         const snap = await getDoc(GAME_STATE_REF);
@@ -94,13 +52,9 @@ export function wireGameControls() {
 
         showCountdownBanner({ parent: document.body });
         showFlashMessage('✅ Game Started! Everything cleared and ready.', '#2e7d32', 3000);
-        latestStatus = 'active';
-        applyButtonState(latestStatus);
       } catch (e) {
         console.error('Error starting game:', e);
         showFlashMessage('Start failed.', '#c62828', 2500);
-        startBtn.disabled = false;
-        startBtn.setAttribute('aria-disabled', 'false');
       }
     });
   }
@@ -108,7 +62,6 @@ export function wireGameControls() {
   // ⏸️ / ▶️ TOGGLE PAUSE-RESUME
   if (pauseBtn) {
     pauseBtn.addEventListener('click', async () => {
-      pauseBtn.disabled = true;
       try {
         const snap = await getDoc(GAME_STATE_REF);
         const data = snap.exists() ? snap.data() : {};
@@ -116,19 +69,16 @@ export function wireGameControls() {
 
         if (isPaused) {
           await resumeGame();
-          latestStatus = 'active';
+          pauseBtn.textContent = 'Pause Game';
           showFlashMessage('▶️ Game Resumed!', '#2e7d32', 2500);
         } else {
           await pauseGame();
-          latestStatus = 'paused';
+          pauseBtn.textContent = 'Resume Game';
           showFlashMessage('⏸️ Game Paused!', '#ff9800', 2500);
         }
-        applyButtonState(latestStatus);
       } catch (e) {
         console.error('Pause/Resume error:', e);
         showFlashMessage('Pause/Resume failed.', '#c62828', 2500);
-      } finally {
-        pauseBtn.disabled = !(latestStatus === 'active' || latestStatus === 'paused');
       }
     });
   }
@@ -152,8 +102,7 @@ export function wireGameControls() {
       try {
         await safelyEndGameAndResetZones();
         showFlashMessage('🏁 Game Ended! Zones reset.', '#c62828', 4000);
-        latestStatus = 'over';
-        applyButtonState(latestStatus);
+        pauseBtn.textContent = 'Pause Game';
       } catch (e) {
         console.error('Error ending game:', e);
         showFlashMessage('End failed.', '#c62828', 2500);
@@ -166,8 +115,7 @@ export function wireGameControls() {
     resetBtn.addEventListener('click', async () => {
       if (confirm('Reset game state to WAITING and clear all scoreboard data (scores + locations)?')) {
         await resetFullGameState();
-        latestStatus = 'waiting';
-        applyButtonState(latestStatus);
+        pauseBtn.textContent = 'Pause Game';
         showFlashMessage('🔄 Game fully reset.', '#757575', 3000);
       }
     });

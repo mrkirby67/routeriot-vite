@@ -272,7 +272,7 @@ export function initializeGameControlsLogic() {
 
   // 🏁 END GAME → Top 3
   endBtn.addEventListener('click', async () => {
-    await setDoc(doc(db, 'game', 'gameState'), { status: 'finished' }, { merge: true });
+    await setDoc(doc(db, 'game', 'gameState'), { status: 'over' }, { merge: true });
     clearElapsedTimer();
     await announceTopThree();
   });

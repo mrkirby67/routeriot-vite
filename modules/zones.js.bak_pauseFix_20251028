@@ -79,7 +79,7 @@ export async function initializeZones(teamName) {
     }
 
     // 🏆 Detect Game End → Show Top 3 Winners overlay
-    if (['finished', 'ended', 'over'].includes(data.status)) {
+    if (['finished', 'ended'].includes(data.status)) {
       showFinalStandings();
     }
 

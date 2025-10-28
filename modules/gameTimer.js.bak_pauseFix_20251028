@@ -15,18 +15,7 @@ import {
 let timerInterval = null;
 let currentEndTime = null;
 let currentRemainingMs = null;
-let lastPausedAt = null;
 
-function publishTimerState() {
-  if (typeof window === 'undefined') return;
-  window.__rrTimerState = {
-    active: !!timerInterval,
-    endTime: currentEndTime,
-    remainingMs: currentRemainingMs,
-    pausedAt: lastPausedAt,
-    updatedAt: Date.now(),
-  };
-}
 // ---------------------------------------------------------------------------
 // 🧭 Format milliseconds into HH:MM:SS
 // ---------------------------------------------------------------------------
@@ -56,18 +45,14 @@ function startCountdownTimer(endMs, displaySelector) {
 
   clearElapsedTimer();
   currentEndTime = endMs;
-  lastPausedAt = null;
-  publishTimerState();
 
   const update = () => {
     const remaining = endMs - Date.now();
     currentRemainingMs = remaining;
-    publishTimerState();
     if (remaining <= 0) {
       display.textContent = '00:00:00';
       clearElapsedTimer();
       currentRemainingMs = 0;
-      publishTimerState();
       return;
     }
     display.textContent = formatTime(remaining);
@@ -85,9 +70,6 @@ export function clearElapsedTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
   }
-  currentEndTime = null;
-  currentRemainingMs = null;
-  publishTimerState();
 }
 
 // ---------------------------------------------------------------------------
@@ -118,10 +100,6 @@ export async function pauseGameTimer() {
     });
 
     clearElapsedTimer();
-    currentRemainingMs = remainingMs;
-    currentEndTime = null;
-    lastPausedAt = Date.now();
-    publishTimerState();
     console.log(`⏸️ Paused with ${Math.floor(remainingMs / 1000)}s left`);
   } catch (err) {
     console.error('❌ pauseGameTimer error:', err);
@@ -149,10 +127,6 @@ export async function resumeGameTimer() {
       updatedAt: serverTimestamp()
     });
 
-    currentEndTime = newEndTime.toMillis();
-    currentRemainingMs = remainingMs;
-    lastPausedAt = null;
-    publishTimerState();
     console.log(`▶️ Resumed — new endTime = ${newEndTime.toDate().toLocaleTimeString()}`);
   } catch (err) {
     console.error('❌ resumeGameTimer error:', err);
@@ -189,53 +163,32 @@ export function listenToGameTimer() {
 
     switch (status) {
       case 'active':
-        lastPausedAt = null;
         if (endMs) startCountdownTimer(endMs);
         else {
           clearElapsedTimer();
-          currentRemainingMs = typeof remainingMs === 'number' ? remainingMs : null;
-          currentEndTime = null;
           display.textContent = '--:--:--';
-          publishTimerState();
         }
         break;
 
       case 'paused':
         clearElapsedTimer();
-        currentRemainingMs = typeof remainingMs === 'number' ? remainingMs : null;
-        currentEndTime = null;
-        lastPausedAt = Date.now();
-        display.textContent = currentRemainingMs != null ? formatTime(currentRemainingMs) : '--:--:--';
-        publishTimerState();
+        display.textContent = remainingMs ? formatTime(remainingMs) : '--:--:--';
         break;
 
       case 'waiting':
         clearElapsedTimer();
-        currentRemainingMs = null;
-        currentEndTime = null;
-        lastPausedAt = null;
         display.textContent = '--:--:--';
-        publishTimerState();
         break;
 
       case 'finished':
       case 'ended':
-      case 'over':
         clearElapsedTimer();
-        currentRemainingMs = 0;
-        currentEndTime = null;
-        lastPausedAt = null;
         display.textContent = '00:00:00';
-        publishTimerState();
         break;
 
       default:
         clearElapsedTimer();
-        currentRemainingMs = null;
-        currentEndTime = null;
-        lastPausedAt = null;
         display.textContent = '--:--:--';
-        publishTimerState();
     }
 
     if (display.id === 'control-timer-display') {
