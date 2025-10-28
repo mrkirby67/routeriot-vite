@@ -100,21 +100,32 @@ async function main() {
   const speedBumpCleanup = await initializeSpeedBumpControl();
   registerCleanup(speedBumpCleanup, 'speedBumpControl');
 
-  const flatTireCleanup = await initializeFlatTireControl();
-  registerCleanup(flatTireCleanup, 'flatTireControl');
-
   registerCleanup(initializeSurpriseSelector() || null, 'surpriseSelector');
 
   const chatCleanup = await listenToAllMessages();
   registerCleanup(chatCleanup, 'communications');
 
+  let mapsAndZonesReady = false;
   try {
     await loadGoogleMapsApi();
     const zoneMgmtCleanup = await initializeZoneManagementLogic(true);
     registerCleanup(zoneMgmtCleanup, 'zoneManagement');
+    mapsAndZonesReady = true;
   } catch (err) {
     console.error('❌ Google Maps API load failed:', err);
     showFlashMessage('Map failed to load. Check API key.', '#c62828', 3000);
+  }
+
+  if (mapsAndZonesReady) {
+    try {
+      const flatTireCleanup = await initializeFlatTireControl();
+      registerCleanup(flatTireCleanup, 'flatTireControl');
+    } catch (err) {
+      console.error('⚠️ Flat Tire init failed:', err);
+      showFlashMessage('⚠️ Flat Tire control unavailable — map data issue.', '#ff9800', 3000);
+    }
+  } else {
+    console.warn('⚠️ Flat Tire control skipped because Maps/Zones failed to load.');
   }
 
   // 🧩 Initialize the Zone Questions module after Firestore is ready

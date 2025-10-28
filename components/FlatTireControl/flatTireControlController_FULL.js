@@ -89,6 +89,9 @@ class FlatTireControlController {
     this.ignoreConfigInput = false;
     this.initialized = false;
     this.listenersAttached = false;
+    this.configReady = false;
+    this.renderedTeamSignature = '';
+    this._configState = { googleReady: null, missingSignature: null };
 
     this.handleAssignmentSnapshot = this.handleAssignmentSnapshot.bind(this);
     this.handleTeamRegistry = this.handleTeamRegistry.bind(this);
@@ -121,7 +124,7 @@ class FlatTireControlController {
       console.warn('⚠️ Flat Tire config load failed:', err);
     }
 
-    await this.ensureConfigLoaded();
+    this.ensureConfigLoaded();
 
     this.subscriptions.push(subscribeFlatTireConfig(config => this.applyConfig(config)));
     this.subscriptions.push(subscribeFlatTireAssignments(this.handleAssignmentSnapshot));
@@ -317,7 +320,7 @@ class FlatTireControlController {
     }
 
     this.ignoreConfigInput = false;
-    void this.ensureConfigLoaded();
+    this.ensureConfigLoaded();
     this.renderRows();
   }
 
@@ -494,22 +497,30 @@ class FlatTireControlController {
     this.dom.autoToggleBtn.classList.add(styles.secondaryBtn);
   }
 
-  async ensureConfigLoaded() {
+  ensureConfigLoaded() {
     const zones = this.config?.zones || {};
-    const missingGps = ZONE_KEYS.filter((key) => {
+    const configuredZones = ZONE_KEYS.filter((key) => {
       const gps = zones[key]?.gps;
-      return !gps || !gps.trim();
+      return typeof gps === 'string' && gps.trim();
     });
+    const missingZones = ZONE_KEYS.filter((key) => !configuredZones.includes(key));
+    const missingSignature = missingZones.join(',');
 
-    if (missingGps.length) {
-      console.warn(`⚠️ [flatTireControl] Missing GPS config for zones: ${missingGps.join(', ')}`);
+    if (missingZones.length && this._configState.missingSignature !== missingSignature) {
+      console.warn(`⚠️ [flatTireControl] Missing GPS config for zones: ${missingZones.join(', ')}`);
     }
+    this._configState.missingSignature = missingSignature;
 
-    if (this.dom.randomizeBtn) {
-      this.dom.randomizeBtn.disabled = missingGps.length === ZONE_KEYS.length;
+    const googleReady = typeof window !== 'undefined'
+      && !!window.google
+      && !!window.google.maps;
+    if (!googleReady && this._configState.googleReady !== false) {
+      console.warn('⚠️ [flatTireControl] Google Maps not ready yet.');
     }
+    this._configState.googleReady = googleReady;
 
-    return missingGps.length === 0;
+    this.configReady = googleReady && missingZones.length === 0;
+    return this.configReady;
   }
 
   async randomizeAssignedZones() {
@@ -520,7 +531,10 @@ class FlatTireControlController {
       return;
     }
 
-    await this.ensureConfigLoaded();
+    if (!this.ensureConfigLoaded()) {
+      alert('Configure tow zones and wait for the map to load before randomizing.');
+      return;
+    }
 
     const availableZones = ZONE_KEYS.filter((key) => {
       const zone = this.config.zones[key];
@@ -620,6 +634,10 @@ class FlatTireControlController {
   }
 
   async assignTeam(teamName, zoneKey, { cause = 'manual' } = {}) {
+    if (!this.ensureConfigLoaded()) {
+      alert('Configure tow zones and wait for the map to load before dispatching.');
+      return;
+    }
     const zone = this.config.zones[zoneKey];
     if (!zone || !zone.gps) {
       alert('Configure this tow zone GPS before dispatching.');
@@ -654,14 +672,12 @@ class FlatTireControlController {
     const body = this.dom.tableBody;
     if (!body) return;
 
+    const configReady = this.ensureConfigLoaded();
     const hasTeams = this.activeTeams.length > 0;
-    const hasZonesConfigured = ZONE_KEYS.some((key) => {
-      const zone = this.config.zones[key];
-      return zone && typeof zone.gps === 'string' && zone.gps.trim();
-    });
+    const teamSignature = JSON.stringify(this.activeTeams);
 
     if (this.dom.randomizeBtn) {
-      this.dom.randomizeBtn.disabled = !(hasTeams && hasZonesConfigured);
+      this.dom.randomizeBtn.disabled = !(hasTeams && configReady);
     }
 
     if (!this.activeTeams.length) {
@@ -672,10 +688,15 @@ class FlatTireControlController {
           </td>
         </tr>
       `;
+      this.renderedTeamSignature = '';
       return;
     }
 
-    if (forceFullRender || body.children.length !== this.activeTeams.length) {
+    const shouldRebuild = forceFullRender
+      || body.children.length !== this.activeTeams.length
+      || this.renderedTeamSignature !== teamSignature;
+
+    if (shouldRebuild) {
       body.innerHTML = '';
       const fragment = document.createDocumentFragment();
 
@@ -717,6 +738,7 @@ class FlatTireControlController {
       });
 
       body.appendChild(fragment);
+      this.renderedTeamSignature = teamSignature;
     }
 
     // Update status cells every tick
@@ -731,10 +753,10 @@ class FlatTireControlController {
       if (!statusCell || !assignBtn || !releaseBtn) return;
 
       if (!assignment) {
-        statusCell.innerHTML = `
-          <span class="${styles.statusSubtext}">No tow dispatched.</span>
-        `;
-        assignBtn.disabled = false;
+        statusCell.innerHTML = configReady
+          ? `<span class="${styles.statusSubtext}">No tow dispatched.</span>`
+          : `<span class="${styles.statusSubtext}">Configure tow zones to enable dispatch.</span>`;
+        assignBtn.disabled = !configReady;
         releaseBtn.disabled = true;
         if (zoneSelect && !zoneSelect.dataset.changed) {
           zoneSelect.value = '';
