@@ -11,7 +11,6 @@
  - components/FlatTireControl/controller/domHandlers.js
  - components/FlatTireControl/controller/firestoreSync.js
  - components/FlatTireControl/flatTireControlController.js
- - components/FlatTireControl/flatTireControlController_FULL.js
  - components/GameControls/GameControls.js
  - components/GameControls/GameControls.module.css
  - components/RacerManagement/RacerManagement.js
@@ -25,7 +24,6 @@
  - components/SpeedBumpControl/controller/stateSync.js
  - components/SpeedBumpControl/controller/teamPrompts.js
  - components/SpeedBumpControl/speedBumpControlController.js
- - components/SpeedBumpControl/speedBumpControlController_FULL.js
  - components/SurpriseSelector/SurpriseSelector.js
  - components/SurpriseSelector/SurpriseSelector.module.css
  - components/TeamLinks/TeamLinks.js
@@ -54,9 +52,12 @@
  - modules/controlActions.js
  - modules/controlStatus.js
  - modules/controlUI.js
+ - modules/diagnostics_flatTireZones.js
  - modules/emailTeams.js
  - modules/flatTireManager.js
  - modules/flatTireUI.js
+ - modules/flatTire_fixGPS.js
+ - modules/flatTire_normalizeGPS.js
  - modules/gameCountdown.js
  - modules/gameMaintenance.js
  - modules/gameRulesManager.js

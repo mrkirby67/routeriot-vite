@@ -41,6 +41,7 @@ export class SpeedBumpControlController {
     this.promptByTeam = new Map();
     this.challengeBank = [];
     this.activeTeams = [];
+    this.activeChallenges = new Map();
     this.subs = [];
 
     // Bind handlers expected by domHandlers.js
@@ -130,6 +131,13 @@ export class SpeedBumpControlController {
   // Send/Release (per team)
   // ----------------------------------------------------------------------------
   async handleSend(team) {
+    const existing = this.activeChallenges.get?.(team);
+    if (existing && (existing.challenge || existing.prompt)) {
+      console.info(`🧩 [SpeedBump] Duplicate photo challenge prevented for ${team}`);
+      alert('ℹ️ This team already has an active Speed Bump challenge. Release it before sending another.');
+      return;
+    }
+
     const challenge = (this.promptByTeam.get(team) || '').trim();
     if (!challenge) return alert('⚠️ No prompt for this team.');
     await sendSpeedBump('Control', team, challenge, { override: true });
@@ -232,6 +240,27 @@ export class SpeedBumpControlController {
       reconcileWithBank(this, { removedPrompt: removed });
       this.renderRows();
     }
+  }
+
+  handleSpeedBumpUpdate(payload = {}) {
+    const rawList = Array.isArray(payload.activeBumps)
+      ? payload.activeBumps.map(([teamName, data]) => ({
+          teamName,
+          ...(data || {})
+        }))
+      : [];
+
+    const unique = [];
+    const seen = new Set();
+    rawList.forEach((entry) => {
+      const teamName = typeof entry.teamName === 'string' ? entry.teamName.trim() : '';
+      if (!teamName || seen.has(teamName)) return;
+      seen.add(teamName);
+      unique.push({ ...entry, teamName });
+    });
+
+    this.activeChallenges = new Map(unique.map(item => [item.teamName, item]));
+    this.renderRows();
   }
 
   // ----------------------------------------------------------------------------
