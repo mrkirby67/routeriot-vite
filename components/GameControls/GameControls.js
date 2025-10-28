@@ -19,7 +19,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { listenToGameTimer, clearElapsedTimer } from '../../modules/gameTimer.js';
-import { pauseGame, resumeGame } from '../../modules/gameStateManager.js';
+import { startGame as startGameState, pauseGame, resumeGame } from '../../modules/gameStateManager.js';
 import {
   clearChatsAndScores
 } from '../../modules/gameMaintenance.js'; // 🧹 new imports
@@ -220,35 +220,47 @@ export function initializeGameControlsLogic() {
   });
 
   // ▶️ START GAME
-  startBtn.addEventListener('click', async () => {
-    const mins = Number(document.getElementById('game-duration').value) || 120;
-    const endTime = new Date(Date.now() + mins * 60 * 1000);
-    const racersSnap = await getDocs(collection(db, 'racers'));
-    const teams = new Set();
-    racersSnap.forEach(d => {
-      const r = d.data();
-      if (r.team && r.team !== '-') teams.add(r.team);
-    });
+  startBtn.addEventListener('click', async (event) => {
+    event?.preventDefault?.();
+    if (startBtn.disabled) return;
 
-    await setDoc(doc(db, 'game', 'activeTeams'), { list: Array.from(teams) }, { merge: true });
-    await setDoc(doc(db, 'game', 'gameState'), {
-      status: 'active',
-      startTime: serverTimestamp(),
-      endTime,
-      zonesReleased: true,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    const mins = Number(document.getElementById('game-duration')?.value) || 120;
 
-    await addDoc(collection(db, 'communications'), {
-      teamName: 'Game Master',
-      sender: 'Game Master',
-      senderDisplay: 'Game Master',
-      message: '🏁 The race has begun! Zones are active — good luck racers!',
-      isBroadcast: true,
-      timestamp: serverTimestamp()
-    });
+    startBtn.disabled = true;
+    startBtn.setAttribute('aria-disabled', 'true');
 
-    showAnimatedBanner('🏁 Race Started!', '#2e7d32');
+    try {
+      await clearChatsAndScores();
+
+      const racersSnap = await getDocs(collection(db, 'racers'));
+      const teams = new Set();
+      racersSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.team && data.team !== '-') {
+          teams.add(data.team.trim());
+        }
+      });
+
+      const teamList = Array.from(teams).sort();
+
+      await startGameState({
+        durationMinutes: mins,
+        zonesReleased: true,
+        teamNames: teamList,
+        broadcast: {
+          teamName: 'Game Master',
+          message: '🏁 The race has begun! Zones are active — good luck racers!',
+        }
+      });
+
+      showAnimatedBanner('🏁 Race Started!', '#2e7d32');
+      launchConfetti();
+    } catch (err) {
+      console.error('Error starting game:', err);
+      showAnimatedBanner('❌ Start failed. Check console for details.', '#c62828');
+      startBtn.disabled = false;
+      startBtn.setAttribute('aria-disabled', 'false');
+    }
   });
 
   // ⏸️ PAUSE / RESUME GAME

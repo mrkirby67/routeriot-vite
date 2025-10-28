@@ -15,6 +15,8 @@ import {
   onSnapshot,
   serverTimestamp,
   Timestamp,
+  collection,
+  addDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import {
@@ -116,6 +118,76 @@ export async function setGameStatus(status, zonesReleased = false, durationMinut
     console.log(`✅ Game state set to "${status}"`);
   } catch (err) {
     console.error("❌ Error setting game status:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ▶️ Start Game (centralized entry point)
+// ---------------------------------------------------------------------------
+export async function startGame(options = {}) {
+  const {
+    durationMinutes = 120,
+    zonesReleased = true,
+    teamNames = [],
+    broadcast = {}
+  } = options || {};
+
+  try {
+    const snap = await getDoc(gameStateRef);
+    const existing = snap.exists() ? snap.data() || {} : {};
+    const currentStatus = String(existing.status || 'waiting').toLowerCase();
+
+    if (currentStatus === 'active') {
+      throw new Error('Game already active');
+    }
+
+    if (teamNames.length) {
+      const activeTeamsRef = doc(db, 'game', 'activeTeams');
+      await setDoc(activeTeamsRef, { list: teamNames.slice().sort() }, { merge: true });
+    }
+
+    const now = Date.now();
+    const startTime = Timestamp.fromMillis(now);
+    const endTime = Timestamp.fromMillis(now + Math.max(1, durationMinutes) * 60 * 1000);
+
+    await setDoc(gameStateRef, {
+      status: 'active',
+      startTime,
+      endTime,
+      durationMinutes,
+      zonesReleased,
+      remainingMs: null,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    const { message, teamName, sender, senderDisplay, isBroadcast } = broadcast || {};
+    if (message) {
+      const communicationsRef = collection(db, 'communications');
+      await addDoc(communicationsRef, {
+        teamName: teamName || sender || 'Game Master',
+        sender: sender || teamName || 'Game Master',
+        senderDisplay: senderDisplay || sender || teamName || 'Game Master',
+        message,
+        isBroadcast: typeof isBroadcast === 'boolean' ? isBroadcast : true,
+        timestamp: serverTimestamp(),
+      });
+    }
+
+    publishStateDiagnostics({
+      ...(existing || {}),
+      status: 'active',
+      startTime,
+      endTime,
+      durationMinutes,
+      zonesReleased,
+      remainingMs: null,
+    });
+
+    console.log(`🏁 Game started for ${durationMinutes} minute(s)`);
+    return { status: 'active', startTime, endTime, durationMinutes };
+  } catch (err) {
+    console.error('❌ Error starting game:', err);
+    throw err;
   }
 }
 

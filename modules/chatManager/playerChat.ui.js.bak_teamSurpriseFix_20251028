@@ -16,21 +16,8 @@ const teamSurprisesPanelState = {
   inventoryList: null,
   outgoingList: null,
   shieldChip: null,
-  shieldTickerId: null,
-  availableCounts: {
-    flatTire: 0,
-    bugSplat: 0,
-    superShieldWax: 0
-  }
+  shieldTickerId: null
 };
-
-function escapeAttribute(value = '') {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
 
 // ============================================================================
 // 🧩 DOM CONSTRUCTION — Ensure main section exists
@@ -94,77 +81,28 @@ export function ensureTeamSurprisesSection() {
 // ============================================================================
 // 🧩 RENDERING HELPERS
 // ============================================================================
-export function renderTeamInventory(byTeam = {}, options = {}) {
+export function renderTeamInventory(byTeam = {}) {
   const list = teamSurprisesPanelState.inventoryList;
   if (!list) return;
 
-  const {
-    currentTeamName = teamSurprisesPanelState.teamName,
-    available = teamSurprisesPanelState.availableCounts || {},
-    teamNames = []
-  } = options || {};
-
-  const flatAvailable = Number(available.flatTire) || 0;
-  const bugAvailable = Number(available.bugSplat) || 0;
-
-  const knownTeams = Array.from(
-    new Set([
-      ...teamNames,
-      ...Object.keys(byTeam || {})
-    ])
-  ).filter(Boolean);
-
-  if (!knownTeams.length) {
+  const entries = Object.entries(byTeam);
+  if (!entries.length) {
     list.innerHTML = '<li class="team-surprises-empty">No surprise data yet.</li>';
     return;
   }
 
-  knownTeams.sort((a, b) => a.localeCompare(b));
-
-  const rows = knownTeams.map((teamName) => {
-    const counts = byTeam?.[teamName] || {};
+  entries.sort((a, b) => a[0].localeCompare(b[0]));
+  const rows = entries.map(([teamName, counts = {}]) => {
     const flat = extractSurpriseCount(counts, 'flatTire', 'FLAT_TIRE');
     const bug = extractSurpriseCount(counts, 'bugSplat', 'BUG_SPLAT');
-    const shield = extractSurpriseCount(counts, 'wildCard', 'WILD_CARD', 'superShieldWax');
+    const shield = extractSurpriseCount(counts, 'superShieldWax', 'wildCard', 'WILD_CARD');
     const highlight = teamName === teamSurprisesPanelState.teamName ? ' is-current-team' : '';
-    const safeTeam = escapeHtml(teamName);
-    const attributeTeam = escapeAttribute(teamName);
-    const isCurrentTeam = teamName === currentTeamName;
-
-    const actionButtons = isCurrentTeam
-      ? '<div class="team-surprises-actions"><span class="team-surprises-note">Your inventory</span></div>'
-      : `
-        <div class="team-surprises-actions">
-          <button
-            type="button"
-            class="team-surprise-btn"
-            data-action="use-surprise"
-            data-surprise="flatTire"
-            data-team="${attributeTeam}"
-            ${flatAvailable > 0 ? '' : 'disabled'}
-          >
-            🚗 Send Flat Tire
-          </button>
-          <button
-            type="button"
-            class="team-surprise-btn"
-            data-action="use-surprise"
-            data-surprise="bugSplat"
-            data-team="${attributeTeam}"
-            ${bugAvailable > 0 ? '' : 'disabled'}
-          >
-            🐞 Send Bug Splat
-          </button>
-        </div>
-      `;
-
     return `
-      <li class="team-surprises-row${highlight}" data-team="${attributeTeam}">
-        <span class="team-name">${safeTeam}</span>
+      <li class="team-surprises-row${highlight}">
+        <span class="team-name">${escapeHtml(teamName)}</span>
         <span class="team-count" data-type="flatTire" title="Flat Tire">🚗 ${flat}</span>
         <span class="team-count" data-type="bugSplat" title="Bug Splat">🐞 ${bug}</span>
         <span class="team-count" data-type="shield" title="Super Shield Wax">🛡️ ${shield}</span>
-        ${actionButtons}
       </li>
     `;
   }).join('');
@@ -193,59 +131,6 @@ export function renderOutgoingList(entries = []) {
   }).join('');
 
   list.innerHTML = rows;
-}
-
-function renderMyInventory(counts = {}) {
-  const section = teamSurprisesPanelState.section || ensureTeamSurprisesSection();
-  if (!section) return;
-
-  const body = section.querySelector('#team-surprises-body');
-  if (!body) return;
-
-  const {
-    flatTire = 0,
-    bugSplat = 0,
-    superShieldWax = 0
-  } = counts || {};
-
-  teamSurprisesPanelState.availableCounts = { flatTire, bugSplat, superShieldWax };
-
-  body.dataset.flatAvailable = String(flatTire);
-  body.dataset.bugAvailable = String(bugSplat);
-  body.dataset.shieldAvailable = String(superShieldWax);
-
-  const shieldButtonDisabled = superShieldWax > 0 ? '' : 'disabled';
-  const shieldButton = `
-    <button
-      type="button"
-      class="team-surprise-btn"
-      data-action="use-surprise"
-      data-surprise="wildCard"
-      data-team="${escapeAttribute(teamSurprisesPanelState.teamName || '')}"
-      ${shieldButtonDisabled}
-    >
-      Activate Shield
-    </button>
-  `;
-
-  body.innerHTML = `
-    <div class="team-surprises-row is-player">
-      <strong>🚗 Flat Tire</strong>
-      <span class="team-count" data-type="flatTire">${flatTire}</span>
-    </div>
-    <div class="team-surprises-row is-player">
-      <strong>🐞 Bug Splat</strong>
-      <span class="team-count" data-type="bugSplat">${bugSplat}</span>
-    </div>
-    <div class="team-surprises-row is-player">
-      <strong>🛡️ Super Shield Wax</strong>
-      <span class="team-count" data-type="shield">${superShieldWax}</span>
-      ${shieldButton}
-    </div>
-    <p class="team-surprises-note">
-      Use the buttons beside opposing teams to deploy offensive surprises.
-    </p>
-  `;
 }
 
 // ============================================================================
@@ -313,14 +198,11 @@ export function initializeTeamSurprisesPanel(teamName) {
   teamSurprisesPanelState.shieldChip = shieldChip;
 
   return {
-    renderInventory(byTeam = {}, options = {}) {
-      renderTeamInventory(byTeam, options);
+    renderInventory(byTeam = {}) {
+      renderTeamInventory(byTeam);
     },
     renderOutgoing(entries = []) {
       renderOutgoingList(entries);
-    },
-    renderPlayerInventory(counts = {}) {
-      renderMyInventory(counts);
     },
     refreshShieldStatus() {
       startShieldTicker();

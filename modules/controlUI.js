@@ -5,12 +5,12 @@
 // ============================================================================
 
 import { showCountdownBanner, showFlashMessage } from './gameUI.js';
-import { pauseGame, resumeGame, releaseZones, listenForGameStatus } from './gameStateManager.js';
+import { startGame as startGameState, pauseGame, resumeGame, releaseZones, listenForGameStatus } from './gameStateManager.js';
 import { safelyEndGameAndResetZones, resetFullGameState } from './controlActions.js';
 import { clearAllChatAndScores } from './controlStatus.js'; // ✅ NEW IMPORT
 import { db } from './config.js';
 import {
-  doc, getDoc, updateDoc, addDoc, collection, serverTimestamp
+  doc, getDoc, getDocs, collection
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const GAME_STATE_REF = doc(db, "game", "gameState");
@@ -60,7 +60,14 @@ export function wireGameControls() {
 
   // 🏁 START GAME
   if (startBtn) {
-    startBtn.addEventListener('click', async () => {
+    startBtn.addEventListener('click', async (event) => {
+      if (event?.defaultPrevented) {
+        showCountdownBanner({ parent: document.body });
+        showFlashMessage('✅ Game Started! Everything cleared and ready.', '#2e7d32', 3000);
+        latestStatus = 'active';
+        applyButtonState(latestStatus);
+        return;
+      }
       if (latestStatus === 'active' || latestStatus === 'paused') {
         showFlashMessage('Game already in progress — use Pause/Resume or End Game instead.', '#ffb300', 2800);
         return;
@@ -71,25 +78,25 @@ export function wireGameControls() {
 
       try {
         await clearAllChatAndScores(); // 🧹 Clears everything before starting
-        const snap = await getDoc(GAME_STATE_REF);
-        const existing = snap.exists() ? snap.data() : {};
 
-        const update = {
-          status: 'active',
+        const durationMinutes = Number(document.getElementById('game-duration')?.value) || DEFAULT_DURATION_MIN;
+        const racersSnap = await getDocs(collection(db, 'racers'));
+        const teams = new Set();
+        racersSnap.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.team && data.team !== '-') {
+            teams.add(String(data.team).trim());
+          }
+        });
+
+        await startGameState({
+          durationMinutes,
           zonesReleased: true,
-          updatedAt: serverTimestamp(),
-        };
-        if (!existing.startTime) update.startTime = serverTimestamp();
-        if (!existing.durationMinutes) update.durationMinutes = DEFAULT_DURATION_MIN;
-
-        await updateDoc(GAME_STATE_REF, update);
-        await addDoc(collection(db, "communications"), {
-          teamName: "Game Master",
-          sender: "Game Master",
-          senderDisplay: "Game Master",
-          message: "🏁 A new game has begun! Scoreboard cleared, chat wiped, and zones live.",
-          isBroadcast: true,
-          timestamp: serverTimestamp(),
+          teamNames: Array.from(teams).sort(),
+          broadcast: {
+            teamName: 'Game Master',
+            message: '🏁 A new game has begun! Scoreboard cleared, chat wiped, and zones live.'
+          }
         });
 
         showCountdownBanner({ parent: document.body });
