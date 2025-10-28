@@ -70,6 +70,7 @@ class FlatTireControlController {
       tableBody: null,
       autoIntervalInput: null,
       autoToggleBtn: null,
+      randomizeBtn: null,
       zoneInputs: new Map(),
       zoneMaps: new Map(),
       zoneDiameterInputs: new Map(),
@@ -98,6 +99,7 @@ class FlatTireControlController {
     this.onZoneSelectChange = this.onZoneSelectChange.bind(this);
     this.onAutoToggle = this.onAutoToggle.bind(this);
     this.onIntervalChange = this.onIntervalChange.bind(this);
+    this.onRandomizeZones = this.onRandomizeZones.bind(this);
   }
 
   async initialize() {
@@ -163,10 +165,12 @@ class FlatTireControlController {
     const tableBody = document.getElementById('flat-tire-table-body');
     const autoIntervalInput = document.getElementById('flat-tire-auto-interval');
     const autoToggleBtn = document.getElementById('flat-tire-toggle-auto');
+    const randomizeBtn = document.getElementById('ft-randomize-zones-btn');
 
     this.dom.tableBody = tableBody;
     this.dom.autoIntervalInput = autoIntervalInput;
     this.dom.autoToggleBtn = autoToggleBtn;
+    this.dom.randomizeBtn = randomizeBtn;
 
     ZONE_KEYS.forEach((key) => {
       const input = document.getElementById(`flat-tire-zone-gps-${key}`);
@@ -198,6 +202,7 @@ class FlatTireControlController {
     this.dom.tableBody?.addEventListener('change', this.onZoneSelectChange);
     this.dom.autoToggleBtn?.addEventListener('click', this.onAutoToggle);
     this.dom.autoIntervalInput?.addEventListener('change', this.onIntervalChange);
+    this.dom.randomizeBtn?.addEventListener('click', this.onRandomizeZones);
 
     this.listenersAttached = true;
   }
@@ -220,6 +225,7 @@ class FlatTireControlController {
     this.dom.tableBody?.removeEventListener('change', this.onZoneSelectChange);
     this.dom.autoToggleBtn?.removeEventListener('click', this.onAutoToggle);
     this.dom.autoIntervalInput?.removeEventListener('change', this.onIntervalChange);
+    this.dom.randomizeBtn?.removeEventListener('click', this.onRandomizeZones);
 
     this.listenersAttached = false;
   }
@@ -452,6 +458,11 @@ class FlatTireControlController {
     }
   }
 
+  async onRandomizeZones(event) {
+    event?.preventDefault?.();
+    await this.randomizeAssignedZones();
+  }
+
   startAutoScheduler() {
     if (this.autoScheduler.running) return;
     const intervalMinutes = parseInt(this.dom.autoIntervalInput?.value || `${this.config.autoIntervalMinutes}`, 10);
@@ -477,6 +488,47 @@ class FlatTireControlController {
     this.dom.autoToggleBtn.textContent = '▶️ Start Auto Schedule';
     this.dom.autoToggleBtn.classList.remove(styles.primaryBtn);
     this.dom.autoToggleBtn.classList.add(styles.secondaryBtn);
+  }
+
+  async randomizeAssignedZones() {
+    const button = this.dom.randomizeBtn;
+    const teams = Array.isArray(this.activeTeams) ? [...this.activeTeams] : [];
+    if (!teams.length) {
+      alert('No teams available to randomize.');
+      return;
+    }
+
+    const availableZones = ZONE_KEYS.filter((key) => {
+      const zone = this.config.zones[key];
+      return zone && typeof zone.gps === 'string' && zone.gps.trim();
+    });
+    if (!availableZones.length) {
+      alert('Configure at least one tow zone with GPS before randomizing assignments.');
+      return;
+    }
+
+    if (button) button.disabled = true;
+
+    try {
+      const shuffledZones = availableZones.slice();
+      for (let i = shuffledZones.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledZones[i], shuffledZones[j]] = [shuffledZones[j], shuffledZones[i]];
+      }
+
+      const operations = teams.map((teamName, index) => {
+        const zoneKey = shuffledZones[index % shuffledZones.length];
+        return this.assignTeam(teamName, zoneKey, { cause: 'randomize' });
+      });
+
+      await Promise.allSettled(operations);
+      this.renderRows(true);
+    } catch (err) {
+      console.error('❌ Flat Tire randomize failed:', err);
+      alert('Failed to randomize tow zones. Check console for details.');
+    } finally {
+      if (button) button.disabled = false;
+    }
   }
 
   runAutoCycle() {
@@ -576,6 +628,16 @@ class FlatTireControlController {
   renderRows(forceFullRender = false) {
     const body = this.dom.tableBody;
     if (!body) return;
+
+    const hasTeams = this.activeTeams.length > 0;
+    const hasZonesConfigured = ZONE_KEYS.some((key) => {
+      const zone = this.config.zones[key];
+      return zone && typeof zone.gps === 'string' && zone.gps.trim();
+    });
+
+    if (this.dom.randomizeBtn) {
+      this.dom.randomizeBtn.disabled = !(hasTeams && hasZonesConfigured);
+    }
 
     if (!this.activeTeams.length) {
       body.innerHTML = `
