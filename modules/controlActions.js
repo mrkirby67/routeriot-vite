@@ -18,6 +18,7 @@ import {
 import { db } from './config.js';
 import { showFlashMessage } from './gameUI.js';
 import { clearAllTeamSurprises } from './teamSurpriseManager.js';
+import { allTeams } from '../data.js';
 
 const GAME_STATE_REF = doc(db, "game", "gameState");
 
@@ -179,23 +180,26 @@ export async function applyWildCardsToAllTeams(count) {
     ? Math.floor(Number(count))
     : 0;
 
-  const teamStatusSnap = await getDocs(collection(db, "teamStatus"));
+  const batch = writeBatch(db);
+  const surprisesCollection = collection(db, 'teamSurprises');
+  const teamStatusCollection = collection(db, 'teamStatus');
 
-  const statusUpdates = teamStatusSnap.docs.map((docSnap) =>
-    updateDoc(docSnap.ref, {
+  allTeams.forEach(team => {
+    const teamName = team.name;
+
+    // Update teamStatus document
+    const statusRef = doc(teamStatusCollection, teamName);
+    batch.set(statusRef, {
       wildCards: target,
       flatTireCount: target,
       bugSplatCount: target,
       shieldWaxCount: target,
-    })
-  );
+    }, { merge: true });
 
-  const surprisesCollection = collection(db, 'teamSurprises');
-  const surpriseUpdates = teamStatusSnap.docs.map((docSnap) => {
-    const teamId = docSnap.id || '';
-    const sanitizedId = teamId.replace(/[\\/#?]/g, '_');
-    const ref = doc(surprisesCollection, sanitizedId);
-    return setDoc(ref, {
+    // Update teamSurprises document
+    const sanitizedId = teamName.replace(/[\\/#?]/g, '_');
+    const surpriseRef = doc(surprisesCollection, sanitizedId);
+    batch.set(surpriseRef, {
       counts: {
         flatTire: target,
         bugSplat: target,
@@ -205,10 +209,10 @@ export async function applyWildCardsToAllTeams(count) {
     }, { merge: true });
   });
 
-  await Promise.all([...statusUpdates, ...surpriseUpdates]);
+  await batch.commit();
 
   showFlashMessage(`🃏 Wild cards set to ${target} for all teams.`, '#512da8', 2500);
-  console.log(`🃏 Wild cards set to ${target} for ${teamStatusSnap.size} teamStatus docs.`);
+  console.log(`🃏 Wild cards set to ${target} for ${allTeams.length} teams.`);
   return target;
 }
 
