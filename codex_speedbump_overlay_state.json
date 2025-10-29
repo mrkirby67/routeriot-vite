@@ -1,0 +1,13 @@
+{
+  "lastAssignments": [],
+  "schema": {
+    "id": "string",
+    "attacker": "string",
+    "challenge": "string",
+    "chirp": "string|optional",
+    "status": "active|released|expired",
+    "timestamp": "number (ms since epoch)",
+    "expiresAt": "number|firestoreTimestamp",
+    "countdownMs": "number"
+  }
+}

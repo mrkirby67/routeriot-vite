@@ -11,7 +11,8 @@ import {
   subscribeSurprisesForTeam,
   isShieldActive
 } from '../teamSurpriseManager.js';
-import { attachSpeedBumpAttackerSubscription } from './playerChat.surprises.js';
+import { subscribeSpeedBumpsForAttacker } from '../speedBump/index.js';
+import { updateSpeedBumpOverlay } from '../playerUI/overlays/speedBumpOverlay.js';
 
 const defaultCounts = Object.freeze({
   flatTire: 0,
@@ -20,6 +21,7 @@ const defaultCounts = Object.freeze({
 });
 
 let latestPlayerCounts = { ...defaultCounts };
+let unsubscribeSpeedBump = null;
 
 export function getLatestPlayerSurpriseCounts() {
   return { ...latestPlayerCounts };
@@ -96,15 +98,10 @@ export function setupPlayerChat(teamName, options = {}) {
   });
 
   // --- Subscribe to outgoing speed bumps for this team ---
-  const unsubscribeOutgoing = attachSpeedBumpAttackerSubscription(normalizedTeamName, (entries = []) => {
+  initSpeedBumpListeners(normalizedTeamName, (entries = []) => {
     ui.renderOutgoing?.(Array.isArray(entries) ? entries : []);
   });
-  registerListener('player', unsubscribeOutgoing);
-  teardownCallbacks.push(() => {
-    try { unsubscribeOutgoing?.(); } catch (err) {
-      console.debug('⚠️ Failed to detach speed bump listener:', err);
-    }
-  });
+  teardownCallbacks.push(() => teardownSpeedBumpListeners());
 
   // --- Player message feed ---
   const logEl = document.getElementById('team-chat-log');
@@ -131,4 +128,35 @@ export function setupPlayerChat(teamName, options = {}) {
     teamName: normalizedTeamName,
     teardown
   };
+}
+export function initSpeedBumpListeners(teamName, onUpdate) {
+  const normalized = typeof teamName === 'string' ? teamName.trim() : '';
+  if (!normalized) return;
+
+  if (typeof unsubscribeSpeedBump === 'function') {
+    unsubscribeSpeedBump();
+    unsubscribeSpeedBump = null;
+  }
+
+  unsubscribeSpeedBump = subscribeSpeedBumpsForAttacker(normalized, (assignments = []) => {
+    console.log(`🎯 [SpeedBump][Attacker] snapshot for ${normalized}:`, assignments);
+    updateSpeedBumpOverlay(assignments);
+    try {
+      onUpdate?.(assignments);
+    } catch (err) {
+      console.warn('[SpeedBump][Attacker] render callback failed:', err);
+    }
+  });
+}
+
+export function teardownSpeedBumpListeners() {
+  if (typeof unsubscribeSpeedBump === 'function') {
+    try {
+      unsubscribeSpeedBump();
+      console.log('[SpeedBump][Attacker] Listener detached');
+    } catch (err) {
+      console.debug('[SpeedBump][Attacker] detach error:', err);
+    }
+  }
+  unsubscribeSpeedBump = null;
 }

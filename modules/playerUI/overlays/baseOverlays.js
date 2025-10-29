@@ -3,6 +3,25 @@
 // ============================================================================
 import { startConfetti, stopConfetti } from './confetti.js';
 
+function resolveOverlayElement(type) {
+  const key = typeof type === 'string' ? type.toLowerCase() : String(type || '');
+  return document.getElementById(`${key}-overlay`);
+}
+
+export function showOverlay(type) {
+  const el = resolveOverlayElement(type);
+  if (el) {
+    el.style.display = 'flex';
+  }
+}
+
+export function hideOverlay(type) {
+  const el = resolveOverlayElement(type);
+  if (el) {
+    el.style.display = 'none';
+  }
+}
+
 export function showPausedOverlay() {
   const existing = document.getElementById('paused-overlay');
   if (existing) return;

@@ -17,7 +17,6 @@ import {
   isTeamOnCooldown
 } from '../teamSurpriseManager.js';
 import { sendPrivateSystemMessage } from './messageService.js';
-import { subscribeSpeedBumpsForAttacker } from '../speedBump/index.js';
 
 const COMMUNICATIONS_REF = collection(db, 'communications');
 
@@ -198,27 +197,4 @@ export async function handleUseSurprise({
     default:
       throw new Error('Unsupported surprise type.');
   }
-}
-
-export function attachSpeedBumpAttackerSubscription(teamName, onUpdate) {
-  const normalizedTeam = normalizeTeamName(teamName);
-  if (!normalizedTeam) return () => {};
-
-  console.info('[SpeedBump][Attacker] Listener attached for', normalizedTeam);
-  const unsubscribe = subscribeSpeedBumpsForAttacker(normalizedTeam, (entries = []) => {
-    try {
-      onUpdate?.(Array.isArray(entries) ? entries : []);
-    } catch (err) {
-      console.warn('⚠️ [SpeedBump][Attacker] update handler failed:', err);
-    }
-  });
-
-  return (reason = 'manual') => {
-    try {
-      unsubscribe?.();
-    } catch (err) {
-      console.debug('⚠️ [SpeedBump][Attacker] failed to detach listener:', err);
-    }
-    console.info('[SpeedBump][Attacker] Listener detached for', normalizedTeam, `(${reason})`);
-  };
 }

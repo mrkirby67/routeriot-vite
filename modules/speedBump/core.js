@@ -20,6 +20,7 @@ export function buildSpeedBumpRecord({ by, toTeam, countdownMs = 60_000, ...extr
     status: SPEEDBUMP_STATUS.active,
     countdownMs: safeCountdown,
     createdAt: now,
+    timestamp: now,
     expiresAt: now + safeCountdown,
     ...extras
   };

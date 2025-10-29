@@ -76,7 +76,6 @@ export async function sendSpeedBump(attackerTeam, targetTeam, durationMs = 60_00
       toTeam: normalizedTarget,
       countdownMs: durationMs
     }),
-    attacker: normalizedAttacker,
     challenge,
     details: challenge,
     lastUpdatedAt: Date.now(),
@@ -197,63 +196,45 @@ export function subscribeSpeedBumps(arg1, arg2) {
   });
 }
 
-export function subscribeSpeedBumpsForAttacker(attackerTeam, callback) {
-  if (!attackerTeam || typeof callback !== 'function') return () => {};
-  const normalizedTeam = attackerTeam.trim();
-  if (!normalizedTeam) return () => {};
+export function subscribeSpeedBumpsForAttacker(teamName, onUpdate) {
+  const normalizedTeam = typeof teamName === 'string' ? teamName.trim() : '';
+  if (!normalizedTeam || typeof onUpdate !== 'function') return () => {};
 
-  let overlayAnnounced = false;
-
-  const handleAttackerUpdate = (snap) => {
-    const list = [];
+  const consumeSnapshot = (snap) => {
+    const data = [];
     snap?.forEach((docSnap) => {
-      const payload = docSnap.data() || {};
-      list.push({ id: docSnap.id, ...payload });
+      data.push({ id: docSnap.id, ...docSnap.data() });
     });
-    callback(list);
-
-    if (typeof window !== 'undefined' && typeof window.updateSpeedBumpOverlay === 'function') {
-      try {
-        window.updateSpeedBumpOverlay(normalizedTeam, list);
-        if (!overlayAnnounced) {
-          console.info(`🧩 Overlay sync established for Team ${normalizedTeam}`);
-          overlayAnnounced = true;
-        }
-      } catch (err) {
-        console.warn('[SpeedBump] Failed to sync overlay for attacker:', err);
-      }
-    }
+    console.debug(`[SpeedBump][Attacker] Snapshot for ${normalizedTeam}`, data);
+    onUpdate(data);
   };
 
+  const ref = collection(db, SPEEDBUMP_COLLECTION);
+
   try {
-    const q = query(
-      collection(db, SPEEDBUMP_COLLECTION),
-      where('attacker', '==', normalizedTeam),
-      orderBy('createdAt', 'desc'),
-      limit(20)
+    const orderedQuery = query(ref, where('attacker', '==', normalizedTeam), orderBy('timestamp', 'desc'));
+    console.info('[SpeedBump][Attacker] Listener attached for', normalizedTeam);
+
+    let unsubscribe = onSnapshot(
+      orderedQuery,
+      consumeSnapshot,
+      (err) => {
+        console.error('[SpeedBump][Attacker] Error:', err);
+        console.warn('⚠️ Retrying SpeedBump subscription without orderBy.');
+        unsubscribe?.();
+        const fallbackQuery = query(ref, where('attacker', '==', normalizedTeam));
+        unsubscribe = onSnapshot(fallbackQuery, consumeSnapshot);
+      }
     );
 
-    const unsubscribe = onSnapshot(q, handleAttackerUpdate, (err) => {
-      console.error('[SpeedBump] subscribeSpeedBumpsForAttacker error:', err);
-      if (err?.code === 'failed-precondition') {
-        console.warn('⚠️ Firestore index mismatch. Skipping redundant query.');
-      }
-      callback([]);
-    });
-
-    console.info(`✅ [SpeedBump][Attacker] subscription attached successfully for ${normalizedTeam}`);
-
     return () => {
-      try { unsubscribe?.(); } catch (err) {
-        console.debug('[SpeedBump] Failed to detach attacker subscription:', err);
-      }
+      unsubscribe?.();
     };
   } catch (err) {
-    console.error('[SpeedBump] Attacker subscription error:', err);
-    if (err?.code === 'failed-precondition') {
-      console.warn('⚠️ Firestore index mismatch. Skipping redundant query.');
-    }
-    return () => {};
+    console.error('[SpeedBump][Attacker] Error:', err);
+    console.warn('⚠️ Retrying SpeedBump subscription without orderBy.');
+    const fallbackQuery = query(ref, where('attacker', '==', normalizedTeam));
+    return onSnapshot(fallbackQuery, consumeSnapshot);
   }
 }
 
