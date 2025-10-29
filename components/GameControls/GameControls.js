@@ -19,7 +19,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { listenToGameTimer, clearElapsedTimer } from '../../modules/gameTimer.js';
-import { startGame as startGameState, pauseGame, resumeGame } from '../../modules/gameStateManager.js';
+import {
+  startGame as startGameState,
+  pauseGame,
+  resumeGame,
+  listenForGameStatus
+} from '../../modules/gameStateManager.js';
 import {
   clearChatsAndScores
 } from '../../modules/gameMaintenance.js'; // 🧹 new imports
@@ -205,6 +210,22 @@ export function initializeGameControlsLogic() {
   const rulesDocRef = doc(db, 'settings', 'rules');
 
   listenToGameTimer();
+  listenForGameStatus((state) => {
+    const status = state?.status || 'waiting';
+    const shouldDisableStart = status === 'active' || status === 'paused';
+    if (startBtn) {
+      startBtn.disabled = shouldDisableStart;
+      startBtn.setAttribute('aria-disabled', String(shouldDisableStart));
+    }
+
+    if (pauseBtn) {
+      if (status === 'paused') {
+        pauseBtn.textContent = '▶️ Resume Game';
+      } else if (status === 'active') {
+        pauseBtn.textContent = '⏸️ Pause Game';
+      }
+    }
+  });
 
   // 📜 Toggle rules
   rulesBtn.addEventListener('click', () => {

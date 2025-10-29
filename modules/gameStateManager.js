@@ -25,6 +25,7 @@ import {
   startCountdownTimer,
   clearElapsedTimer,
 } from './gameUI.js';
+import { handleStatusChange } from './gameTimer.js';
 
 let cachedGameState = null;
 
@@ -139,6 +140,7 @@ export function deriveRemainingMs(snapshotData) {
 const gameStateRef = doc(db, "game", "gameState");
 let countdownShown = false;
 const gameStateListeners = new Set();
+let lastKnownStatus = null;
 
 // ---------------------------------------------------------------------------
 // 🔹 Initialize / Set Game State
@@ -300,13 +302,15 @@ export async function resumeGame() {
     if (remainingMs < minimumResumeWindow) {
       remainingMs = minimumResumeWindow;
     }
+    const resumeMarker = serverTimestamp();
     const newEndTime = Timestamp.fromMillis(Date.now() + remainingMs);
 
     await updateDoc(gameStateRef, {
       status: 'active',
+      resumedAt: resumeMarker,
       endTime: newEndTime,
       remainingMs: null,
-      updatedAt: serverTimestamp(),
+      updatedAt: resumeMarker,
     });
 
     console.log(`▶️ Game resumed (ends at ${newEndTime.toDate().toLocaleTimeString()})`);
@@ -376,24 +380,51 @@ function handleGameStateUpdate({
 // ---------------------------------------------------------------------------
 export function listenForGameStatus(callback) {
   const unsub = onSnapshot(gameStateRef, (docSnap) => {
+    const fallbackState = {
+      status: 'waiting',
+      zonesReleased: false,
+      startTime: null,
+      endTime: null,
+      durationMinutes: null,
+      remainingMs: null,
+    };
+
     if (!docSnap.exists()) {
-      const defaultState = {
-        status: 'waiting',
-        zonesReleased: false,
-        startTime: null,
-        endTime: null,
-        durationMinutes: null,
-        remainingMs: null,
-      };
-      handleGameStateUpdate(defaultState);
-      publishStateDiagnostics(defaultState);
-      callback?.(defaultState);
+      if (lastKnownStatus !== fallbackState.status) {
+        try {
+          handleStatusChange?.(lastKnownStatus, fallbackState.status, fallbackState);
+        } catch (err) {
+          console.warn('[GameState] handleStatusChange failed for default state:', err);
+        }
+        lastKnownStatus = fallbackState.status;
+      }
+      handleGameStateUpdate(fallbackState);
+      publishStateDiagnostics(fallbackState);
+      callback?.(fallbackState);
       return;
     }
 
     const data = docSnap.data();
+    const nextStatus = data?.status || 'waiting';
+
+    if (lastKnownStatus !== nextStatus) {
+      try {
+        handleStatusChange?.(lastKnownStatus, nextStatus, data);
+      } catch (err) {
+        console.warn('[GameState] handleStatusChange failed for snapshot:', err);
+      }
+      if (typeof window !== 'undefined' && lastKnownStatus === 'paused' && nextStatus === 'active') {
+        try {
+          window.dispatchEvent?.(new Event('gameResumed'));
+        } catch (err) {
+          console.warn('[GameState] Failed to emit gameResumed event:', err);
+        }
+      }
+      lastKnownStatus = nextStatus;
+    }
+
     const state = {
-      status: data.status || 'waiting',
+      status: nextStatus,
       zonesReleased: !!data.zonesReleased,
       startTime: data.startTime || null,
       endTime: data.endTime || null,

@@ -38,6 +38,56 @@ function formatTime(ms) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+function normalizeTimestamp(ts) {
+  if (ts && typeof ts.toMillis === 'function') {
+    const millis = ts.toMillis();
+    return Number.isFinite(millis) ? millis : null;
+  }
+  if (ts instanceof Date) {
+    const millis = ts.getTime();
+    return Number.isFinite(millis) ? millis : null;
+  }
+  if (typeof ts === 'string') {
+    const parsed = Date.parse(ts);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  if (typeof ts === 'number' && Number.isFinite(ts)) {
+    return ts;
+  }
+  return null;
+}
+
+function deriveRemainingMs(snapshotData) {
+  const explicit = typeof snapshotData?.remainingMs === 'number'
+    ? Math.max(0, snapshotData.remainingMs)
+    : null;
+  if (Number.isFinite(explicit) && explicit > 0) {
+    return explicit;
+  }
+  const endTimeMs = normalizeTimestamp(snapshotData?.endTime);
+  if (Number.isFinite(endTimeMs)) {
+    const diff = endTimeMs - Date.now();
+    return diff > 0 ? diff : 0;
+  }
+  if (snapshotData?.startTime && snapshotData?.durationMinutes) {
+    const startMs = normalizeTimestamp(snapshotData.startTime);
+    if (Number.isFinite(startMs)) {
+      const computed = startMs + snapshotData.durationMinutes * 60_000 - Date.now();
+      return computed > 0 ? computed : 0;
+    }
+  }
+  return 0;
+}
+
+function updateTimerDisplay(remainingMs, display = getTimerDisplay()) {
+  if (!display) return;
+  if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+    display.textContent = '00:00:00';
+    return;
+  }
+  display.textContent = formatTime(remainingMs);
+}
+
 // ---------------------------------------------------------------------------
 // 🕒 Draw the remaining time continuously
 // ---------------------------------------------------------------------------
@@ -64,13 +114,13 @@ function startCountdownTimer(endMs, displaySelector) {
     currentRemainingMs = remaining;
     publishTimerState();
     if (remaining <= 0) {
-      display.textContent = '00:00:00';
+      updateTimerDisplay(0, display);
       clearElapsedTimer();
       currentRemainingMs = 0;
       publishTimerState();
       return;
     }
-    display.textContent = formatTime(remaining);
+    updateTimerDisplay(remaining, display);
   };
 
   update();
@@ -156,6 +206,38 @@ export async function resumeGameTimer() {
     console.log(`▶️ Resumed — new endTime = ${newEndTime.toDate().toLocaleTimeString()}`);
   } catch (err) {
     console.error('❌ resumeGameTimer error:', err);
+  }
+}
+
+function rebuildTimer(snapshotData) {
+  const remainingMs = deriveRemainingMs(snapshotData);
+  if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+    console.warn('[GameTimer] No remaining time detected while rebuilding timer.');
+    clearElapsedTimer();
+    return;
+  }
+
+  const display = getTimerDisplay();
+  const endMs = Date.now() + remainingMs;
+
+  updateTimerDisplay(remainingMs, display);
+  startCountdownTimer(endMs);
+
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent?.(new CustomEvent('overlay:resume', {
+        detail: { remainingMs, resumedAt: Date.now() }
+      }));
+    } catch (err) {
+      console.warn('[GameTimer] Failed to emit overlay resume event:', err);
+    }
+  }
+}
+
+export function handleStatusChange(prevStatus, newStatus, snapshotData) {
+  if (prevStatus === 'paused' && newStatus === 'active') {
+    console.debug('[GameTimer] Resuming countdown...');
+    rebuildTimer(snapshotData);
   }
 }
 

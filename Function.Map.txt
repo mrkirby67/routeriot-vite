@@ -60,6 +60,7 @@
  - modules/controlUI.js
  - modules/diagnostics_flatTireZones.js
  - modules/emailTeams.js
+ - modules/firestoreIntegrity.js
  - modules/flatTireManager.js
  - modules/flatTireUI.js
  - modules/flatTire_fixGPS.js

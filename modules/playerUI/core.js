@@ -6,6 +6,7 @@
 import { db } from '../config.js';
 import { allTeams } from '../../data.js';
 import { getZoneDisplayName } from '../zoneManager.js';
+import { hidePausedOverlay, showResumeBanner } from './overlays.js';
 import {
   collection,
   doc,
@@ -32,6 +33,15 @@ function fmtTime(ts) {
     if (typeof ts === 'number') return new Date(ts).toLocaleTimeString();
   } catch {}
   return '';
+}
+
+function formatCountdown(ms) {
+  if (!Number.isFinite(ms)) return '--:--:--';
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 export function updatePlayerTimer(text) {
@@ -158,4 +168,38 @@ export function initializePlayerUI(teamInput) {
       }
     });
   }
+}
+
+function startLocalTimer() {
+  if (typeof window === 'undefined') return;
+
+  const timerState = window.__rrTimerState || {};
+  const gameState = window.__rrGameState || {};
+
+  let endMs = Number.isFinite(timerState.endTime) ? timerState.endTime : null;
+  if (!Number.isFinite(endMs) && typeof timerState.remainingMs === 'number') {
+    endMs = Date.now() + timerState.remainingMs;
+  }
+
+  if (!Number.isFinite(endMs) && gameState?.endTime && typeof gameState.endTime.toMillis === 'function') {
+    endMs = gameState.endTime.toMillis();
+  } else if (!Number.isFinite(endMs) && typeof gameState?.endTime === 'number') {
+    endMs = gameState.endTime;
+  }
+
+  if (!Number.isFinite(endMs) && typeof gameState?.remainingMs === 'number') {
+    endMs = Date.now() + gameState.remainingMs;
+  }
+
+  if (!Number.isFinite(endMs)) return;
+  const remaining = Math.max(0, endMs - Date.now());
+  updatePlayerTimer(formatCountdown(remaining));
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('gameResumed', () => {
+    hidePausedOverlay();
+    showResumeBanner();
+    startLocalTimer();
+  });
 }
