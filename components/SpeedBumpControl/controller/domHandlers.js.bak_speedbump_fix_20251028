@@ -6,6 +6,7 @@ import { escapeHtml } from '../../../modules/utils.js';
 import {
   getActiveBump,
   getCooldownRemaining,
+  sendSpeedBump,
   releaseSpeedBump
 } from '../../../modules/speedBump/index.js';
 

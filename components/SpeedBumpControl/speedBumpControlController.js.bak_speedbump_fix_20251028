@@ -140,7 +140,7 @@ export class SpeedBumpControlController {
 
     const challenge = (this.promptByTeam.get(team) || '').trim();
     if (!challenge) return alert('⚠️ No prompt for this team.');
-    await sendSpeedBump('Control', team, 60_000, { challenge, override: true });
+    await sendSpeedBump('Control', team, challenge, { override: true });
     updateRow(this, team);
   }
 

@@ -3,27 +3,6 @@
 // ============================================================================
 import { allTeams } from '../../data.js';
 
-export const SPEEDBUMP_COLLECTION = 'speedBumpAssignments';
-export const SPEEDBUMP_STATUS = Object.freeze({
-  active: 'active',
-  released: 'released',
-  expired: 'expired'
-});
-
-export function buildSpeedBumpRecord({ by, toTeam, countdownMs = 60_000, ...extras }) {
-  const now = Date.now();
-  const safeCountdown = Number.isFinite(countdownMs) && countdownMs > 0 ? countdownMs : 60_000;
-  return {
-    by,
-    toTeam,
-    status: SPEEDBUMP_STATUS.active,
-    countdownMs: safeCountdown,
-    createdAt: now,
-    expiresAt: now + safeCountdown,
-    ...extras
-  };
-}
-
 export const TEAM_DIRECTORY = new Map(
   Array.isArray(allTeams) ? allTeams.map(t => [String(t?.name || '').trim(), t]) : []
 );

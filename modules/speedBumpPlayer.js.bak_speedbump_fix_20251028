@@ -24,7 +24,7 @@ let unsubscribe = null;
 export function initializeSpeedBumpPlayer(teamName) {
   currentTeamName = teamName;
   unsubscribe?.();
-  unsubscribe = subscribeSpeedBumps(teamName, handleStateUpdate);
+  unsubscribe = subscribeSpeedBumps(handleStateUpdate);
   handleStateUpdate();
   return (reason = 'manual') => {
     unsubscribe?.();
