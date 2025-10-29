@@ -286,31 +286,28 @@ export async function resumeGame() {
     if (!snap.exists()) throw new Error("Game state not found");
     const data = snap.data();
 
-    let remainingMs = deriveRemainingMs(data);
-    if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
-      const stored = typeof data.remainingMs === 'number' ? data.remainingMs : null;
-      if (Number.isFinite(stored) && stored > 0) {
-        remainingMs = stored;
-      }
-    }
+    // **FIX:** Directly use the stored remainingMs from the paused state.
+    let remainingMs = data.remainingMs;
+
     if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
       console.warn('resumeGame() aborted — no remaining time detected. Use start to launch a new game.');
       return;
     }
+
     remainingMs = Math.round(remainingMs);
     const minimumResumeWindow = 1_000;
     if (remainingMs < minimumResumeWindow) {
       remainingMs = minimumResumeWindow;
     }
-    const resumeMarker = serverTimestamp();
+    
     const newEndTime = Timestamp.fromMillis(Date.now() + remainingMs);
 
     await updateDoc(gameStateRef, {
       status: 'active',
-      resumedAt: resumeMarker,
+      resumedAt: serverTimestamp(),
       endTime: newEndTime,
-      remainingMs: null,
-      updatedAt: resumeMarker,
+      remainingMs: null, // Clear the remainingMs field
+      updatedAt: serverTimestamp(),
     });
 
     console.log(`▶️ Game resumed (ends at ${newEndTime.toDate().toLocaleTimeString()})`);
