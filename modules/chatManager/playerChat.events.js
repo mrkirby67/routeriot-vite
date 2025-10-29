@@ -54,7 +54,7 @@ export function registerChatEventHandlers(teamName) {
       }, 1200);
     } catch (err) {
       console.error('❌ Surprise dispatch failed:', err);
-      trigger.textContent = 'Failed';
+      trigger.textContent = err.message || 'Failed';
       window.setTimeout(() => {
         trigger.textContent = originalLabel;
         trigger.disabled = false;

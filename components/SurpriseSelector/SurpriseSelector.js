@@ -10,12 +10,10 @@ import {
   increment,
   decrement,
   SurpriseTypes,
-  getShieldTimeRemaining
+  subscribeAllCooldowns, // New
 } from '../../modules/teamSurpriseManager.js';
 import { escapeHtml } from '../../modules/utils.js';
 import { applyWildCardsToAllTeams } from '../../modules/controlActions.js';
-import { db } from '../../modules/config.js';
-import { doc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const TYPE_CONFIG = [
   { key: SurpriseTypes.FLAT_TIRE, label: 'Flat Tire' },
@@ -23,13 +21,10 @@ const TYPE_CONFIG = [
   { key: SurpriseTypes.WILD_CARD, label: 'Super SHIELD Wax' }
 ];
 
-const STATUS_FIELD_MAP = {
-  [SurpriseTypes.FLAT_TIRE]: 'flatTireCount',
-  [SurpriseTypes.BUG_SPLAT]: 'bugSplatCount',
-  [SurpriseTypes.WILD_CARD]: 'shieldWaxCount'
-};
+const COOLDOWN_DURATION_STORAGE_KEY = 'cooldownDuration';
 
 let cleanupHandle = null;
+let activeCooldowns = {}; // Local cache for cooldowns
 
 export function SurpriseSelectorComponent() {
   return `
@@ -39,9 +34,20 @@ export function SurpriseSelectorComponent() {
         Monitor and adjust each team’s surprise inventory in real time.
       </p>
       <div class="${styles.masterControls}">
-        <label for="wildcard-dashboard-input">Set All Wild Cards to:</label>
-        <input id="wildcard-dashboard-input" type="number" min="0" value="1">
-        <button type="button" id="wildcard-dashboard-apply">Apply to All Teams</button>
+        <div>
+          <label for="wildcard-dashboard-input">Set All Wild Cards to:</label>
+          <input id="wildcard-dashboard-input" type="number" min="0" value="1">
+          <button type="button" id="wildcard-dashboard-apply">Apply to All Teams</button>
+        </div>
+        <div class="${styles.cooldownControl}">
+          <label for="cooldown-duration-select">Global Cooldown:</label>
+          <select id="cooldown-duration-select">
+            <option value="5">5 Minutes</option>
+            <option value="10">10 Minutes</option>
+            <option value="15">15 Minutes</option>
+            <option value="20">20 Minutes</option>
+          </select>
+        </div>
       </div>
       <table class="${styles.surpriseTable}">
         <thead>
@@ -50,7 +56,7 @@ export function SurpriseSelectorComponent() {
             <th>Flat Tire</th>
             <th>Bug Splat</th>
             <th>Super SHIELD Wax</th>
-            <th>Shield Timer</th>
+            <th>Cooldown Timer</th>
           </tr>
         </thead>
         <tbody id="surprise-table-body"></tbody>
@@ -68,12 +74,11 @@ export function initializeSurpriseSelector() {
     return () => {};
   }
 
+  // Master controls for setting all wildcards
   const masterInput = document.getElementById('wildcard-dashboard-input');
   const masterApplyBtn = document.getElementById('wildcard-dashboard-apply');
-  let masterApplyHandler = null;
-
   if (masterInput && masterApplyBtn) {
-    masterApplyHandler = async () => {
+    masterApplyBtn.addEventListener('click', async () => {
       const raw = Number.parseInt(masterInput.value, 10);
       if (!Number.isFinite(raw) || raw < 0) {
         alert('Please enter a non-negative number.');
@@ -90,36 +95,47 @@ export function initializeSurpriseSelector() {
       } finally {
         masterApplyBtn.disabled = false;
       }
-    };
-    masterApplyBtn.addEventListener('click', masterApplyHandler);
+    });
+  }
+
+  // Cooldown duration control
+  const cooldownSelect = document.getElementById('cooldown-duration-select');
+  if (cooldownSelect) {
+    const savedDuration = localStorage.getItem(COOLDOWN_DURATION_STORAGE_KEY) || '5';
+    cooldownSelect.value = savedDuration;
+    cooldownSelect.addEventListener('change', () => {
+      localStorage.setItem(COOLDOWN_DURATION_STORAGE_KEY, cooldownSelect.value);
+    });
   }
 
   const handleClick = createClickHandler();
   tbody.addEventListener('click', handleClick);
 
-  const unsubscribe = subscribeTeamSurprises((entries = [], byTeam = {}) => {
+  const unsubscribeSurprises = subscribeTeamSurprises((entries = [], byTeam = {}) => {
     const teamCounts = buildTeamCounts(entries, byTeam);
     renderTable(tbody, teamCounts);
   });
 
+  const unsubscribeCooldowns = subscribeAllCooldowns((cooldowns) => {
+    activeCooldowns = cooldowns;
+    refreshCooldownTimers(tbody);
+  });
+
   const timerId = window.setInterval(() => {
-    refreshShieldTimers(tbody);
+    refreshCooldownTimers(tbody);
   }, 1000);
 
   cleanupHandle = (reason = 'manual') => {
-    unsubscribe?.();
+    unsubscribeSurprises?.();
+    unsubscribeCooldowns?.();
     tbody.removeEventListener('click', handleClick);
     clearInterval(timerId);
-    if (masterApplyBtn && masterApplyHandler) {
-      masterApplyBtn.removeEventListener('click', masterApplyHandler);
-    }
     cleanupHandle = null;
     console.info(`🧹 [SurpriseSelector] cleaned up (${reason})`);
   };
 
-  // Initial render so the table isn't empty while waiting for Firestore
   renderTable(tbody, new Map());
-  refreshShieldTimers(tbody);
+  refreshCooldownTimers(tbody);
 
   return cleanupHandle;
 }
@@ -156,7 +172,6 @@ function createClickHandler() {
       } else {
         await decrement(team, type);
       }
-      await syncTeamStatusCount(team, type, next);
     } catch (err) {
       if (valueSpan) valueSpan.textContent = String(current);
       console.error(`❌ Failed to ${action} surprise for ${team}/${type}:`, err);
@@ -189,8 +204,6 @@ function renderTable(tbody, countsMap) {
     row.dataset.team = team.name;
 
     const counts = countsMap.get(team.name) || {};
-    const flat = normalizeCount(counts[SurpriseTypes.FLAT_TIRE] ?? counts.flatTire);
-    const bug = normalizeCount(counts[SurpriseTypes.BUG_SPLAT] ?? counts.bugSplat);
     const shield = normalizeCount(counts[SurpriseTypes.WILD_CARD] ?? counts.superShieldWax ?? counts.wildCard);
 
     const hasShieldStock = shield > 0;
@@ -202,7 +215,7 @@ function renderTable(tbody, countsMap) {
         <small>${escapeHtml(team.slogan || '')}</small>
       </td>
       ${TYPE_CONFIG.map(cfg => renderCounterCell(team.name, cfg.key, counts)).join('')}
-      <td data-role="shield-timer">${renderShieldTimer(team.name)}</td>
+      <td data-role="cooldown-timer">${renderCooldownTimer(team.name)}</td>
     `;
 
     fragment.appendChild(row);
@@ -230,31 +243,31 @@ function renderCounterCell(teamName, typeKey, counts) {
   `;
 }
 
-function renderShieldTimer(teamName) {
-  const remaining = getShieldTimeRemaining(teamName);
+function renderCooldownTimer(teamName) {
+  const expiresAt = activeCooldowns[teamName] || 0;
+  const remaining = Math.max(0, expiresAt - Date.now());
+
   if (remaining > 0) {
     const seconds = Math.ceil(remaining / 1000);
-    return `<span class="${styles.activeShield}">🛡️ ${seconds}s</span>`;
+    return `<span class="${styles.activeCooldown}">⏳ ${seconds}s</span>`;
   }
-  return `<span class="${styles.inactiveShield}">—</span>`;
+  return `<span class="${styles.inactiveCooldown}">—</span>`;
 }
 
-function refreshShieldTimers(tbody) {
+function refreshCooldownTimers(tbody) {
   tbody.querySelectorAll('tr[data-team]').forEach(row => {
     const teamName = row.dataset.team;
-    const cell = row.querySelector('[data-role="shield-timer"]');
+    const cell = row.querySelector('[data-role="cooldown-timer"]');
     if (!teamName || !cell) return;
 
-    const remaining = getShieldTimeRemaining(teamName);
+    const expiresAt = activeCooldowns[teamName] || 0;
+    const remaining = Math.max(0, expiresAt - Date.now());
+
     if (remaining > 0) {
       const seconds = Math.ceil(remaining / 1000);
-      cell.innerHTML = `<span class="${styles.activeShield}">🛡️ ${seconds}s</span>`;
-      row.className = styles.hasStock;
+      cell.innerHTML = `<span class="${styles.activeCooldown}">⏳ ${seconds}s</span>`;
     } else {
-      cell.innerHTML = `<span class="${styles.inactiveShield}">—</span>`;
-      if (!row.classList.contains(styles.hasStock) && !row.classList.contains(styles.noStock)) {
-        row.className = styles.noStock;
-      }
+      cell.innerHTML = `<span class="${styles.inactiveCooldown}">—</span>`;
     }
   });
 }
@@ -262,25 +275,4 @@ function refreshShieldTimers(tbody) {
 function normalizeCount(value) {
   const num = Number(value);
   return Number.isFinite(num) && num >= 0 ? num : 0;
-}
-
-async function syncTeamStatusCount(teamName, typeKey, value) {
-  const field = STATUS_FIELD_MAP[typeKey];
-  if (!field || !teamName) return;
-
-  const safeValue = Math.max(0, Number.parseInt(value, 10) || 0);
-  const ref = doc(db, 'teamStatus', teamName);
-  try {
-    await updateDoc(ref, { [field]: safeValue });
-  } catch (err) {
-    if (err?.code === 'not-found') {
-      try {
-        await setDoc(ref, { [field]: safeValue }, { merge: true });
-      } catch (innerErr) {
-        console.error(`❌ Failed to upsert teamStatus for ${teamName}:`, innerErr);
-      }
-    } else {
-      console.error(`❌ Failed to sync teamStatus ${field} for ${teamName}:`, err);
-    }
-  }
 }

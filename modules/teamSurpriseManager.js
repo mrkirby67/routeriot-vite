@@ -16,12 +16,18 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// ----------------------------------------------------------------------------
+// 🎯 Types
+// ----------------------------------------------------------------------------
 export const SurpriseTypes = Object.freeze({
   FLAT_TIRE: 'flatTire',
   BUG_SPLAT: 'bugSplat',
   WILD_CARD: 'wildCard'
 });
 
+// ----------------------------------------------------------------------------
+/** Shield duration (minutes) is stored in localStorage with a sane default. */
+// ----------------------------------------------------------------------------
 const SHIELD_DURATION_STORAGE_KEY = 'shieldDuration';
 const DEFAULT_SHIELD_MINUTES = 15;
 
@@ -37,7 +43,10 @@ export function getShieldDurationMs() {
   return minutes * 60 * 1000;
 }
 
-export const activeShields = Object.create(null);
+// ----------------------------------------------------------------------------
+// 🛡️ Shield state (client-side cache)
+// ----------------------------------------------------------------------------
+export const activeShields = Object.create(null); // { [teamName]: expiresAtMs }
 
 export function activateShield(teamName, expiresAtMs) {
   if (!teamName) return null;
@@ -65,10 +74,24 @@ export function deactivateShield(teamName) {
   delete activeShields[teamName];
 }
 
+export function getShieldTimeRemaining(teamName) {
+  if (!teamName) return 0;
+  const expiresAt = activeShields[teamName];
+  if (!expiresAt) return 0;
+  if (expiresAt <= Date.now()) {
+    delete activeShields[teamName];
+    return 0;
+  }
+  return expiresAt - Date.now();
+}
+
+// ----------------------------------------------------------------------------
+// 📚 Firestore refs & helpers
+// ----------------------------------------------------------------------------
 const COLLECTION = collection(db, 'teamSurprises');
 
 function teamDocRef(teamName) {
-  return doc(COLLECTION, teamName.replace(/[\\/#?]/g, '_'));
+  return doc(COLLECTION, String(teamName || '').replace(/[\\/#?]/g, '_'));
 }
 
 // ----------------------------------------------------------------------------
@@ -76,12 +99,9 @@ function teamDocRef(teamName) {
 // ----------------------------------------------------------------------------
 export function subscribeTeamSurprises(callback) {
   console.log('🧩 Subscribed to team surprises for UI sync…');
+  // Optional pre-fill hook for local demos
   if (typeof window !== 'undefined' && window?.fakeTeamData && typeof callback === 'function') {
-    try {
-      callback([], window.fakeTeamData);
-    } catch (err) {
-      console.warn('⚠️ team surprise callback (prefill) failed:', err);
-    }
+    try { callback([], window.fakeTeamData); } catch {}
   }
   return onSnapshot(COLLECTION, snapshot => {
     const entries = snapshot.docs.map(docSnap => ({
@@ -90,9 +110,7 @@ export function subscribeTeamSurprises(callback) {
       counts: docSnap.data().counts || {}
     }));
     const byTeam = Object.create(null);
-    entries.forEach(entry => {
-      byTeam[entry.teamName] = entry.counts || {};
-    });
+    entries.forEach(entry => { byTeam[entry.teamName] = entry.counts || {}; });
     callback?.(entries, byTeam);
   });
 }
@@ -133,22 +151,9 @@ export async function getTeamSurpriseCounts(teamName) {
   return snap.exists() ? snap.data().counts || {} : {};
 }
 
+// alias exports
 export const increment = incrementSurprise;
 export const decrement = decrementSurprise;
-
-// ----------------------------------------------------------------------------
-// 🕒 Shield + Timer Utilities
-// ----------------------------------------------------------------------------
-export function getShieldTimeRemaining(teamName) {
-  if (!teamName) return 0;
-  const expiresAt = activeShields[teamName];
-  if (!expiresAt) return 0;
-  if (expiresAt <= Date.now()) {
-    delete activeShields[teamName];
-    return 0;
-  }
-  return expiresAt - Date.now();
-}
 
 // ----------------------------------------------------------------------------
 // 🔥 Live per-team subscription helper
@@ -160,13 +165,13 @@ export function subscribeSurprisesForTeam(teamName, callback) {
     const data = snapshot.exists() ? snapshot.data() || {} : {};
     const counts = data.counts || {};
     const flat = normalizeCount(counts[SurpriseTypes.FLAT_TIRE] ?? counts.flatTire);
-    const bug = normalizeCount(counts[SurpriseTypes.BUG_SPLAT] ?? counts.bugSplat);
-    const shield = normalizeCount(counts[SurpriseTypes.WILD_CARD] ?? counts.superShieldWax ?? counts.wildCard);
+    const bug  = normalizeCount(counts[SurpriseTypes.BUG_SPLAT] ?? counts.bugSplat);
+    const wax  = normalizeCount(counts[SurpriseTypes.WILD_CARD]  ?? counts.superShieldWax ?? counts.wildCard);
     callback({
       team: teamName,
       flatTire: flat,
       bugSplat: bug,
-      superShieldWax: shield
+      superShieldWax: wax
     });
   });
 }
@@ -188,9 +193,7 @@ export async function consumeSurprise(teamName, key, amount = 1) {
     const data = snap.exists() ? snap.data() || {} : {};
     const counts = { ...(data.counts || {}) };
     const current = normalizeCount(counts[normalizedKey]);
-    if (current < amount) {
-      return;
-    }
+    if (current < amount) return;
     counts[normalizedKey] = Math.max(0, current - amount);
     tx.set(ref, { counts, updatedAt: serverTimestamp() }, { merge: true });
     success = true;
@@ -223,34 +226,32 @@ function normalizeCount(value) {
 function normalizeSurpriseKey(key) {
   if (!key) return null;
   if (key === SurpriseTypes.FLAT_TIRE || key === 'flatTire') return SurpriseTypes.FLAT_TIRE;
-  if (key === SurpriseTypes.BUG_SPLAT || key === 'bugSplat') return SurpriseTypes.BUG_SPLAT;
-  if (key === SurpriseTypes.WILD_CARD || key === 'wildCard' || key === 'superShieldWax') return SurpriseTypes.WILD_CARD;
+  if (key === SurpriseTypes.BUG_SPLAT  || key === 'bugSplat')  return SurpriseTypes.BUG_SPLAT;
+  if (key === SurpriseTypes.WILD_CARD  || key === 'wildCard' || key === 'superShieldWax') return SurpriseTypes.WILD_CARD;
   return null;
 }
 
 // =========================================================
-// 🚫 Wild Card & Shield Guards
+// 🚫 Wild Card & Cooldown Guards
 // =========================================================
-export const activeWildCards = Object.create(null);   // { teamName: { type, expires } }
-export const activeCooldowns = Object.create(null);   // { teamName: timestamp }
+export const activeWildCards  = Object.create(null); // { teamName: { type, expires } }
+export const activeCooldowns  = Object.create(null); // { teamName: expiresAtMs }
+
+const DEFAULT_COOLDOWN_MINUTES = 2;
+function getCooldownDurationMs() {
+  // If you later add settings-backed cooldowns, swap this with a real reader.
+  return DEFAULT_COOLDOWN_MINUTES * 60 * 1000;
+}
 
 export async function clearAllTeamSurprises() {
-  for (const key of Object.keys(activeShields)) {
-    delete activeShields[key];
-  }
-  for (const key of Object.keys(activeWildCards)) {
-    delete activeWildCards[key];
-  }
-  for (const key of Object.keys(activeCooldowns)) {
-    delete activeCooldowns[key];
-  }
+  for (const key of Object.keys(activeShields))   delete activeShields[key];
+  for (const key of Object.keys(activeWildCards)) delete activeWildCards[key];
+  for (const key of Object.keys(activeCooldowns)) delete activeCooldowns[key];
 
   try {
     const snap = await getDocs(collection(db, 'teamSurprises'));
     const deletions = snap.docs.map((docSnap) => deleteDoc(docSnap.ref));
-    if (deletions.length) {
-      await Promise.allSettled(deletions);
-    }
+    if (deletions.length) await Promise.allSettled(deletions);
   } catch (err) {
     console.warn('⚠️ Failed to clear teamSurprises collection:', err);
   }
@@ -278,36 +279,66 @@ export function clearWildCard(team) {
   delete activeWildCards[team];
 }
 
-export function startCooldown(team, ms = 60_000) {
+export function startCooldown(team) {
   if (!team) return;
+  const ms = getCooldownDurationMs();
   activeCooldowns[team] = Date.now() + Math.max(0, Number(ms) || 0);
 }
 
-export function isOnCooldown(team) {
+export async function isOnCooldown(team) {
   if (!team) return false;
-  const expires = activeCooldowns[team];
-  if (!expires) return false;
-  if (expires <= Date.now()) {
-    delete activeCooldowns[team];
-    return false;
+  try {
+    const ref = doc(db, 'teamCooldowns', team);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return false;
+    const expiresAt = snap.data().expiresAt || 0;
+    return expiresAt > Date.now();
+  } catch (err) {
+    console.error(`❌ Cooldown check failed for ${team}:`, err);
+    return false; // Fail open
   }
-  return true;
 }
 
-export const isTeamOnCooldown = isOnCooldown;
+export async function getCooldownTimeRemaining(teamName) {
+  if (!teamName) return 0;
+  try {
+    const ref = doc(db, 'teamCooldowns', teamName);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return 0;
+    const expiresAt = snap.data().expiresAt || 0;
+    return Math.max(0, expiresAt - Date.now());
+  } catch (err) {
+    console.error(`❌ Cooldown remaining time check failed for ${teamName}:`, err);
+    return 0;
+  }
+}
+
+export function subscribeAllCooldowns(callback) {
+  if (typeof callback !== 'function') return () => {};
+  const ref = collection(db, 'teamCooldowns');
+  return onSnapshot(ref, (snapshot) => {
+    const cooldowns = {};
+    snapshot.forEach(docSnap => {
+      cooldowns[docSnap.id] = docSnap.data().expiresAt || 0;
+    });
+    callback(cooldowns);
+  });
+}
 
 // =========================================================
-// 🧼 Shield Confirmation Gate
+// 🧼 Shield Confirmation Gate (UI modal or confirm() fallback)
 // =========================================================
 export function checkShieldBeforeAttack(teamName, onProceed) {
   if (typeof onProceed !== 'function') return Promise.resolve(null);
 
   const execute = () => Promise.resolve(onProceed());
 
+  // No shield? just proceed.
   if (!teamName || !isShieldActive(teamName)) {
     return execute();
   }
 
+  // Non-DOM environments: use confirm() if available, else auto-proceed after deactivating.
   if (typeof document === 'undefined') {
     if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
       const confirmed = window.confirm(
@@ -323,6 +354,7 @@ export function checkShieldBeforeAttack(teamName, onProceed) {
     return execute();
   }
 
+  // DOM modal flow
   return new Promise((resolve, reject) => {
     const existing = document.querySelector('.shield-confirm');
     if (existing) existing.remove();
@@ -357,3 +389,4 @@ export function checkShieldBeforeAttack(teamName, onProceed) {
     document.body.appendChild(modal);
   });
 }
+export const isTeamOnCooldown = isOnCooldown;

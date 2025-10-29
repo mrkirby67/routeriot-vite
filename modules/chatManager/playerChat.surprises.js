@@ -63,8 +63,10 @@ async function handleFlatTireAttack(attacker, defender) {
   if (!targetTeam || targetTeam === fromTeam) {
     throw new Error('Choose a different team to receive the Flat Tire.');
   }
-  if (isTeamOnCooldown(fromTeam)) {
-    throw new Error('Flat Tire is on cooldown. Try again soon.');
+  if (await isOnCooldown(fromTeam)) {
+    const remaining = await getCooldownTimeRemaining(fromTeam);
+    const seconds = Math.ceil(remaining / 1000);
+    throw new Error(`On cooldown! Try again in ${seconds}s.`);
   }
 
   const result = await checkShieldBeforeAttack(fromTeam, async () => {
@@ -74,7 +76,7 @@ async function handleFlatTireAttack(attacker, defender) {
     }
 
     await assignFlatTireTeam(targetTeam, { fromTeam });
-    startCooldown(fromTeam);
+    await startCooldown(fromTeam);
 
     await auditUse(fromTeam, SurpriseTypes.FLAT_TIRE, { targetTeam });
 
@@ -85,7 +87,7 @@ async function handleFlatTireAttack(attacker, defender) {
       teamName: fromTeam,
       sender: fromTeam,
       senderDisplay: fromTeam,
-      message: `🚗 ${fromTeam} sent a FLAT TIRE to ${targetTeam}!`,
+      message: `🚗 ${fromTeam} sent a FLAT TIRE to ${targetTeam}!`, 
       toTeam: targetTeam
     });
 
@@ -107,8 +109,10 @@ async function handleBugSplatAttack(attacker, defender) {
   if (!targetTeam || targetTeam === fromTeam) {
     throw new Error('Choose a different team to splat.');
   }
-  if (isTeamOnCooldown(fromTeam)) {
-    throw new Error('Bug Splat is on cooldown. Try again soon.');
+  if (await isOnCooldown(fromTeam)) {
+    const remaining = await getCooldownTimeRemaining(fromTeam);
+    const seconds = Math.ceil(remaining / 1000);
+    throw new Error(`On cooldown! Try again in ${seconds}s.`);
   }
 
   const result = await checkShieldBeforeAttack(fromTeam, async () => {
@@ -117,7 +121,7 @@ async function handleBugSplatAttack(attacker, defender) {
       return { ok: false, message: 'No Bug Splat surprises remaining.' };
     }
 
-    startCooldown(fromTeam);
+    await startCooldown(fromTeam);
     await auditUse(fromTeam, SurpriseTypes.BUG_SPLAT, { targetTeam });
 
     await sendPrivateSystemMessage(fromTeam, `🐞 Bug Splat launched at ${targetTeam}!`);
@@ -127,7 +131,7 @@ async function handleBugSplatAttack(attacker, defender) {
       teamName: fromTeam,
       sender: fromTeam,
       senderDisplay: fromTeam,
-      message: `🐞 ${fromTeam} launched a BUG SPLAT on ${targetTeam}!`,
+      message: `🐞 ${fromTeam} launched a BUG SPLAT on ${targetTeam}!`, 
       toTeam: targetTeam
     });
 
@@ -140,7 +144,6 @@ async function handleBugSplatAttack(attacker, defender) {
 
   return result;
 }
-
 async function handleShieldActivation(teamName) {
   const normalizedTeam = normalizeTeamName(teamName);
   if (!normalizedTeam) throw new Error('Missing team name.');

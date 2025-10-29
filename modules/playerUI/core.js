@@ -63,9 +63,10 @@ export function initializePlayerUI(teamInput) {
 
   console.log('🎨 Initializing Player UI for:', resolvedTeamName);
 
-  const team = allTeams.find(t => t.name === resolvedTeamName);
-  setText('team-name', team ? team.name : resolvedTeamName);
-  setText('team-slogan', team?.slogan || 'Ready to race!');
+  // Find team from allTeams to get slogan, but don't use it for opponent list
+  const teamData = allTeams.find(t => t.name === resolvedTeamName);
+  setText('team-name', teamData ? teamData.name : resolvedTeamName);
+  setText('team-slogan', teamData?.slogan || 'Ready to race!');
 
   const memberList = $('team-member-list');
   if (memberList) {
@@ -90,59 +91,71 @@ export function initializePlayerUI(teamInput) {
 
   const opponentsTbody = $('opponents-tbody');
   if (opponentsTbody) {
-    opponentsTbody.innerHTML = '';
+    const activeTeamsRef = doc(db, 'game', 'activeTeams');
+    onSnapshot(activeTeamsRef, (docSnap) => {
+      opponentsTbody.innerHTML = ''; // Clear table on each update
 
-    const opponents = allTeams.filter(t => t.name !== resolvedTeamName);
-    opponents.forEach((opp) => {
-      const safeName = opp.name.replace(/\s+/g, '-');
-      const tr = document.createElement('tr');
-      tr.id = `opp-row-${safeName}`;
-      tr.innerHTML = `
-        <td>${opp.name}</td>
-        <td id="opp-loc-${safeName}">--</td>
-        <td>
-          <input id="msg-input-${safeName}" placeholder="Message ${opp.name}..." style="width:90%; margin-right:4px;">
-          <button id="msg-send-${safeName}" class="send-btn" data-team="${opp.name}">Send</button>
-        </td>`;
-      opponentsTbody.appendChild(tr);
+      if (!docSnap.exists()) {
+        return;
+      }
 
-      const teamRef = doc(db, 'teamStatus', opp.name);
-      onSnapshot(teamRef, async (docSnap) => {
-        const locCell = $(`opp-loc-${safeName}`);
-        if (!locCell) return;
-        if (!docSnap.exists()) {
-          locCell.textContent = '--';
-          return;
-        }
+      const data = docSnap.data();
+      const activeTeams = Array.isArray(data.list) ? data.list : [];
+      const opponents = activeTeams.filter(teamName => teamName !== resolvedTeamName);
 
-        const data = docSnap.data();
-        const zoneId = typeof data.lastKnownLocation === 'string'
-          ? data.lastKnownLocation.trim()
-          : '';
-        const timeStr = fmtTime(data.timestamp);
-        let zoneLabel = '--';
-        if (zoneId) {
-          try {
-            zoneLabel = await getZoneDisplayName(zoneId);
-          } catch (err) {
-            console.warn('⚠️ Zone label fallback for', zoneId, err);
-            zoneLabel = zoneId;
+      opponents.forEach((oppName) => {
+        const safeName = oppName.replace(/\s+/g, '-');
+        const tr = document.createElement('tr');
+        tr.id = `opp-row-${safeName}`;
+        tr.dataset.team = oppName; // Add for easier selection
+        tr.innerHTML = `
+          <td>${oppName}</td>
+          <td id="opp-loc-${safeName}">--</td>
+          <td>
+            <input id="msg-input-${safeName}" placeholder="Message ${oppName}..." style="width:90%; margin-right:4px;">
+            <button id="msg-send-${safeName}" class="send-btn" data-team="${oppName}">Send</button>
+          </td>`;
+        opponentsTbody.appendChild(tr);
+
+        const teamRef = doc(db, 'teamStatus', oppName);
+        onSnapshot(teamRef, async (docSnap) => {
+          const locCell = $(`opp-loc-${safeName}`);
+          if (!locCell) return;
+          if (!docSnap.exists()) {
+            locCell.textContent = '--';
+            return;
           }
-        }
-        locCell.textContent =
-          zoneLabel !== '--'
-            ? `📍 ${zoneLabel}${timeStr ? ` (updated ${timeStr})` : ''}`
-            : '--';
 
-        locCell.style.background = '#f0c420';
-        locCell.style.color = '#000';
-        setTimeout(() => {
-          locCell.style.background = '';
-          locCell.style.color = '';
-        }, 800);
+          const data = docSnap.data();
+          const zoneId = typeof data.lastKnownLocation === 'string'
+            ? data.lastKnownLocation.trim()
+            : '';
+          const timeStr = fmtTime(data.timestamp);
+          let zoneLabel = '--';
+          if (zoneId) {
+            try {
+              zoneLabel = await getZoneDisplayName(zoneId);
+            } catch (err) {
+              console.warn('⚠️ Zone label fallback for', zoneId, err);
+              zoneLabel = zoneId;
+            }
+          }
+          locCell.textContent =
+            zoneLabel !== '--'
+              ? `📍 ${zoneLabel}${timeStr ? ` (updated ${timeStr})` : ''}`
+              : '--';
+
+          locCell.style.background = '#f0c420';
+          locCell.style.color = '#000';
+          setTimeout(() => {
+            locCell.style.background = '';
+            locCell.style.color = '';
+          }, 800);
+        });
       });
     });
 
+    // Event delegation for send buttons
     opponentsTbody.addEventListener('click', (e) => {
       const target = e.target;
       if (target.classList.contains('send-btn')) {
