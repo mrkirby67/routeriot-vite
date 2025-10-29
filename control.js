@@ -226,6 +226,12 @@ function safeSetHTML(id, html) {
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    if (typeof window !== 'undefined' && window.__RR_DEBUG_FIRESTORE) {
+      import('./modules/firestoreIntegrity.js')
+        .then(mod => mod.verifyFirestoreSchema?.())
+        .catch(err => console.error('⚠️ Firestore integrity check failed:', err));
+    }
+
     console.log('🧭 Checking current game state before initialization...');
     const snap = await getDoc(GAME_STATE_REF);
     const data = snap.exists() ? snap.data() : {};

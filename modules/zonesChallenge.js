@@ -7,8 +7,6 @@ import { db } from './config.js';
 import {
   doc,
   getDoc,
-  getDocs,
-  collection,
   setDoc,
   serverTimestamp,
   runTransaction
@@ -105,20 +103,9 @@ export async function displayZoneQuestions(zoneId, zoneName) {
   let questionData = null;
 
   try {
-    // First try: old nested structure (zones/{zoneId}/questions)
-    const subSnap = await getDocs(collection(db, 'zones', zoneId, 'questions'));
-    if (!subSnap.empty) {
-      subSnap.forEach(docSnap => {
-        if (!questionData && docSnap.id.startsWith('unique')) {
-          questionData = { id: docSnap.id, ...docSnap.data() };
-        }
-      });
-    }
-
-    // Fallback: global questions collection with zoneId field
-    if (!questionData) {
-      const globalDoc = await getDoc(doc(db, 'questions', zoneId));
-      if (globalDoc.exists()) questionData = { id: globalDoc.id, ...globalDoc.data() };
+    const globalDoc = await getDoc(doc(db, 'questions', zoneId));
+    if (globalDoc.exists()) {
+      questionData = { id: globalDoc.id, ...globalDoc.data() };
     }
 
     const questionEl = document.getElementById(`question-text-${zoneId}`);

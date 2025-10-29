@@ -67,7 +67,7 @@ export async function initializeBugStrikeControl() {
   if (!tbody) return;
 
   // 🔹 Load or initialize settings from Firestore
-  const settingsDocRef = doc(db, 'settings', 'bugstrike');
+  const settingsDocRef = doc(db, 'settings', 'bugStrikeSettings');
   let currentSettings = { starting: 3, cooldown: 30 };
 
   try {
