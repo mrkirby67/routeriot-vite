@@ -3,6 +3,7 @@
 // ============================================================================
 import { generateMiniMap } from '../../zonesMap.js';
 import { escapeHtml } from '../../utils.js';
+import { getRandomChirp } from '../../../data/chirpMessages.js';
 
 let countdownInterval = null;
 
@@ -69,7 +70,25 @@ export function showFlatTireOverlay({
   `;
 
   document.getElementById('flat-tire-checkin-btn')?.addEventListener('click', onCheckIn);
-  document.getElementById('flat-tire-chirp-btn')?.addEventListener('click', onChirp);
+  
+  const chirpButton = document.getElementById('flat-tire-chirp-btn');
+  let chirpMessage = '';
+  let isChirpPreviewed = false;
+
+  chirpButton?.addEventListener('click', () => {
+    if (!isChirpPreviewed) {
+      // First click: Preview the message
+      chirpMessage = getRandomChirp();
+      chirpButton.textContent = `Send: "${chirpMessage}"`;
+      isChirpPreviewed = true;
+    } else {
+      // Second click: Send the message
+      onChirp(chirpMessage);
+      chirpButton.textContent = '🐦 Chirp'; // Reset button text
+      chirpButton.disabled = true; // Disable the button
+      isChirpPreviewed = false;
+    }
+  });
 
   if (autoReleaseAtMs) {
     startCountdown('flat-tire-countdown', autoReleaseAtMs);
