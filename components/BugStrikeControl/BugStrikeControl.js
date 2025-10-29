@@ -63,7 +63,6 @@ export async function initializeBugStrikeControl() {
   const startInput = document.getElementById('starting-bugstrikes');
   const cooldownInput = document.getElementById('bugstrike-cooldown');
   const applyBtn = document.getElementById('apply-bugstrike-settings');
-
   if (!tbody) return;
 
   // 🔹 Load or initialize settings from Firestore
@@ -72,9 +71,7 @@ export async function initializeBugStrikeControl() {
 
   try {
     const snap = await getDoc(settingsDocRef);
-    if (snap.exists()) {
-      currentSettings = { ...currentSettings, ...snap.data() };
-    }
+    if (snap.exists()) currentSettings = { ...currentSettings, ...snap.data() };
   } catch (err) {
     console.error('⚠️ Error loading Bug Strike settings:', err);
   }
@@ -90,7 +87,6 @@ export async function initializeBugStrikeControl() {
         cooldown: Number(cooldownInput.value),
         updatedAt: serverTimestamp()
       }, { merge: true });
-
       alert('✅ Bug Strike settings saved!');
     } catch (err) {
       console.error('❌ Failed to save Bug Strike settings:', err);
@@ -109,52 +105,52 @@ export async function initializeBugStrikeControl() {
       <td id="bugstrike-remaining-${safeId}">${currentSettings.starting}</td>
       <td id="bugstrike-last-${safeId}">--</td>
       <td>
-        <button class="bugstrike-launch" data-team="${team.name}" class="${styles.launchButton}">💥 Launch</button>
+        <button class="bugstrike-launch ${styles.launchButton}" data-team="${team.name}">💥 Launch</button>
       </td>
     `;
     tbody.appendChild(tr);
   });
 
-  // 💥 Launch Bug Strike Handler
-  tbody.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.bugstrike-launch');
-    if (!btn) return;
+  // ✅ Explicitly attach handlers AFTER rendering (no reliance on bubbling)
+  document.querySelectorAll('.bugstrike-launch').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const targetTeam = e.currentTarget.dataset.team;
+      if (!targetTeam) return;
 
-    const targetTeam = btn.dataset.team;
-    const safeId = targetTeam.replace(/\s+/g, '-');
-    const remainingEl = document.getElementById(`bugstrike-remaining-${safeId}`);
-    const lastUsedEl = document.getElementById(`bugstrike-last-${safeId}`);
+      const safeId = targetTeam.replace(/\s+/g, '-');
+      const remainingEl = document.getElementById(`bugstrike-remaining-${safeId}`);
+      const lastUsedEl = document.getElementById(`bugstrike-last-${safeId}`);
+      let remaining = parseInt(remainingEl.textContent);
 
-    let remaining = parseInt(remainingEl.textContent);
-    if (remaining <= 0) {
-      alert(`❌ ${targetTeam} has no Bug Strikes left!`);
-      return;
-    }
+      if (remaining <= 0) {
+        alert(`❌ ${targetTeam} has no Bug Strikes left!`);
+        return;
+      }
 
-    if (!confirm(`Launch a Bug Strike on ${targetTeam}?`)) return;
+      if (!confirm(`Launch a Bug Strike on ${targetTeam}?`)) return;
 
-    try {
-      await addDoc(collection(db, 'communications'), {
-        teamName: 'Game Master',
-        sender: 'Game Master',
-        senderDisplay: 'Game Master',
-        type: 'bugStrike',
-        to: targetTeam,
-        from: 'Game Master',
-        message: `🪰 A Bug Strike has been unleashed on ${targetTeam}!`,
-        isBroadcast: true,
-        timestamp: serverTimestamp()
-      });
+      try {
+        await addDoc(collection(db, 'communications'), {
+          teamName: 'Game Master',
+          sender: 'Game Master',
+          senderDisplay: 'Game Master',
+          type: 'bugStrike',
+          to: targetTeam,
+          from: 'Game Master',
+          message: `🪰 A Bug Strike has been unleashed on ${targetTeam}!`,
+          isBroadcast: true,
+          timestamp: serverTimestamp()
+        });
 
-      // 🕐 Update UI
-      remaining -= 1;
-      remainingEl.textContent = remaining;
-      lastUsedEl.textContent = new Date().toLocaleTimeString();
-
-      console.log(`💥 Bug Strike launched on ${targetTeam}`);
-    } catch (err) {
-      console.error('❌ Failed to launch Bug Strike:', err);
-      alert('⚠️ Could not send Bug Strike.');
-    }
+        // 🕐 Update UI
+        remaining -= 1;
+        remainingEl.textContent = remaining;
+        lastUsedEl.textContent = new Date().toLocaleTimeString();
+        console.log(`💥 Bug Strike launched on ${targetTeam}`);
+      } catch (err) {
+        console.error('❌ Failed to launch Bug Strike:', err);
+        alert('⚠️ Could not send Bug Strike.');
+      }
+    });
   });
 }
