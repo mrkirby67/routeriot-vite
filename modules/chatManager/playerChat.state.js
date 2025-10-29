@@ -3,7 +3,8 @@
 // PURPOSE: Manages subscriptions, Firestore listeners, and teardown
 // ============================================================================
 
-import { allTeams } from '../../data.js';
+import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from '../config.js';
 import { clearRegistry, registerListener } from './registry.js';
 import { listenForMyMessages } from './messageService.js';
 import {
@@ -36,18 +37,15 @@ export function setupPlayerChat(teamName, options = {}) {
 
   console.log(`💬 [playerChat.state] wiring listeners for ${normalizedTeamName}`);
 
-  // Clear existing listeners before wiring new ones
   clearRegistry('player');
 
   const teardownCallbacks = [];
   let latestByTeam = {};
-  const knownTeamNames = Array.from(
-    new Set(allTeams.map((t) => t.name).filter(Boolean))
-  );
+  let activeTeamNames = [];
 
   const applyTeamInventory = (byTeamSnapshot = {}) => {
     const merged = { ...byTeamSnapshot };
-    knownTeamNames.forEach((name) => {
+    activeTeamNames.forEach((name) => {
       if (!merged[name]) merged[name] = {};
     });
 
@@ -59,11 +57,28 @@ export function setupPlayerChat(teamName, options = {}) {
     ui.renderInventory?.(merged, {
       currentTeamName: normalizedTeamName,
       available: latestPlayerCounts,
-      teamNames: knownTeamNames
+      teamNames: activeTeamNames
     });
   };
 
-  // --- Subscribe to all team surprises ---
+  const activeTeamsRef = doc(db, 'game', 'activeTeams');
+  const unsubscribeActiveTeams = onSnapshot(activeTeamsRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      activeTeamNames = Array.isArray(data.list) ? data.list : [];
+      applyTeamInventory(latestByTeam);
+    } else {
+      activeTeamNames = [];
+      applyTeamInventory(latestByTeam);
+    }
+  });
+  registerListener('player', unsubscribeActiveTeams);
+  teardownCallbacks.push(() => {
+    try { unsubscribeActiveTeams?.(); } catch (err) {
+      console.debug('⚠️ Failed to detach active teams listener:', err);
+    }
+  });
+
   const unsubscribeTeams = subscribeTeamSurprises((entries, byTeam) => {
     latestByTeam = byTeam || {};
     applyTeamInventory(latestByTeam);
@@ -75,7 +90,6 @@ export function setupPlayerChat(teamName, options = {}) {
     }
   });
 
-  // --- Subscribe to the current team's inventory ---
   const unsubscribeMine = subscribeSurprisesForTeam(normalizedTeamName, (payload = {}) => {
     latestPlayerCounts = {
       flatTire: Number(payload.flatTire) || 0,
@@ -97,13 +111,11 @@ export function setupPlayerChat(teamName, options = {}) {
     }
   });
 
-  // --- Subscribe to outgoing speed bumps for this team ---
   initSpeedBumpListeners(normalizedTeamName, (entries = []) => {
     ui.renderOutgoing?.(Array.isArray(entries) ? entries : []);
   });
   teardownCallbacks.push(() => teardownSpeedBumpListeners());
 
-  // --- Player message feed ---
   const logEl = document.getElementById('team-chat-log');
   if (logEl) {
     const stopMessages = listenForMyMessages(normalizedTeamName, logEl);

@@ -22,10 +22,14 @@ import {
 import {
   showCountdownBanner,
   showFlashMessage,
-  startCountdownTimer,
-  clearElapsedTimer,
 } from './gameUI.js';
-import { handleStatusChange } from './gameTimer.js';
+import {
+  startCountdownTimer,
+  pauseCountdownTimer,
+  resumeCountdownTimer,
+  clearCountdownTimer,
+  getRemainingMs,
+} from './gameTimer.js';
 
 let cachedGameState = null;
 
@@ -37,6 +41,7 @@ function publishStateDiagnostics(state) {
     timerActive: !!timerState.active,
     pausedAt: timerState.pausedAt ?? null,
     remainingMs: state.remainingMs ?? timerState.remainingMs ?? null,
+    pausedRemainingMs: state.pausedRemainingMs ?? null,
   };
   if (typeof window !== 'undefined') {
     window.__rrGameState = state;
@@ -49,7 +54,7 @@ function publishStateDiagnostics(state) {
 }
 
 function handleWaitingState() {
-  clearElapsedTimer?.();
+  clearCountdownTimer();
   showFlashMessage?.('Waiting for host...', '#616161');
   countdownShown = false;
   console.debug('[GameState]', 'waiting', { remainingMs: null, endTime: null });
@@ -70,38 +75,62 @@ function computeEndMs({ startTime, endTime, durationMinutes, remainingMs }) {
   return Number.isFinite(endMs) ? endMs : null;
 }
 
-function handleActiveState(snapshotData) {
-  if (!countdownShown) {
-    countdownShown = true;
-    showCountdownBanner?.({ parent: document.body });
-    showFlashMessage?.('🏁 The Race is ON!', '#2e7d32');
+function handleActiveState(snapshotData = {}) {
+  const { previousStatus } = snapshotData;
+  const resumedFromPause = previousStatus === 'paused';
+  const pausedRemainingMs = Number.isFinite(snapshotData?.pausedRemainingMs)
+    ? Math.max(0, snapshotData.pausedRemainingMs)
+    : null;
+  const endMs = computeEndMs(snapshotData);
+  const durationMs = Number.isFinite(endMs) ? Math.max(0, endMs - Date.now()) : null;
+
+  let remaining = 0;
+  if (resumedFromPause) {
+    remaining = resumeCountdownTimer(pausedRemainingMs);
+    if (remaining > 0) {
+      showFlashMessage?.('Game resumed ▶️', '#2e7d32', 2500);
+    }
   }
 
-  const endMs = computeEndMs(snapshotData);
-  if (endMs) {
-    startCountdownTimer?.(endMs);
-  } else {
-    clearElapsedTimer?.();
+  if (!remaining && Number.isFinite(durationMs)) {
+    remaining = startCountdownTimer(durationMs);
+    if (!countdownShown) {
+      showCountdownBanner?.({ parent: document.body });
+      showFlashMessage?.('🏁 The Race is ON!', '#2e7d32');
+    } else if (!resumedFromPause) {
+      showFlashMessage?.('Game resumed ▶️', '#2e7d32', 2500);
+    }
+  }
+
+  if (!remaining && !Number.isFinite(durationMs)) {
+    clearCountdownTimer(false);
     console.warn('⚠️ No valid end time for countdown.');
   }
 
-  const remaining = endMs ? Math.max(0, endMs - Date.now()) : null;
+  countdownShown = true;
+  if (!remaining && Number.isFinite(durationMs)) {
+    remaining = durationMs;
+  }
+
   console.debug('[GameState]', 'active', { remainingMs: remaining, endTime: endMs });
   return { status: 'active', remainingMs: remaining, endTime: endMs };
 }
 
 function handlePausedState(snapshotData) {
-  clearElapsedTimer?.();
-  showFlashMessage?.('⏸️ Game paused by host.', '#ff9800', 2500);
-  const remaining = typeof snapshotData?.remainingMs === 'number'
-    ? Math.max(0, snapshotData.remainingMs)
-    : null;
+  const localRemaining = pauseCountdownTimer();
+  const fallback = Number.isFinite(snapshotData?.pausedRemainingMs)
+    ? snapshotData.pausedRemainingMs
+    : snapshotData?.remainingMs;
+  const remaining = Number.isFinite(localRemaining) && localRemaining > 0
+    ? localRemaining
+    : (Number.isFinite(fallback) ? Math.max(0, fallback) : null);
+  showFlashMessage?.('Game paused ⏸️', '#ff9800', 2500);
   console.debug('[GameState]', 'paused', { remainingMs: remaining, endTime: null });
   return { status: 'paused', remainingMs: remaining, endTime: null };
 }
 
 function handleOverState(status) {
-  clearElapsedTimer?.();
+  clearCountdownTimer();
   showFlashMessage?.('🏁 Game Over! Return to base.', '#c62828', 4000);
   console.debug('[GameState]', status, { remainingMs: null, endTime: null });
   return { status, remainingMs: null, endTime: null };
@@ -254,12 +283,15 @@ export async function pauseGame() {
       console.warn(`pauseGame() skipped — current status is "${currentStatus}"`);
     }
 
-    let remainingMs = deriveRemainingMs(data);
-    if (!Number.isFinite(remainingMs) || remainingMs < 0) remainingMs = 0;
-    remainingMs = Math.round(remainingMs);
+    let remainingMs = pauseCountdownTimer();
+    if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+      remainingMs = deriveRemainingMs(data);
+    }
+    remainingMs = Math.max(0, Math.round(remainingMs));
 
     await updateDoc(gameStateRef, {
       status: 'paused',
+      pausedRemainingMs: remainingMs,
       remainingMs,
       endTime: null,
       updatedAt: serverTimestamp(),
@@ -270,6 +302,7 @@ export async function pauseGame() {
       ...(cachedGameState || {}),
       status: 'paused',
       remainingMs,
+      pausedRemainingMs: remainingMs,
       endTime: null,
     });
   } catch (err) {
@@ -286,9 +319,12 @@ export async function resumeGame() {
     if (!snap.exists()) throw new Error("Game state not found");
     const data = snap.data();
 
-    // **FIX:** Directly use the stored remainingMs from the paused state.
-    let remainingMs = data.remainingMs;
-
+    let remainingMs = Number.isFinite(data.pausedRemainingMs)
+      ? data.pausedRemainingMs
+      : data.remainingMs;
+    if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+      remainingMs = deriveRemainingMs(data);
+    }
     if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
       console.warn('resumeGame() aborted — no remaining time detected. Use start to launch a new game.');
       return;
@@ -300,15 +336,20 @@ export async function resumeGame() {
       remainingMs = minimumResumeWindow;
     }
     
+    const resumeStamp = serverTimestamp();
     const newEndTime = Timestamp.fromMillis(Date.now() + remainingMs);
 
     await updateDoc(gameStateRef, {
       status: 'active',
-      resumedAt: serverTimestamp(),
+      resumedAt: resumeStamp,
       endTime: newEndTime,
-      remainingMs: null, // Clear the remainingMs field
-      updatedAt: serverTimestamp(),
+      remainingMs: null,
+      pausedRemainingMs: null,
+      updatedAt: resumeStamp,
     });
+
+    const resumed = resumeCountdownTimer(remainingMs);
+    if (!resumed) startCountdownTimer(remainingMs);
 
     console.log(`▶️ Game resumed (ends at ${newEndTime.toDate().toLocaleTimeString()})`);
     publishStateDiagnostics({
@@ -316,6 +357,7 @@ export async function resumeGame() {
       status: 'active',
       endTime: newEndTime,
       remainingMs: null,
+      pausedRemainingMs: null,
     });
   } catch (err) {
     console.error("❌ Error resuming game:", err);
@@ -347,7 +389,8 @@ function handleGameStateUpdate({
   endTime = null,
   durationMinutes = null,
   remainingMs = null,
-}) {
+  pausedRemainingMs = null,
+}, previousStatus = null) {
   const statusEl = document.getElementById('game-status');
   if (statusEl) statusEl.textContent = status.toUpperCase();
 
@@ -357,16 +400,16 @@ function handleGameStateUpdate({
     case 'waiting':
       return handleWaitingState();
     case 'active':
-      return handleActiveState({ startTime, endTime, durationMinutes, remainingMs });
+      return handleActiveState({ startTime, endTime, durationMinutes, remainingMs, pausedRemainingMs, previousStatus });
     case 'paused':
-      return handlePausedState({ remainingMs });
+      return handlePausedState({ remainingMs, pausedRemainingMs, previousStatus });
     case 'finished':
     case 'ended':
     case 'over':
       return handleOverState(status);
     default:
       console.warn(`⚠️ Unknown status "${status}"`);
-      clearElapsedTimer?.();
+      clearCountdownTimer();
       console.debug('[GameState]', 'unknown', { status, remainingMs: null, endTime: null });
       return { status, remainingMs: null, endTime: null };
   }
@@ -384,41 +427,21 @@ export function listenForGameStatus(callback) {
       endTime: null,
       durationMinutes: null,
       remainingMs: null,
+      pausedRemainingMs: null,
     };
 
     if (!docSnap.exists()) {
-      if (lastKnownStatus !== fallbackState.status) {
-        try {
-          handleStatusChange?.(lastKnownStatus, fallbackState.status, fallbackState);
-        } catch (err) {
-          console.warn('[GameState] handleStatusChange failed for default state:', err);
-        }
-        lastKnownStatus = fallbackState.status;
-      }
-      handleGameStateUpdate(fallbackState);
-      publishStateDiagnostics(fallbackState);
+      clearCountdownTimer();
+      const derived = handleGameStateUpdate(fallbackState, lastKnownStatus);
+      publishStateDiagnostics(derived);
       callback?.(fallbackState);
+      lastKnownStatus = fallbackState.status;
       return;
     }
 
     const data = docSnap.data();
     const nextStatus = data?.status || 'waiting';
-
-    if (lastKnownStatus !== nextStatus) {
-      try {
-        handleStatusChange?.(lastKnownStatus, nextStatus, data);
-      } catch (err) {
-        console.warn('[GameState] handleStatusChange failed for snapshot:', err);
-      }
-      if (typeof window !== 'undefined' && lastKnownStatus === 'paused' && nextStatus === 'active') {
-        try {
-          window.dispatchEvent?.(new Event('gameResumed'));
-        } catch (err) {
-          console.warn('[GameState] Failed to emit gameResumed event:', err);
-        }
-      }
-      lastKnownStatus = nextStatus;
-    }
+    const previousStatus = lastKnownStatus;
 
     const state = {
       status: nextStatus,
@@ -427,11 +450,22 @@ export function listenForGameStatus(callback) {
       endTime: data.endTime || null,
       durationMinutes: data.durationMinutes || null,
       remainingMs: data.remainingMs || null,
+      pausedRemainingMs: data.pausedRemainingMs || null,
     };
 
-    handleGameStateUpdate(state);
-    publishStateDiagnostics(state);
+    const derived = handleGameStateUpdate(state, previousStatus);
+    publishStateDiagnostics(derived);
     callback?.(state);
+
+    if (typeof window !== 'undefined' && previousStatus === 'paused' && nextStatus === 'active') {
+      try {
+        window.dispatchEvent?.(new Event('gameResumed'));
+      } catch (err) {
+        console.warn('[GameState] Failed to emit gameResumed event:', err);
+      }
+    }
+
+    lastKnownStatus = nextStatus;
   });
   gameStateListeners.add(unsub);
   console.info('📡 [gameState] attached status listener');

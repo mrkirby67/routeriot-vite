@@ -46,7 +46,8 @@ import { loadGoogleMapsApi } from './modules/googleMapsLoader.js';
 import { wireGameControls } from './modules/controlUI.js';
 import { watchLiveGameStatus, clearAllChatAndScores } from './modules/controlStatus.js';
 import { listenForGameStatus } from './modules/gameStateManager.js';
-import { showFlashMessage, startCountdownTimer, clearElapsedTimer } from './modules/gameUI.js';
+import { showFlashMessage } from './modules/gameUI.js';
+import { clearCountdownTimer, getRemainingMs } from './modules/gameTimer.js';
 import { db } from './modules/config.js';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -141,8 +142,21 @@ async function main() {
 // ---------------------------------------------------------------------------
 // ⏱️ HANDLE CONTROL TIMER DISPLAY (matches player.js logic)
 // ---------------------------------------------------------------------------
+function formatCountdown(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return '00:00:00';
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [
+    String(hours).padStart(2, '0'),
+    String(minutes).padStart(2, '0'),
+    String(seconds).padStart(2, '0'),
+  ].join(':');
+}
+
 function handleControlTimer(state) {
-  const { status, startTime, endTime, durationMinutes, remainingMs } = state || {};
+  const { status, remainingMs } = state || {};
   const timerEl = document.getElementById('control-timer-display');
   if (!timerEl) return;
 
@@ -151,39 +165,33 @@ function handleControlTimer(state) {
   switch (currentStatus) {
     case 'waiting':
       timerEl.hidden = true;
-      timerEl.textContent = '00:00:00';
-      clearElapsedTimer?.();
+      timerEl.textContent = '--:--:--';
       break;
 
     case 'active': {
       timerEl.hidden = false;
-      let endTimestamp = null;
-      if (endTime?.toMillis) {
-        endTimestamp = endTime.toMillis();
-      } else if (startTime?.toMillis && durationMinutes) {
-        endTimestamp = startTime.toMillis() + durationMinutes * 60 * 1000;
-      } else if (remainingMs) {
-        endTimestamp = Date.now() + remainingMs;
-      }
-
-      if (endTimestamp) {
-        startCountdownTimer(endTimestamp, '#control-timer-display');
+      const ms = Number.isFinite(remainingMs) ? remainingMs : getRemainingMs();
+      if (Number.isFinite(ms)) {
+        timerEl.textContent = formatCountdown(ms);
       }
       break;
     }
 
     case 'paused':
-      clearElapsedTimer?.();
       timerEl.hidden = false;
-      timerEl.textContent = '⏸️ PAUSED';
+      if (Number.isFinite(remainingMs)) {
+        timerEl.textContent = `⏸️ ${formatCountdown(remainingMs)}`;
+      } else {
+        const ms = getRemainingMs();
+        timerEl.textContent = ms ? `⏸️ ${formatCountdown(ms)}` : '⏸️ PAUSED';
+      }
       break;
 
     case 'finished':
     case 'ended':
     case 'over':
-      clearElapsedTimer?.();
       timerEl.hidden = false;
-      timerEl.textContent = '00:00';
+      timerEl.textContent = '00:00:00';
       break;
 
     default:

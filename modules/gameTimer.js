@@ -1,327 +1,151 @@
 // ============================================================================
-// MODULE: gameTimer.js (FULLY SYNCED + STABLE PAUSE/RESUME)
-// Purpose: Keeps control + player timers synchronized in real-time via Firestore
+// MODULE: gameTimer.js
+// PURPOSE: Unified countdown lifecycle with pause / resume support
+// NOTE: Pure timer utilities — no Firestore side-effects here
 // ============================================================================
-import { db } from './config.js';
-import {
-  onSnapshot,
-  doc,
-  serverTimestamp,
-  updateDoc,
-  getDoc,
-  Timestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-let timerInterval = null;
-let currentEndTime = null;
-let currentRemainingMs = null;
-let lastPausedAt = null;
+let timerId = null;
+let endTime = null;
+let remainingMs = 0;
+let tickHandler = null;
+let endHandler = null;
+
+function formatTime(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) {
+    return '00:00:00';
+  }
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [
+    String(hours).padStart(2, '0'),
+    String(minutes).padStart(2, '0'),
+    String(seconds).padStart(2, '0'),
+  ].join(':');
+}
+
+function updateDisplay(text) {
+  const ids = ['control-timer-display', 'timer-display', 'player-timer'];
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.hidden = false;
+    el.textContent = text;
+  });
+}
 
 function publishTimerState() {
   if (typeof window === 'undefined') return;
   window.__rrTimerState = {
-    active: !!timerInterval,
-    endTime: currentEndTime,
-    remainingMs: currentRemainingMs,
-    pausedAt: lastPausedAt,
+    active: timerId != null,
+    endTime,
+    remainingMs,
     updatedAt: Date.now(),
   };
 }
-// ---------------------------------------------------------------------------
-// 🧭 Format milliseconds into HH:MM:SS
-// ---------------------------------------------------------------------------
-function formatTime(ms) {
-  if (ms == null || isNaN(ms)) return '--:--:--';
-  const h = Math.floor(ms / 3_600_000);
-  const m = Math.floor((ms % 3_600_000) / 60_000);
-  const s = Math.floor((ms % 60_000) / 1000);
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+function defaultTick(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) {
+    updateDisplay('00:00:00');
+  } else {
+    updateDisplay(formatTime(ms));
+  }
 }
 
-function normalizeTimestamp(ts) {
-  if (ts && typeof ts.toMillis === 'function') {
-    const millis = ts.toMillis();
-    return Number.isFinite(millis) ? millis : null;
-  }
-  if (ts instanceof Date) {
-    const millis = ts.getTime();
-    return Number.isFinite(millis) ? millis : null;
-  }
-  if (typeof ts === 'string') {
-    const parsed = Date.parse(ts);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  if (typeof ts === 'number' && Number.isFinite(ts)) {
-    return ts;
-  }
-  return null;
+function defaultEnd() {
+  updateDisplay('00:00:00');
 }
 
-function deriveRemainingMs(snapshotData) {
-  const explicit = typeof snapshotData?.remainingMs === 'number'
-    ? Math.max(0, snapshotData.remainingMs)
-    : null;
-  if (Number.isFinite(explicit) && explicit > 0) {
-    return explicit;
-  }
-  const endTimeMs = normalizeTimestamp(snapshotData?.endTime);
-  if (Number.isFinite(endTimeMs)) {
-    const diff = endTimeMs - Date.now();
-    return diff > 0 ? diff : 0;
-  }
-  if (snapshotData?.startTime && snapshotData?.durationMinutes) {
-    const startMs = normalizeTimestamp(snapshotData.startTime);
-    if (Number.isFinite(startMs)) {
-      const computed = startMs + snapshotData.durationMinutes * 60_000 - Date.now();
-      return computed > 0 ? computed : 0;
-    }
-  }
-  return 0;
-}
-
-function updateTimerDisplay(remainingMs, display = getTimerDisplay()) {
-  if (!display) return;
-  if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
-    display.textContent = '00:00:00';
-    return;
-  }
-  display.textContent = formatTime(remainingMs);
-}
-
-// ---------------------------------------------------------------------------
-// 🕒 Draw the remaining time continuously
-// ---------------------------------------------------------------------------
-function getTimerDisplay(selector) {
-  if (selector) {
-    const el = document.querySelector(selector);
-    if (el) return el;
-  }
-  return document.getElementById('timer-display') ||
-    document.getElementById('control-timer-display');
-}
-
-function startCountdownTimer(endMs, displaySelector) {
-  const display = getTimerDisplay(displaySelector);
-  if (!display || !endMs) return;
-
-  clearElapsedTimer();
-  currentEndTime = endMs;
-  lastPausedAt = null;
+function notifyTick() {
+  if (!Number.isFinite(endTime)) return;
+  const now = Date.now();
+  remainingMs = Math.max(0, endTime - now);
   publishTimerState();
 
-  const update = () => {
-    const remaining = endMs - Date.now();
-    currentRemainingMs = remaining;
-    publishTimerState();
-    if (remaining <= 0) {
-      updateTimerDisplay(0, display);
-      clearElapsedTimer();
-      currentRemainingMs = 0;
-      publishTimerState();
-      return;
-    }
-    updateTimerDisplay(remaining, display);
-  };
+  const handler = typeof tickHandler === 'function' ? tickHandler : defaultTick;
+  handler(remainingMs);
 
-  update();
-  timerInterval = setInterval(update, 1000);
+  if (remainingMs <= 0) {
+    clearInterval(timerId);
+    timerId = null;
+    const endCb = typeof endHandler === 'function' ? endHandler : defaultEnd;
+    endCb();
+    publishTimerState();
+  }
 }
 
-// ---------------------------------------------------------------------------
-// 🔹 Clear interval safely
-// ---------------------------------------------------------------------------
-export function clearElapsedTimer() {
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
-  currentEndTime = null;
-  currentRemainingMs = null;
+export function startCountdownTimer(durationMs, onTick, onEnd) {
+  clearCountdownTimer();
+
+  remainingMs = Math.max(0, Number(durationMs) || 0);
+  endTime = Date.now() + remainingMs;
+  tickHandler = typeof onTick === 'function' ? onTick : null;
+  endHandler = typeof onEnd === 'function' ? onEnd : null;
+
   publishTimerState();
-}
-
-// ---------------------------------------------------------------------------
-// ⏸️ Pause Game Timer (Control-side)
-// ---------------------------------------------------------------------------
-export async function pauseGameTimer() {
-  try {
-    const ref = doc(db, 'game', 'gameState');
-    const snap = await getDoc(ref);
-    if (!snap.exists()) throw new Error("No gameState document found.");
-
-    const data = snap.data();
-    const now = Date.now();
-
-    // Safely compute remaining time
-    let remainingMs = 0;
-    if (data.endTime?.toMillis) {
-      remainingMs = Math.max(data.endTime.toMillis() - now, 0);
-    } else if (currentRemainingMs != null) {
-      remainingMs = Math.max(currentRemainingMs, 0);
-    }
-
-    await updateDoc(ref, {
-      status: 'paused',
-      remainingMs,
-      endTime: null,
-      updatedAt: serverTimestamp()
-    });
-
-    clearElapsedTimer();
-    currentRemainingMs = remainingMs;
-    currentEndTime = null;
-    lastPausedAt = Date.now();
-    publishTimerState();
-    console.log(`⏸️ Paused with ${Math.floor(remainingMs / 1000)}s left`);
-  } catch (err) {
-    console.error('❌ pauseGameTimer error:', err);
+  notifyTick();
+  if (remainingMs > 0) {
+    timerId = setInterval(notifyTick, 1000);
   }
+  return remainingMs;
 }
 
-// ---------------------------------------------------------------------------
-// ▶️ Resume Game Timer (Control-side)
-// ---------------------------------------------------------------------------
-export async function resumeGameTimer() {
-  try {
-    const ref = doc(db, 'game', 'gameState');
-    const snap = await getDoc(ref);
-    if (!snap.exists()) throw new Error("No gameState document found.");
-
-    const data = snap.data();
-    const now = Date.now();
-    const remainingMs = data.remainingMs ?? currentRemainingMs ?? 0;
-    const newEndTime = Timestamp.fromMillis(now + remainingMs);
-
-    await updateDoc(ref, {
-      status: 'active',
-      endTime: newEndTime,
-      remainingMs: null,
-      updatedAt: serverTimestamp()
-    });
-
-    currentEndTime = newEndTime.toMillis();
-    currentRemainingMs = remainingMs;
-    lastPausedAt = null;
-    publishTimerState();
-    console.log(`▶️ Resumed — new endTime = ${newEndTime.toDate().toLocaleTimeString()}`);
-  } catch (err) {
-    console.error('❌ resumeGameTimer error:', err);
+export function pauseCountdownTimer() {
+  if (timerId) {
+    clearInterval(timerId);
+    timerId = null;
   }
+  if (Number.isFinite(endTime)) {
+    remainingMs = Math.max(0, endTime - Date.now());
+  }
+  publishTimerState();
+  return remainingMs;
 }
 
-function rebuildTimer(snapshotData) {
-  const remainingMs = deriveRemainingMs(snapshotData);
+export function resumeCountdownTimer(overrideRemainingMs, onTick, onEnd) {
+  if (Number.isFinite(overrideRemainingMs) && overrideRemainingMs > 0) {
+    remainingMs = overrideRemainingMs;
+  }
   if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
-    console.warn('[GameTimer] No remaining time detected while rebuilding timer.');
-    clearElapsedTimer();
-    return;
+    return 0;
   }
 
-  const display = getTimerDisplay();
-  const endMs = Date.now() + remainingMs;
+  if (typeof onTick === 'function') tickHandler = onTick;
+  if (typeof onEnd === 'function') endHandler = onEnd;
 
-  updateTimerDisplay(remainingMs, display);
-  startCountdownTimer(endMs);
+  endTime = Date.now() + remainingMs;
+  publishTimerState();
+  notifyTick();
+  if (remainingMs > 0) {
+    timerId = setInterval(notifyTick, 1000);
+  }
+  return remainingMs;
+}
 
-  if (typeof window !== 'undefined') {
-    try {
-      window.dispatchEvent?.(new CustomEvent('overlay:resume', {
-        detail: { remainingMs, resumedAt: Date.now() }
-      }));
-    } catch (err) {
-      console.warn('[GameTimer] Failed to emit overlay resume event:', err);
-    }
+export function clearCountdownTimer(resetDisplay = true) {
+  if (timerId) {
+    clearInterval(timerId);
+    timerId = null;
+  }
+  endTime = null;
+  remainingMs = 0;
+  tickHandler = null;
+  endHandler = null;
+  publishTimerState();
+  if (resetDisplay) {
+    updateDisplay('--:--:--');
   }
 }
 
-export function handleStatusChange(prevStatus, newStatus, snapshotData) {
-  if (prevStatus === 'paused' && newStatus === 'active') {
-    console.debug('[GameTimer] Resuming countdown...');
-    rebuildTimer(snapshotData);
-  }
+export function getRemainingMs() {
+  return remainingMs;
 }
 
-// ---------------------------------------------------------------------------
-// 📡 Live Sync for All Clients (Control + Player)
-// ---------------------------------------------------------------------------
-export function listenToGameTimer() {
-  const display = getTimerDisplay();
-  if (!display) {
-    console.warn('⏱️ Timer display not found — skipping listener init.');
-    return;
-  }
+export function getEndTime() {
+  return endTime;
+}
 
-  const ref = doc(db, 'game', 'gameState');
-
-  onSnapshot(ref, (snap) => {
-    const data = snap.data();
-    if (!data) return;
-
-    const { status, endTime, startTime, durationMinutes, remainingMs } = data;
-    let endMs = null;
-
-    // Compute valid end timestamp
-    if (endTime?.toMillis) {
-      endMs = endTime.toMillis();
-    } else if (startTime?.toMillis && durationMinutes) {
-      endMs = startTime.toMillis() + durationMinutes * 60_000;
-    } else if (remainingMs) {
-      endMs = Date.now() + remainingMs;
-    }
-
-    switch (status) {
-      case 'active':
-        lastPausedAt = null;
-        if (endMs) startCountdownTimer(endMs);
-        else {
-          clearElapsedTimer();
-          currentRemainingMs = typeof remainingMs === 'number' ? remainingMs : null;
-          currentEndTime = null;
-          display.textContent = '--:--:--';
-          publishTimerState();
-        }
-        break;
-
-      case 'paused':
-        clearElapsedTimer();
-        currentRemainingMs = typeof remainingMs === 'number' ? remainingMs : null;
-        currentEndTime = null;
-        lastPausedAt = Date.now();
-        display.textContent = currentRemainingMs != null ? formatTime(currentRemainingMs) : '--:--:--';
-        publishTimerState();
-        break;
-
-      case 'waiting':
-        clearElapsedTimer();
-        currentRemainingMs = null;
-        currentEndTime = null;
-        lastPausedAt = null;
-        display.textContent = '--:--:--';
-        publishTimerState();
-        break;
-
-      case 'finished':
-      case 'ended':
-      case 'over':
-        clearElapsedTimer();
-        currentRemainingMs = 0;
-        currentEndTime = null;
-        lastPausedAt = null;
-        display.textContent = '00:00:00';
-        publishTimerState();
-        break;
-
-      default:
-        clearElapsedTimer();
-        currentRemainingMs = null;
-        currentEndTime = null;
-        lastPausedAt = null;
-        display.textContent = '--:--:--';
-        publishTimerState();
-    }
-
-    if (display.id === 'control-timer-display') {
-      display.hidden = status === 'waiting';
-    }
-  });
+export function isTimerRunning() {
+  return timerId != null;
 }

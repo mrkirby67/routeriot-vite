@@ -18,7 +18,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { listenToGameTimer, clearElapsedTimer } from '../../modules/gameTimer.js';
+import { clearCountdownTimer } from '../../modules/gameTimer.js';
 import {
   startGame as startGameState,
   pauseGame,
@@ -209,7 +209,6 @@ export function initializeGameControlsLogic() {
   const saveRulesBtn = document.getElementById('save-rules-btn');
   const rulesDocRef = doc(db, 'settings', 'rules');
 
-  listenToGameTimer();
   listenForGameStatus((state) => {
     const status = state?.status || 'waiting';
     const shouldDisableStart = status === 'active' || status === 'paused';
@@ -306,7 +305,7 @@ export function initializeGameControlsLogic() {
   // 🏁 END GAME → Top 3
   endBtn.addEventListener('click', async () => {
     await setDoc(doc(db, 'game', 'gameState'), { status: 'over' }, { merge: true });
-    clearElapsedTimer();
+    clearCountdownTimer();
     await announceTopThree();
   });
 

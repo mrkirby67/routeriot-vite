@@ -69,6 +69,7 @@
  - modules/gameMaintenance.js
  - modules/gameRulesManager.js
  - modules/gameStateManager.js
+ - modules/gameStateVerifier.js
  - modules/gameTimer.js
  - modules/gameUI.js
  - modules/googleMapsLoader.js
