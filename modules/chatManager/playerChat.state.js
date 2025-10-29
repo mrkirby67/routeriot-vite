@@ -11,9 +11,7 @@ import {
   subscribeSurprisesForTeam,
   isShieldActive
 } from '../teamSurpriseManager.js';
-import {
-  subscribeSpeedBumpsForAttacker
-} from '../speedBump/index.js';
+import { attachSpeedBumpAttackerSubscription } from './playerChat.surprises.js';
 
 const defaultCounts = Object.freeze({
   flatTire: 0,
@@ -98,12 +96,9 @@ export function setupPlayerChat(teamName, options = {}) {
   });
 
   // --- Subscribe to outgoing speed bumps for this team ---
-  const unsubscribeOutgoing = subscribeSpeedBumpsForAttacker(
-    normalizedTeamName,
-    (entries = []) => {
-      ui.renderOutgoing?.(Array.isArray(entries) ? entries : []);
-    }
-  );
+  const unsubscribeOutgoing = attachSpeedBumpAttackerSubscription(normalizedTeamName, (entries = []) => {
+    ui.renderOutgoing?.(Array.isArray(entries) ? entries : []);
+  });
   registerListener('player', unsubscribeOutgoing);
   teardownCallbacks.push(() => {
     try { unsubscribeOutgoing?.(); } catch (err) {

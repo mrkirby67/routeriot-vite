@@ -14,6 +14,7 @@ function ensureOverlay() {
   overlay.innerHTML = `
     <div class="speedbump-overlay__content">
       <h2 data-role="headline">🚧 Speed Bump!</h2>
+      <p data-role="chirp" class="speedbump-overlay__chirp"></p>
       <p data-role="challenge"></p>
       <div class="speedbump-overlay__countdown">
         ⏱️ <span data-remaining>--s</span>
@@ -48,13 +49,21 @@ export function onSpeedBumpUpdate(data) {
   const remainingEl = overlay.querySelector('[data-remaining]');
   const headlineEl = overlay.querySelector('[data-role="headline"]');
   const challengeEl = overlay.querySelector('[data-role="challenge"]');
+  const chirpEl = overlay.querySelector('[data-role="chirp"]');
 
-  const isActive = data && data.status === SPEEDBUMP_STATUS.active;
-  if (!isActive) {
+  const status = typeof data?.status === 'string' ? data.status.toLowerCase() : null;
+  const isActive = status === SPEEDBUMP_STATUS.active;
+  const explicitlyReleased = status === SPEEDBUMP_STATUS.released || status === SPEEDBUMP_STATUS.expired;
+
+  if (!isActive || explicitlyReleased) {
     stopOverlayTimer(overlay);
     overlay.classList.remove('visible');
     if (remainingEl) remainingEl.textContent = '--s';
     if (challengeEl) challengeEl.textContent = '';
+    if (chirpEl) {
+      chirpEl.textContent = '';
+      chirpEl.hidden = true;
+    }
     return;
   }
 
@@ -63,17 +72,30 @@ export function onSpeedBumpUpdate(data) {
     : Date.now() + (Number(data?.countdownMs) || 0);
 
   if (headlineEl) {
-    const attacker = typeof data?.by === 'string' && data.by.trim()
-      ? escapeHtml(data.by.trim())
+    const attackerName = (typeof data?.attacker === 'string' ? data.attacker : data?.by) || 'Control';
+    const attacker = attackerName && attackerName.trim()
+      ? escapeHtml(attackerName.trim())
       : 'Control';
     headlineEl.textContent = `🚧 Speed Bump by ${attacker}`;
   }
 
   if (challengeEl) {
-    const challenge = typeof data?.challenge === 'string' && data.challenge.trim()
-      ? escapeHtml(data.challenge.trim())
+    const detail = (typeof data?.details === 'string' ? data.details : data?.challenge) || '';
+    const challenge = detail && detail.trim()
+      ? escapeHtml(detail.trim())
       : 'Complete the challenge to continue!';
     challengeEl.textContent = challenge;
+  }
+
+  if (chirpEl) {
+    const chirpText = typeof data?.chirp === 'string' ? data.chirp.trim() : '';
+    if (chirpText) {
+      chirpEl.textContent = `Chirp: ${escapeHtml(chirpText)}`;
+      chirpEl.hidden = false;
+    } else {
+      chirpEl.textContent = '';
+      chirpEl.hidden = true;
+    }
   }
 
   overlay.classList.add('visible');

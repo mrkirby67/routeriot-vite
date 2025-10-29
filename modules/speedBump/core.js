@@ -15,6 +15,7 @@ export function buildSpeedBumpRecord({ by, toTeam, countdownMs = 60_000, ...extr
   const safeCountdown = Number.isFinite(countdownMs) && countdownMs > 0 ? countdownMs : 60_000;
   return {
     by,
+    attacker: by,
     toTeam,
     status: SPEEDBUMP_STATUS.active,
     countdownMs: safeCountdown,

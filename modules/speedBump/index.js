@@ -76,7 +76,9 @@ export async function sendSpeedBump(attackerTeam, targetTeam, durationMs = 60_00
       toTeam: normalizedTarget,
       countdownMs: durationMs
     }),
+    attacker: normalizedAttacker,
     challenge,
+    details: challenge,
     lastUpdatedAt: Date.now(),
     ...extraData
   };
@@ -159,20 +161,22 @@ export function subscribeSpeedBumps(arg1, arg2) {
         const current = activeBumps.get(teamName) || {};
         const proposed = {
           ...current,
-          by: data.by,
-          challenge: data.challenge || current.challenge || '',
+          by: data.by || data.attacker || current.by,
+          challenge: data.details || data.challenge || current.challenge || '',
           startedAt: data.createdAt ?? current.startedAt ?? Date.now(),
           countdownEndsAt: data.expiresAt ?? null,
           countdownMs: data.countdownMs ?? null,
           contactEmail: data.contactEmail || current.contactEmail || null,
-          contactPhone: data.contactPhone || current.contactPhone || null
+          contactPhone: data.contactPhone || current.contactPhone || null,
+          chirp: data.chirp || current.chirp || null
         };
 
         const hasChanged =
           current.by !== proposed.by ||
           current.challenge !== proposed.challenge ||
           current.countdownEndsAt !== proposed.countdownEndsAt ||
-          current.countdownMs !== proposed.countdownMs;
+          current.countdownMs !== proposed.countdownMs ||
+          current.chirp !== proposed.chirp;
 
         if (hasChanged) {
           applySpeedBump(teamName, proposed);
@@ -196,23 +200,61 @@ export function subscribeSpeedBumps(arg1, arg2) {
 export function subscribeSpeedBumpsForAttacker(attackerTeam, callback) {
   if (!attackerTeam || typeof callback !== 'function') return () => {};
   const normalizedTeam = attackerTeam.trim();
-  const q = query(
-    collection(db, SPEEDBUMP_COLLECTION),
-    where('by', '==', normalizedTeam),
-    orderBy('createdAt', 'desc'),
-    limit(20)
-  );
+  if (!normalizedTeam) return () => {};
 
-  return onSnapshot(q, (snap) => {
+  let overlayAnnounced = false;
+
+  const handleAttackerUpdate = (snap) => {
     const list = [];
-    snap.forEach((docSnap) => {
-      list.push({ id: docSnap.id, ...docSnap.data() });
+    snap?.forEach((docSnap) => {
+      const payload = docSnap.data() || {};
+      list.push({ id: docSnap.id, ...payload });
     });
     callback(list);
-  }, (err) => {
-    console.error('[SpeedBump] subscribeSpeedBumpsForAttacker error:', err);
-    callback([]);
-  });
+
+    if (typeof window !== 'undefined' && typeof window.updateSpeedBumpOverlay === 'function') {
+      try {
+        window.updateSpeedBumpOverlay(normalizedTeam, list);
+        if (!overlayAnnounced) {
+          console.info(`🧩 Overlay sync established for Team ${normalizedTeam}`);
+          overlayAnnounced = true;
+        }
+      } catch (err) {
+        console.warn('[SpeedBump] Failed to sync overlay for attacker:', err);
+      }
+    }
+  };
+
+  try {
+    const q = query(
+      collection(db, SPEEDBUMP_COLLECTION),
+      where('attacker', '==', normalizedTeam),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+
+    const unsubscribe = onSnapshot(q, handleAttackerUpdate, (err) => {
+      console.error('[SpeedBump] subscribeSpeedBumpsForAttacker error:', err);
+      if (err?.code === 'failed-precondition') {
+        console.warn('⚠️ Firestore index mismatch. Skipping redundant query.');
+      }
+      callback([]);
+    });
+
+    console.info(`✅ [SpeedBump][Attacker] subscription attached successfully for ${normalizedTeam}`);
+
+    return () => {
+      try { unsubscribe?.(); } catch (err) {
+        console.debug('[SpeedBump] Failed to detach attacker subscription:', err);
+      }
+    };
+  } catch (err) {
+    console.error('[SpeedBump] Attacker subscription error:', err);
+    if (err?.code === 'failed-precondition') {
+      console.warn('⚠️ Firestore index mismatch. Skipping redundant query.');
+    }
+    return () => {};
+  }
 }
 
 export async function verifySpeedBump(targetTeam) {

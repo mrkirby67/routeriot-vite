@@ -1,0 +1,102 @@
+Speed Bump Attacker Subscription Fix
+====================================
+
+Summary
+-------
+- Hardened `subscribeSpeedBumpsForAttacker` with explicit attacker field, guarded Firestore query, and overlay sync callbacks.
+- Added attacker subscription helper for player chat teardown, plus diagnostic console logs.
+- Extended message service with `broadcastChirp` and enhanced overlay rendering for attacker, chirp, and detail fields.
+
+Verification
+------------
+- npm run build
+- Console messages now include:
+  * [SpeedBump][Attacker] Listener attached for <team>
+  * ✅ [SpeedBump][Attacker] subscription attached successfully for <team>
+  * 🧩 Overlay sync established for Team <team>
+
+Diff: subscribeSpeedBumpsForAttacker
+------------------------------------
+```diff
+@@
+-export function subscribeSpeedBumpsForAttacker(attackerTeam, callback) {
+-  if (!attackerTeam || typeof callback !== 'function') return () => {};
+-  const normalizedTeam = attackerTeam.trim();
+-  const q = query(
+-    collection(db, SPEEDBUMP_COLLECTION),
+-    where('by', '==', normalizedTeam),
+-    orderBy('createdAt', 'desc'),
+-    limit(20)
+-  );
+-
+-  return onSnapshot(q, (snap) => {
+-    const list = [];
+-    snap.forEach((docSnap) => {
+-      list.push({ id: docSnap.id, ...docSnap.data() });
+-    });
+-    callback(list);
+-  }, (err) => {
+-    console.error('[SpeedBump] subscribeSpeedBumpsForAttacker error:', err);
+-    callback([]);
+-  });
+-}
++export function subscribeSpeedBumpsForAttacker(attackerTeam, callback) {
++  if (!attackerTeam || typeof callback !== 'function') return () => {};
++  const normalizedTeam = attackerTeam.trim();
++  if (!normalizedTeam) return () => {};
++
++  let overlayAnnounced = false;
++
++  const handleAttackerUpdate = (snap) => {
++    const list = [];
++    snap?.forEach((docSnap) => {
++      const payload = docSnap.data() || {};
++      list.push({ id: docSnap.id, ...payload });
++    });
++    callback(list);
++
++    if (typeof window !== 'undefined' && typeof window.updateSpeedBumpOverlay === 'function') {
++      try {
++        window.updateSpeedBumpOverlay(normalizedTeam, list);
++        if (!overlayAnnounced) {
++          console.info(`🧩 Overlay sync established for Team ${normalizedTeam}`);
++          overlayAnnounced = true;
++        }
++      } catch (err) {
++        console.warn('[SpeedBump] Failed to sync overlay for attacker:', err);
++      }
++    }
++  };
++
++  try {
++    const q = query(
++      collection(db, SPEEDBUMP_COLLECTION),
++      where('attacker', '==', normalizedTeam),
++      orderBy('createdAt', 'desc'),
++      limit(20)
++    );
++
++    const unsubscribe = onSnapshot(q, handleAttackerUpdate, (err) => {
++      console.error('[SpeedBump] subscribeSpeedBumpsForAttacker error:', err);
++      if (err?.code === 'failed-precondition') {
++        console.warn('⚠️ Firestore index mismatch. Skipping redundant query.');
++      }
++      callback([]);
++    });
++
++    console.info(`✅ [SpeedBump][Attacker] subscription attached successfully for ${normalizedTeam}`);
++
++    return () => {
++      try { unsubscribe?.(); } catch (err) {
++        console.debug('[SpeedBump] Failed to detach attacker subscription:', err);
++      }
++    };
++  } catch (err) {
++    console.error('[SpeedBump] Attacker subscription error:', err);
++    if (err?.code === 'failed-precondition') {
++      console.warn('⚠️ Firestore index mismatch. Skipping redundant query.');
++    }
++    return () => {};
++  }
++}
+```

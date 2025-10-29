@@ -62,31 +62,45 @@ export function showFlatTireOverlay({
         <p>Head to <strong>${escapeHtml(zoneName)}</strong> to check in!</p>
         <div id="flat-tire-map">${mapHtml}</div>
         <div id="flat-tire-countdown" style="font-size: 1.5rem; margin: 1rem 0;"></div>
-        <div>
+        <div style="display: flex; align-items: center; justify-content: center;">
             <button id="flat-tire-checkin-btn" style="padding: 10px 20px; font-size: 1rem; margin-right: 10px;">I’m Here</button>
-            <button id="flat-tire-chirp-btn" style="padding: 10px 20px; font-size: 1rem;">🐦 Chirp</button>
+            <div id="flat-tire-chirp-container">
+                <button id="flat-tire-chirp-btn" style="padding: 10px 20px; font-size: 1rem;">🐦 Chirp</button>
+                <div id="flat-tire-chirp-edit" style="display: none; align-items: center;">
+                    <input type="text" id="flat-tire-chirp-input" style="padding: 10px; font-size: 1rem; width: 250px; border: none; border-radius: 5px;">
+                    <button id="flat-tire-chirp-send-btn" style="padding: 10px 20px; font-size: 1rem; margin-left: 5px;">Send</button>
+                </div>
+            </div>
         </div>
     </div>
   `;
 
   document.getElementById('flat-tire-checkin-btn')?.addEventListener('click', onCheckIn);
   
+  const chirpContainer = document.getElementById('flat-tire-chirp-container');
   const chirpButton = document.getElementById('flat-tire-chirp-btn');
-  let chirpMessage = '';
-  let isChirpPreviewed = false;
+  const chirpEditContainer = document.getElementById('flat-tire-chirp-edit');
+  const chirpInput = document.getElementById('flat-tire-chirp-input');
+  const chirpSendButton = document.getElementById('flat-tire-chirp-send-btn');
 
   chirpButton?.addEventListener('click', () => {
-    if (!isChirpPreviewed) {
-      // First click: Preview the message
-      chirpMessage = getRandomChirp();
-      chirpButton.textContent = `Send: "${chirpMessage}"`;
-      isChirpPreviewed = true;
-    } else {
-      // Second click: Send the message
-      onChirp(chirpMessage);
-      chirpButton.textContent = '🐦 Chirp'; // Reset button text
-      chirpButton.disabled = true; // Disable the button
-      isChirpPreviewed = false;
+    if (chirpEditContainer && chirpButton) {
+        chirpEditContainer.style.display = 'flex';
+        chirpButton.style.display = 'none';
+    }
+    if (chirpInput) {
+        chirpInput.value = getRandomChirp();
+        chirpInput.focus();
+    }
+  });
+
+  chirpSendButton?.addEventListener('click', () => {
+    const message = chirpInput.value;
+    if (message) {
+        onChirp(message);
+    }
+    if (chirpContainer) {
+        chirpContainer.innerHTML = '<button style="padding: 10px 20px; font-size: 1rem;" disabled>🐦 Chirp Sent</button>';
     }
   });
 

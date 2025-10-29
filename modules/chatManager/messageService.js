@@ -11,7 +11,8 @@ import {
   onSnapshot,
   orderBy,
   query,
-  where
+  where,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { clearRegistry, registerListener } from './registry.js';
 import { GAME_MASTER_NAME, resolveSenderName, safeHTML, shouldRenderRaw } from './utils.js';
@@ -67,6 +68,23 @@ export async function sendPrivateMessage(senderOrTarget, recipientMaybe, rawText
   } catch (err) {
     console.error('❌ Error sending private message:', err);
     return { ok: false, reason: err?.message || 'send_failed' };
+  }
+}
+
+export async function broadcastChirp(fromTeam, message) {
+  const teamName = typeof fromTeam === 'string' ? fromTeam.trim() : '';
+  const text = typeof message === 'string' ? message.trim() : '';
+  if (!teamName || !text) return;
+
+  try {
+    await addDoc(collection(db, 'communications'), {
+      type: 'chirp',
+      from: teamName,
+      message: text,
+      timestamp: serverTimestamp()
+    });
+  } catch (err) {
+    console.error('❌ Failed to broadcast chirp:', err);
   }
 }
 
