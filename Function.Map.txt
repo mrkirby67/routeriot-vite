@@ -75,6 +75,7 @@
  - modules/googleMapsLoader.js
  - modules/homeMap.js
  - modules/messages/taunts.js
+ - modules/playerBugStrike.js
  - modules/playerBugStrikeUI.js
  - modules/playerUI.js
  - modules/playerUI/autoInit.js
@@ -90,6 +91,7 @@
  - modules/speedBump/core.js
  - modules/speedBump/index.js
  - modules/speedBump/interactions.js
+ - modules/speedBump/overlay.js
  - modules/speedBump/reversals.js
  - modules/speedBump/timers.js
  - modules/speedBumpChallenges.js
