@@ -114,19 +114,22 @@ export function renderTeamInventory(byTeam = {}, options = {}) {
     ])
   ).filter(Boolean);
 
-  if (!knownTeams.length) {
+  const currentPlayerTeam = teamSurprisesPanelState.teamName;
+  const listedTeams = knownTeams.filter((teamName) => teamName !== currentPlayerTeam);
+
+  if (!listedTeams.length) {
     list.innerHTML = '<li class="team-surprises-empty">No surprise data yet.</li>';
     return;
   }
 
-  knownTeams.sort((a, b) => a.localeCompare(b));
+  listedTeams.sort((a, b) => a.localeCompare(b));
 
-  const rows = knownTeams.map((teamName) => {
+  const rows = listedTeams.map((teamName) => {
     const counts = byTeam?.[teamName] || {};
     const flat = extractSurpriseCount(counts, 'flatTire', 'FLAT_TIRE');
     const bug = extractSurpriseCount(counts, 'bugSplat', 'BUG_SPLAT');
     const shield = extractSurpriseCount(counts, 'wildCard', 'WILD_CARD', 'superShieldWax');
-    const highlight = teamName === teamSurprisesPanelState.teamName ? ' is-current-team' : '';
+    const highlight = teamName === currentTeamName ? ' is-current-team' : '';
     const safeTeam = escapeHtml(teamName);
     const attributeTeam = escapeAttribute(teamName);
     const isCurrentTeam = teamName === currentTeamName;
