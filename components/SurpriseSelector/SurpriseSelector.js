@@ -38,13 +38,16 @@ export async function applyToAllTeams(selectedType, newCount = 0) {
   });
 
   await batch.commit();
-  console.log(`✅ Applied ${selectedType}:${newCount} to all teams.`);
-  alert(`✅ ${selectedType} updated for every team!`);
+  const config = TYPE_CONFIG.find((cfg) => cfg.key === selectedType);
+  const label = config?.label || selectedType;
+  console.log(`✅ Applied ${label}:${newCount} to all teams.`);
+  alert(`✅ ${label} updated for every team!`);
 }
 
 const TYPE_CONFIG = [
   { key: SurpriseTypes.FLAT_TIRE, label: 'Flat Tire' },
   { key: SurpriseTypes.BUG_SPLAT, label: 'Bug Splat' },
+  { key: SurpriseTypes.SPEED_BUMP, label: 'Speed Bump' },
   { key: SurpriseTypes.WILD_CARD, label: 'Super SHIELD Wax' }
 ];
 
@@ -62,7 +65,13 @@ export function SurpriseSelectorComponent() {
       </p>
       <div class="${styles.masterControls}">
         <div>
-          <label for="wildcard-dashboard-input">Set All Wild Cards to:</label>
+          <label for="wildcard-dashboard-type">Apply To All Teams:</label>
+          <select id="wildcard-dashboard-type">
+            <option value="${SurpriseTypes.FLAT_TIRE}">Flat Tire</option>
+            <option value="${SurpriseTypes.BUG_SPLAT}">Bug Splat</option>
+            <option value="${SurpriseTypes.SPEED_BUMP}">Speed Bump</option>
+            <option value="${SurpriseTypes.WILD_CARD}">Super SHIELD Wax</option>
+          </select>
           <input id="wildcard-dashboard-input" type="number" min="0" value="1">
           <button type="button" id="wildcard-dashboard-apply">Apply to All Teams</button>
         </div>
@@ -82,6 +91,7 @@ export function SurpriseSelectorComponent() {
             <th>Team</th>
             <th>Flat Tire</th>
             <th>Bug Splat</th>
+            <th>Speed Bump</th>
             <th>Super SHIELD Wax</th>
             <th>Cooldown Timer</th>
           </tr>
@@ -103,8 +113,13 @@ export function initializeSurpriseSelector() {
 
   // Master controls for setting all wildcards
   const masterInput = document.getElementById('wildcard-dashboard-input');
+  const masterTypeSelect = document.getElementById('wildcard-dashboard-type');
   const masterApplyBtn = document.getElementById('wildcard-dashboard-apply');
-  if (masterInput && masterApplyBtn) {
+  if (masterTypeSelect) {
+    masterTypeSelect.value = SurpriseTypes.WILD_CARD;
+  }
+
+  if (masterInput && masterApplyBtn && masterTypeSelect) {
     masterApplyBtn.addEventListener('click', async () => {
       const raw = Number.parseInt(masterInput.value, 10);
       if (!Number.isFinite(raw) || raw < 0) {
@@ -112,9 +127,10 @@ export function initializeSurpriseSelector() {
         return;
       }
       const target = Math.floor(raw);
+      const selectedType = masterTypeSelect.value || SurpriseTypes.WILD_CARD;
       masterApplyBtn.disabled = true;
       try {
-        await applyToAllTeams(SurpriseTypes.WILD_CARD, target);
+        await applyToAllTeams(selectedType, target);
       } catch (err) {
         console.error('❌ Failed to apply wild cards to all teams:', err);
         alert('❌ Failed to update wild cards. Check console for details.');
@@ -240,7 +256,7 @@ function renderTable(tbody, countsMap) {
         <strong>${escapeHtml(team.name)}</strong>
         <small>${escapeHtml(team.slogan || '')}</small>
       </td>
-      ${TYPE_CONFIG.map(cfg => renderCounterCell(team.name, cfg.key, counts)).join('')}
+      ${TYPE_CONFIG.map(cfg => renderCounterCell(team.name, cfg, counts)).join('')}
       <td data-role="cooldown-timer">${renderCooldownTimer(team.name)}</td>
     `;
 
@@ -250,20 +266,21 @@ function renderTable(tbody, countsMap) {
   tbody.replaceChildren(fragment);
 }
 
-function renderCounterCell(teamName, typeKey, counts) {
-  const value = normalizeCount(counts?.[typeKey]);
-  const label =
-    typeKey === SurpriseTypes.WILD_CARD ? 'Super SHIELD Wax' :
-    typeKey === SurpriseTypes.BUG_SPLAT ? 'Bug Splat' :
-    'Flat Tire';
+function renderCounterCell(teamName, config, counts) {
+  const { key, label } = config;
+  let rawValue = counts?.[key];
+  if (key === SurpriseTypes.WILD_CARD) {
+    rawValue = counts?.[key] ?? counts?.superShieldWax;
+  }
+  const value = normalizeCount(rawValue);
 
   return `
     <td class="${styles.counterCell}">
       <div class="${styles.counterLabel}">${escapeHtml(label)}</div>
       <div class="${styles.counterControls}">
-        <button type="button" data-action="decrement" data-team="${escapeHtml(teamName)}" data-type="${typeKey}">−</button>
+        <button type="button" data-action="decrement" data-team="${escapeHtml(teamName)}" data-type="${key}">−</button>
         <span>${value}</span>
-        <button type="button" data-action="increment" data-team="${escapeHtml(teamName)}" data-type="${typeKey}">+</button>
+        <button type="button" data-action="increment" data-team="${escapeHtml(teamName)}" data-type="${key}">+</button>
       </div>
     </td>
   `;

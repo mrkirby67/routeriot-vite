@@ -90,14 +90,10 @@ export async function broadcastChirp(fromTeam, message) {
 
 export function listenForMyMessages(myTeamName, logBox) {
   clearRegistry('playerMessages');
-  const messagesRef = collectionGroup(db, 'messages');
-  const sentQuery = query(messagesRef, where('sender', '==', myTeamName));
-  const receivedQuery = query(messagesRef, where('recipient', '==', myTeamName));
-  const broadcastQuery = query(collection(db, 'communications'), orderBy('timestamp', 'asc'));
-  const controlAllQuery = query(collection(db, 'conversations', 'CONTROL_ALL', 'messages'), orderBy('timestamp', 'asc'));
 
   const allMessages = [];
   const messageIds = new Set();
+  let conversationListeners = [];
 
   const renderLog = () => {
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
@@ -145,17 +141,11 @@ export function listenForMyMessages(myTeamName, logBox) {
     logBox.scrollTop = logBox.scrollHeight;
   };
 
-  const processSnapshot = (snapshot) => {
-    if (snapshot.empty) {
-      allMessages.length = 0;
-      messageIds.clear();
-      renderLog();
-      return;
-    }
+  const processMessageSnapshot = (snapshot) => {
     snapshot.docChanges().forEach(change => {
       if (change.type === 'added' && !messageIds.has(change.doc.id)) {
         const data = change.doc.data();
-        data.timestamp = data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp;
+        data.timestamp = data.timestamp?.toMillis ? data.timestamp.toMillis() : (data.timestamp || Date.now());
         messageIds.add(change.doc.id);
         allMessages.push(data);
       } else if (change.type === 'removed') {
@@ -166,10 +156,26 @@ export function listenForMyMessages(myTeamName, logBox) {
     renderLog();
   };
 
-  registerListener('playerMessages', onSnapshot(sentQuery, processSnapshot));
-  registerListener('playerMessages', onSnapshot(receivedQuery, processSnapshot));
-  registerListener('playerMessages', onSnapshot(broadcastQuery, processSnapshot));
-  registerListener('playerMessages', onSnapshot(controlAllQuery, processSnapshot));
+  const conversationsQuery = query(collection(db, 'conversations'), where('participants', 'array-contains', myTeamName));
+
+  const unsubscribeConversations = onSnapshot(conversationsQuery, (snapshot) => {
+    conversationListeners.forEach(unsub => unsub());
+    conversationListeners = [];
+
+    snapshot.forEach(convoDoc => {
+      const messagesQuery = query(collection(convoDoc.ref, 'messages'), orderBy('timestamp', 'asc'));
+      const unsubscribeMessages = onSnapshot(messagesQuery, processMessageSnapshot);
+      conversationListeners.push(unsubscribeMessages);
+      registerListener('playerMessages', unsubscribeMessages);
+    });
+  });
+
+  registerListener('playerMessages', unsubscribeConversations);
+
+  const broadcastQuery = query(collection(db, 'communications'), orderBy('timestamp', 'asc'));
+  const controlAllQuery = query(collection(db, 'conversations', 'CONTROL_ALL', 'messages'), orderBy('timestamp', 'asc'));
+  registerListener('playerMessages', onSnapshot(broadcastQuery, processMessageSnapshot));
+  registerListener('playerMessages', onSnapshot(controlAllQuery, processMessageSnapshot));
 
   return () => clearRegistry('playerMessages');
 }

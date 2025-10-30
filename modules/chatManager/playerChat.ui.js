@@ -8,6 +8,7 @@ import { showShieldHudTimer, hideShieldHudTimer, showShieldTimer, hideShieldTime
 import { escapeHtml } from '../utils.js';
 import { formatShieldDuration } from './playerChat.utils.js';
 import { sendSurprise } from './playerChat.surprises.js';
+import { sendSpeedBumpFromPlayer } from '../speedBumpPlayer.js';
 // ============================================================================
 // 🧩 UI STATE + ELEMENT HELPERS
 // ============================================================================
@@ -21,7 +22,8 @@ const teamSurprisesPanelState = {
   availableCounts: {
     flatTire: 0,
     bugSplat: 0,
-    superShieldWax: 0
+    superShieldWax: 0,
+    speedBump: 0
   }
 };
 
@@ -106,8 +108,9 @@ export function renderTeamInventory(byTeam = {}, options = {}) {
 
   const flatAvailable = Number(available.flatTire) || 0;
   const bugAvailable = Number(available.bugSplat) || 0;
+  const speedAvailable = Number(available.speedBump) || 0;
 
-  const knownTeams = teamNames; // Use only the provided active teams list
+  const knownTeams = Array.from(new Set(teamNames));
 
   const currentPlayerTeam = teamSurprisesPanelState.teamName;
   const listedTeams = knownTeams
@@ -145,13 +148,22 @@ export function renderTeamInventory(byTeam = {}, options = {}) {
           >
             🐞 Send Bug Splat
           </button>
+          <button
+            type="button"
+            class="team-btn team-btn--speed"
+            data-role="send-speed"
+            data-target="${attributeTeam}"
+            ${speedAvailable > 0 ? '' : 'disabled'}
+          >
+            🚧 Send Speed Bump
+          </button>
         </div>
       </li>
     `;
   }).join('');
 
   list.innerHTML = rows;
-  attachSendHandlers({ flatAvailable, bugAvailable });
+  attachSendHandlers({ flatAvailable, bugAvailable, speedAvailable });
 }
 
 export function renderOutgoingList(entries = []) {
@@ -187,14 +199,16 @@ function renderMyInventory(counts = {}) {
   const {
     flatTire = 0,
     bugSplat = 0,
-    superShieldWax = 0
+    superShieldWax = 0,
+    speedBump = 0
   } = counts || {};
 
-  teamSurprisesPanelState.availableCounts = { flatTire, bugSplat, superShieldWax };
+  teamSurprisesPanelState.availableCounts = { flatTire, bugSplat, superShieldWax, speedBump };
 
   body.dataset.flatAvailable = String(flatTire);
   body.dataset.bugAvailable = String(bugSplat);
   body.dataset.shieldAvailable = String(superShieldWax);
+  body.dataset.speedAvailable = String(speedBump);
 
   const shieldButtonDisabled = superShieldWax > 0 ? '' : 'disabled';
   const shieldButton = `
@@ -224,15 +238,23 @@ function renderMyInventory(counts = {}) {
       <span class="team-count" data-type="shield">${superShieldWax}</span>
       ${shieldButton}
     </div>
+    <div class="team-surprises-row is-player">
+      <strong>🚧 Speed Bump</strong>
+      <span class="team-count" data-type="speedBump" data-my-speedbump>${speedBump}</span>
+    </div>
     <p class="team-surprises-note">
       Use the buttons beside opposing teams to deploy offensive surprises.
     </p>
   `;
 
-  attachSendHandlers({ flatAvailable: flatTire, bugAvailable: bugSplat });
+  attachSendHandlers({ flatAvailable: flatTire, bugAvailable: bugSplat, speedAvailable: speedBump });
 }
 
-function updateSendButtonAvailability(flatAvailable = 0, bugAvailable = 0) {
+function updateSendButtonAvailability({
+  flatAvailable = 0,
+  bugAvailable = 0,
+  speedAvailable = 0
+} = {}) {
   const section = teamSurprisesPanelState.section || ensureTeamSurprisesSection();
   if (!section) return;
 
@@ -257,11 +279,15 @@ function updateSendButtonAvailability(flatAvailable = 0, bugAvailable = 0) {
   section.querySelectorAll('[data-role="send-bug"]').forEach((button) => {
     toggle(button, Number(bugAvailable) || 0);
   });
+  section.querySelectorAll('[data-role="send-speed"]').forEach((button) => {
+    toggle(button, Number(speedAvailable) || 0);
+  });
 }
 
 function attachSendHandlers({
   flatAvailable = Number(teamSurprisesPanelState.availableCounts?.flatTire) || 0,
-  bugAvailable = Number(teamSurprisesPanelState.availableCounts?.bugSplat) || 0
+  bugAvailable = Number(teamSurprisesPanelState.availableCounts?.bugSplat) || 0,
+  speedAvailable = Number(teamSurprisesPanelState.availableCounts?.speedBump) || 0
 } = {}) {
   const section = teamSurprisesPanelState.section || ensureTeamSurprisesSection();
   if (!section) return;
@@ -269,7 +295,7 @@ function attachSendHandlers({
   const fromTeam = teamSurprisesPanelState.teamName;
   if (!fromTeam) return;
 
-  updateSendButtonAvailability(flatAvailable, bugAvailable);
+  updateSendButtonAvailability({ flatAvailable, bugAvailable, speedAvailable });
 
   const handleSendClick = (button, surpriseType) => async (event) => {
     event.preventDefault();
@@ -304,16 +330,20 @@ function attachSendHandlers({
         button.textContent = 'Sent!';
       }
 
-      const availableCounts = teamSurprisesPanelState.availableCounts || {};
+      const updatedCounts = teamSurprisesPanelState.availableCounts || {};
       if (surpriseType === SurpriseTypes.FLAT_TIRE) {
         const next = Math.max(0, remaining - 1);
-        availableCounts.flatTire = next;
+        updatedCounts.flatTire = next;
       } else if (surpriseType === SurpriseTypes.BUG_SPLAT) {
         const next = Math.max(0, remaining - 1);
-        availableCounts.bugSplat = next;
+        updatedCounts.bugSplat = next;
       }
-      teamSurprisesPanelState.availableCounts = availableCounts;
-      updateSendButtonAvailability(availableCounts.flatTire, availableCounts.bugSplat);
+      teamSurprisesPanelState.availableCounts = updatedCounts;
+      updateSendButtonAvailability({
+        flatAvailable: updatedCounts.flatTire,
+        bugAvailable: updatedCounts.bugSplat,
+        speedAvailable: updatedCounts.speedBump
+      });
     } catch (err) {
       console.error('❌ Surprise dispatch failed:', err);
       button.textContent = err?.message || 'Failed';
@@ -324,7 +354,59 @@ function attachSendHandlers({
         delete button.dataset.loading;
         delete button.dataset.error;
         const latestCounts = teamSurprisesPanelState.availableCounts || {};
-        updateSendButtonAvailability(latestCounts.flatTire, latestCounts.bugSplat);
+        updateSendButtonAvailability({
+          flatAvailable: latestCounts.flatTire,
+          bugAvailable: latestCounts.bugSplat,
+          speedAvailable: latestCounts.speedBump
+        });
+        button.blur?.();
+      }, 1400);
+    }
+  };
+
+  const handleSpeedBumpClick = (button) => async (event) => {
+    event.preventDefault();
+    if (!button || button.dataset.loading === 'true') return;
+
+    const targetTeam = String(button.dataset.target || '').trim();
+    if (!targetTeam || targetTeam === fromTeam) {
+      return;
+    }
+
+    const availableCounts = teamSurprisesPanelState.availableCounts || {};
+    const remaining = Number(availableCounts.speedBump) || 0;
+
+    if (remaining <= 0) {
+      alert('⚠️ You have no Speed Bumps available.');
+      updateSendButtonAvailability({
+        flatAvailable: availableCounts.flatTire,
+        bugAvailable: availableCounts.bugSplat,
+        speedAvailable: remaining
+      });
+      return;
+    }
+
+    const originalLabel = button.textContent;
+    button.textContent = 'Sending…';
+    button.disabled = true;
+    button.dataset.loading = 'true';
+
+    try {
+      await sendSpeedBumpFromPlayer(fromTeam, targetTeam);
+    } catch (err) {
+      console.error('❌ Speed Bump dispatch failed:', err);
+      button.textContent = err?.message || 'Failed';
+    } finally {
+      window.setTimeout(() => {
+        const latestCounts = teamSurprisesPanelState.availableCounts || {};
+        button.textContent = originalLabel;
+        delete button.dataset.loading;
+        button.disabled = (Number(latestCounts.speedBump) || 0) <= 0;
+        updateSendButtonAvailability({
+          flatAvailable: latestCounts.flatTire,
+          bugAvailable: latestCounts.bugSplat,
+          speedAvailable: latestCounts.speedBump
+        });
         button.blur?.();
       }, 1400);
     }
@@ -340,6 +422,12 @@ function attachSendHandlers({
     if (button.dataset.bound === 'true') return;
     button.dataset.bound = 'true';
     button.addEventListener('click', handleSendClick(button, SurpriseTypes.BUG_SPLAT));
+  });
+
+  section.querySelectorAll('[data-role="send-speed"]').forEach((button) => {
+    if (button.dataset.bound === 'true') return;
+    button.dataset.bound = 'true';
+    button.addEventListener('click', handleSpeedBumpClick(button));
   });
 }
 

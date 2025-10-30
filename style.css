@@ -676,6 +676,11 @@ body.shield-active {
   color: #f8fafc;
 }
 
+.team-btn--speed {
+  background: linear-gradient(135deg, #f97316, #facc15);
+  color: #1f2937;
+}
+
 .team-surprises-row .team-count span[aria-hidden="true"] {
   font-size: 1.05em;
 }

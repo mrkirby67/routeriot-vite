@@ -23,7 +23,8 @@ import {
 export const SurpriseTypes = Object.freeze({
   FLAT_TIRE: 'flatTire',
   BUG_SPLAT: 'bugSplat',
-  WILD_CARD: 'wildCard'
+  WILD_CARD: 'wildCard',
+  SPEED_BUMP: 'speedBump'
 });
 
 // ----------------------------------------------------------------------------
@@ -168,11 +169,13 @@ export function subscribeSurprisesForTeam(teamName, callback) {
     const flat = normalizeCount(counts[SurpriseTypes.FLAT_TIRE] ?? counts.flatTire);
     const bug  = normalizeCount(counts[SurpriseTypes.BUG_SPLAT] ?? counts.bugSplat);
     const wax  = normalizeCount(counts[SurpriseTypes.WILD_CARD]  ?? counts.superShieldWax ?? counts.wildCard);
+    const speed = normalizeCount(counts[SurpriseTypes.SPEED_BUMP] ?? counts.speedBump ?? counts.speedbump);
     callback({
       team: teamName,
       flatTire: flat,
       bugSplat: bug,
-      superShieldWax: wax
+      superShieldWax: wax,
+      speedBump: speed
     });
   });
 }
@@ -210,6 +213,8 @@ function defaultSurpriseLabel(type) {
       return 'Bug Splat';
     case SurpriseTypes.WILD_CARD:
       return 'Super Shield Wax';
+    case SurpriseTypes.SPEED_BUMP:
+      return 'Speed Bump';
     default:
       return 'Surprise';
   }
@@ -224,6 +229,8 @@ function defaultCommunicationMessage(type, fromTeam, toTeam) {
       return `🐞 ${fromTeam} launched a BUG SPLAT on ${toTeam}!`;
     case SurpriseTypes.WILD_CARD:
       return `🛡️ ${fromTeam} activated Super Shield Wax.`;
+    case SurpriseTypes.SPEED_BUMP:
+      return `🚧 ${fromTeam} dropped a SPEED BUMP on ${toTeam}!`;
     default:
       return `${fromTeam} used ${label} on ${toTeam}.`;
   }
@@ -329,6 +336,7 @@ function normalizeSurpriseKey(key) {
   if (key === SurpriseTypes.FLAT_TIRE || key === 'flatTire') return SurpriseTypes.FLAT_TIRE;
   if (key === SurpriseTypes.BUG_SPLAT  || key === 'bugSplat')  return SurpriseTypes.BUG_SPLAT;
   if (key === SurpriseTypes.WILD_CARD  || key === 'wildCard' || key === 'superShieldWax') return SurpriseTypes.WILD_CARD;
+  if (key === SurpriseTypes.SPEED_BUMP || key === 'speedBump' || key === 'speedbump') return SurpriseTypes.SPEED_BUMP;
   return null;
 }
 
@@ -521,6 +529,7 @@ export async function attemptSurpriseAttack({
   onSuccess
 }) {
   const normalizedType = normalizeSurpriseKey(type);
+  const label = defaultSurpriseLabel(normalizedType || type);
 
   // 1) attacker always consumes their surprise, if they have it
   if (fromTeam && normalizedType) {
@@ -540,14 +549,14 @@ export async function attemptSurpriseAttack({
       if (typeof window !== 'undefined' && window?.chatManager?.sendPrivateSystemMessage) {
         window.chatManager.sendPrivateSystemMessage(
           fromTeam,
-          `🚫 ${toTeam} was protected by a Shield / Wax. Your ${normalizedType || type} was blocked.`
+          `🚫 ${toTeam} was protected by a Shield / Wax. Your ${label} was blocked.`
         );
       }
       // victim message
       if (typeof window !== 'undefined' && window?.chatManager?.sendPrivateSystemMessage) {
         window.chatManager.sendPrivateSystemMessage(
           toTeam,
-          `✨ Your shiny wax protected you from a ${normalizedType || type} from ${fromTeam}.`
+          `✨ Your shiny wax protected you from a ${label} from ${fromTeam}.`
         );
       }
     } catch (err) {
@@ -566,11 +575,11 @@ export async function attemptSurpriseAttack({
     if (typeof window !== 'undefined' && window?.chatManager?.sendPrivateSystemMessage) {
       window.chatManager.sendPrivateSystemMessage(
         fromTeam,
-        `✅ ${toTeam} was successfully hit with ${normalizedType || type}.`
+        `✅ ${toTeam} was successfully hit with ${label}.`
       );
       window.chatManager.sendPrivateSystemMessage(
         toTeam,
-        `💥 You were hit by ${normalizedType || type} from ${fromTeam}!`
+        `💥 You were hit by ${label} from ${fromTeam}!`
       );
     }
   } catch (err) {
@@ -587,7 +596,19 @@ export function subscribeAllTeamInventories(callback) {
   return onSnapshot(ref, (snapshot) => {
     const inventories = {};
     snapshot.forEach((docSnap) => {
-      inventories[docSnap.id] = (docSnap.data()?.counts) || {};
+      const raw = docSnap.data() || {};
+      const counts = raw.counts || {};
+      const flat = normalizeCount(counts[SurpriseTypes.FLAT_TIRE] ?? counts.flatTire);
+      const bug = normalizeCount(counts[SurpriseTypes.BUG_SPLAT] ?? counts.bugSplat);
+      const shield = normalizeCount(counts[SurpriseTypes.WILD_CARD] ?? counts.superShieldWax ?? counts.wildCard);
+      const speed = normalizeCount(counts[SurpriseTypes.SPEED_BUMP] ?? counts.speedBump ?? counts.speedbump);
+      inventories[docSnap.id] = {
+        flatTire: flat,
+        bugSplat: bug,
+        wildCard: shield,
+        superShieldWax: shield,
+        speedBump: speed
+      };
     });
     callback(inventories);
   });

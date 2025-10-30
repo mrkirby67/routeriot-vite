@@ -25,7 +25,8 @@ const COMMUNICATIONS_REF = collection(db, 'communications');
 const SURPRISE_LABELS = {
   [SurpriseTypes.FLAT_TIRE]: 'Flat Tire',
   [SurpriseTypes.BUG_SPLAT]: 'Bug Splat',
-  [SurpriseTypes.WILD_CARD]: 'Super Shield Wax'
+  [SurpriseTypes.WILD_CARD]: 'Super Shield Wax',
+  [SurpriseTypes.SPEED_BUMP]: 'Speed Bump'
 };
 
 function normalizeTeamName(team = '') {

@@ -19,7 +19,8 @@ import { initializePlayerBugStrike } from '../playerBugStrike.js';
 const defaultCounts = Object.freeze({
   flatTire: 0,
   bugSplat: 0,
-  superShieldWax: 0
+  superShieldWax: 0,
+  speedBump: 0
 });
 
 let latestPlayerCounts = { ...defaultCounts };
@@ -96,7 +97,8 @@ export function setupPlayerChat(teamName, options = {}) {
     latestPlayerCounts = {
       flatTire: Number(payload.flatTire) || 0,
       bugSplat: Number(payload.bugSplat) || 0,
-      superShieldWax: Number(payload.superShieldWax) || 0
+      superShieldWax: Number(payload.superShieldWax) || 0,
+      speedBump: Number(payload.speedBump) || 0
     };
     ui.renderPlayerInventory?.(latestPlayerCounts);
     rerender(); // Rerender to update disabled states
