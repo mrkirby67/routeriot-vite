@@ -3,10 +3,11 @@
 // PURPOSE: Builds and renders the player chat UI components
 // ============================================================================
 
-import { isShieldActive, getShieldTimeRemaining } from '../teamSurpriseManager.js';
+import { isShieldActive, getShieldTimeRemaining, SurpriseTypes } from '../teamSurpriseManager.js';
 import { showShieldHudTimer, hideShieldHudTimer, showShieldTimer, hideShieldTimer } from '../playerUI/overlays.js';
 import { escapeHtml } from '../utils.js';
-import { extractSurpriseCount, formatShieldDuration } from './playerChat.utils.js';
+import { formatShieldDuration } from './playerChat.utils.js';
+import { sendSurprise } from './playerChat.surprises.js';
 // ============================================================================
 // 🧩 UI STATE + ELEMENT HELPERS
 // ============================================================================
@@ -99,7 +100,6 @@ export function renderTeamInventory(byTeam = {}, options = {}) {
   if (!list) return;
 
   const {
-    currentTeamName = teamSurprisesPanelState.teamName,
     available = teamSurprisesPanelState.availableCounts || {},
     teamNames = []
   } = options || {};
@@ -115,64 +115,48 @@ export function renderTeamInventory(byTeam = {}, options = {}) {
   ).filter(Boolean);
 
   const currentPlayerTeam = teamSurprisesPanelState.teamName;
-  const listedTeams = knownTeams.filter((teamName) => teamName !== currentPlayerTeam);
+  const listedTeams = knownTeams
+    .filter((teamName) => teamName && teamName !== currentPlayerTeam)
+    .sort((a, b) => a.localeCompare(b));
 
   if (!listedTeams.length) {
-    list.innerHTML = '<li class="team-surprises-empty">No surprise data yet.</li>';
+    list.innerHTML = '<li class="team-surprises-empty">No teams available for surprises.</li>';
     return;
   }
 
-  listedTeams.sort((a, b) => a.localeCompare(b));
-
   const rows = listedTeams.map((teamName) => {
-    const counts = byTeam?.[teamName] || {};
-    const flat = extractSurpriseCount(counts, 'flatTire', 'FLAT_TIRE');
-    const bug = extractSurpriseCount(counts, 'bugSplat', 'BUG_SPLAT');
-    const shield = extractSurpriseCount(counts, 'wildCard', 'WILD_CARD', 'superShieldWax');
-    const highlight = teamName === currentTeamName ? ' is-current-team' : '';
     const safeTeam = escapeHtml(teamName);
     const attributeTeam = escapeAttribute(teamName);
-    const isCurrentTeam = teamName === currentTeamName;
 
-    const actionButtons = isCurrentTeam
-      ? '<div class="team-surprises-actions"><span class="team-surprises-note">Your inventory</span></div>'
-      : `
+    return `
+      <li class="team-surprises-row" data-team="${attributeTeam}">
+        <span class="team-name">${safeTeam}</span>
         <div class="team-surprises-actions">
           <button
             type="button"
-            class="team-surprise-btn"
-            data-action="use-surprise"
-            data-surprise="flatTire"
-            data-team="${attributeTeam}"
+            class="team-btn team-btn--flat"
+            data-role="send-flat"
+            data-target="${attributeTeam}"
             ${flatAvailable > 0 ? '' : 'disabled'}
           >
             🚗 Send Flat Tire
           </button>
           <button
             type="button"
-            class="team-surprise-btn"
-            data-action="use-surprise"
-            data-surprise="bugSplat"
-            data-team="${attributeTeam}"
+            class="team-btn team-btn--bug"
+            data-role="send-bug"
+            data-target="${attributeTeam}"
             ${bugAvailable > 0 ? '' : 'disabled'}
           >
             🐞 Send Bug Splat
           </button>
         </div>
-      `;
-
-    return `
-      <li class="team-surprises-row${highlight}" data-team="${attributeTeam}">
-        <span class="team-name">${safeTeam}</span>
-        <span class="team-count" data-type="flatTire" title="Flat Tire">🚗 ${flat}</span>
-        <span class="team-count" data-type="bugSplat" title="Bug Splat">🐞 ${bug}</span>
-        <span class="team-count" data-type="shield" title="Super Shield Wax">🛡️ ${shield}</span>
-        ${actionButtons}
       </li>
     `;
   }).join('');
 
   list.innerHTML = rows;
+  attachSendHandlers({ flatAvailable, bugAvailable });
 }
 
 export function renderOutgoingList(entries = []) {
@@ -249,6 +233,119 @@ function renderMyInventory(counts = {}) {
       Use the buttons beside opposing teams to deploy offensive surprises.
     </p>
   `;
+
+  attachSendHandlers({ flatAvailable: flatTire, bugAvailable: bugSplat });
+}
+
+function updateSendButtonAvailability(flatAvailable = 0, bugAvailable = 0) {
+  const section = teamSurprisesPanelState.section || ensureTeamSurprisesSection();
+  if (!section) return;
+
+  const toggle = (button, available) => {
+    if (!button) return;
+    if (button.dataset.loading === 'true') {
+      button.disabled = true;
+      return;
+    }
+    if (available <= 0) {
+      button.disabled = true;
+      button.dataset.outOfStock = 'true';
+    } else {
+      button.disabled = false;
+      delete button.dataset.outOfStock;
+    }
+  };
+
+  section.querySelectorAll('[data-role="send-flat"]').forEach((button) => {
+    toggle(button, Number(flatAvailable) || 0);
+  });
+  section.querySelectorAll('[data-role="send-bug"]').forEach((button) => {
+    toggle(button, Number(bugAvailable) || 0);
+  });
+}
+
+function attachSendHandlers({
+  flatAvailable = Number(teamSurprisesPanelState.availableCounts?.flatTire) || 0,
+  bugAvailable = Number(teamSurprisesPanelState.availableCounts?.bugSplat) || 0
+} = {}) {
+  const section = teamSurprisesPanelState.section || ensureTeamSurprisesSection();
+  if (!section) return;
+
+  const fromTeam = teamSurprisesPanelState.teamName;
+  if (!fromTeam) return;
+
+  updateSendButtonAvailability(flatAvailable, bugAvailable);
+
+  const handleSendClick = (button, surpriseType) => async (event) => {
+    event.preventDefault();
+    if (!button || button.dataset.loading === 'true') return;
+
+    const targetTeam = String(button.dataset.target || '').trim();
+    if (!targetTeam || targetTeam === fromTeam) {
+      return;
+    }
+
+    const availableCounts = teamSurprisesPanelState.availableCounts || {};
+    const remaining = surpriseType === SurpriseTypes.FLAT_TIRE
+      ? Number(availableCounts.flatTire) || 0
+      : Number(availableCounts.bugSplat) || 0;
+
+    if (remaining <= 0) {
+      button.disabled = true;
+      button.dataset.outOfStock = 'true';
+      return;
+    }
+
+    const originalLabel = button.textContent;
+    button.textContent = 'Sending…';
+    button.disabled = true;
+    button.dataset.loading = 'true';
+
+    try {
+      const outcome = await sendSurprise(fromTeam, targetTeam, surpriseType);
+      if (outcome?.message) {
+        button.textContent = outcome.message;
+      } else {
+        button.textContent = 'Sent!';
+      }
+
+      const availableCounts = teamSurprisesPanelState.availableCounts || {};
+      if (surpriseType === SurpriseTypes.FLAT_TIRE) {
+        const next = Math.max(0, remaining - 1);
+        availableCounts.flatTire = next;
+      } else if (surpriseType === SurpriseTypes.BUG_SPLAT) {
+        const next = Math.max(0, remaining - 1);
+        availableCounts.bugSplat = next;
+      }
+      teamSurprisesPanelState.availableCounts = availableCounts;
+      updateSendButtonAvailability(availableCounts.flatTire, availableCounts.bugSplat);
+    } catch (err) {
+      console.error('❌ Surprise dispatch failed:', err);
+      button.textContent = err?.message || 'Failed';
+      button.dataset.error = 'true';
+    } finally {
+      window.setTimeout(() => {
+        button.textContent = originalLabel;
+        delete button.dataset.loading;
+        delete button.dataset.error;
+        const latestCounts = teamSurprisesPanelState.availableCounts || {};
+        updateSendButtonAvailability(latestCounts.flatTire, latestCounts.bugSplat);
+        button.blur?.();
+      }, 1400);
+    }
+  };
+
+  section.querySelectorAll('[data-role="send-flat"]').forEach((button) => {
+    if (button.dataset.bound === 'true') return;
+    button.dataset.bound = 'true';
+    button.addEventListener('click', handleSendClick(button, SurpriseTypes.FLAT_TIRE));
+  });
+
+  section.querySelectorAll('[data-role="send-bug"]').forEach((button) => {
+    if (button.dataset.bound === 'true') return;
+    button.dataset.bound = 'true';
+    button.addEventListener('click', handleSendClick(button, SurpriseTypes.BUG_SPLAT));
+  });
 }
 
 // ============================================================================

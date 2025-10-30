@@ -14,42 +14,44 @@ let floatingShieldTeam = null;
 export function showShieldHudTimer(ms = 0) {
   if (typeof document === 'undefined') return;
   const duration = Math.max(0, Number(ms) || 0);
+
+  hideShieldHudTimer(); // Clear any existing timer
+
   if (duration <= 0) {
-    hideShieldHudTimer();
     return;
   }
 
-  const id = 'shield-hud';
-  let el = document.getElementById(id);
-  if (!el) {
-    el = document.createElement('div');
-    el.id = id;
-    el.style.cssText =
-      'position:fixed;top:8px;right:8px;padding:6px 10px;background:#0b5;color:#fff;border-radius:6px;font-weight:600;z-index:9999;';
-    document.body.appendChild(el);
-  }
+  const timerDisplay = document.getElementById('timer-display');
+  if (!timerDisplay?.parentElement) return;
 
+  const container = timerDisplay.parentElement.parentElement;
+  if (!container) return;
+
+  const p = document.createElement('p');
+  p.id = 'shield-timer-display';
+  p.innerHTML = `<strong>Shield Active:</strong> <span id="shield-timer-value"></span>`;
+  container.appendChild(p);
+
+  const valueSpan = document.getElementById('shield-timer-value');
   shieldHudEndAt = Date.now() + duration;
-  el.textContent = `🛡 Shield Wax: ${Math.ceil(duration / 1000)}s`;
 
-  if (shieldHudIntervalId) {
-    clearInterval(shieldHudIntervalId);
-    shieldHudIntervalId = null;
-  }
-
-  shieldHudIntervalId = setInterval(() => {
+  const updateTimer = () => {
     const remaining = Math.max(0, shieldHudEndAt - Date.now());
     if (remaining <= 0) {
       hideShieldHudTimer();
       return;
     }
-    const hudEl = document.getElementById(id);
-    if (!hudEl) {
-      hideShieldHudTimer();
-      return;
+    if (valueSpan) {
+      valueSpan.textContent = `${Math.ceil(remaining / 1000)}s`;
     }
-    hudEl.textContent = `🛡 Shield Wax: ${Math.ceil(remaining / 1000)}s`;
-  }, 500);
+  };
+
+  if (shieldHudIntervalId) {
+    clearInterval(shieldHudIntervalId);
+  }
+
+  updateTimer();
+  shieldHudIntervalId = setInterval(updateTimer, 500);
 }
 
 export function hideShieldHudTimer() {
@@ -59,7 +61,7 @@ export function hideShieldHudTimer() {
   }
   shieldHudEndAt = 0;
   if (typeof document !== 'undefined') {
-    document.getElementById('shield-hud')?.remove();
+    document.getElementById('shield-timer-display')?.remove();
   }
 }
 

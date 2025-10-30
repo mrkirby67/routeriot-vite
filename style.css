@@ -632,6 +632,45 @@ button:hover,
   justify-content: flex-end;
 }
 
+.team-surprises-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.team-btn {
+  margin: 2px 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  background: #1f2937;
+  color: #f8fafc;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.team-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.team-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.team-btn--flat {
+  background: linear-gradient(135deg, #f97316, #f59e0b);
+  color: #0f172a;
+}
+
+.team-btn--bug {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #f8fafc;
+}
+
 .team-surprises-row .team-count span[aria-hidden="true"] {
   font-size: 1.05em;
 }

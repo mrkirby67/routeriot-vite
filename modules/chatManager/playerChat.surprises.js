@@ -14,7 +14,9 @@ import {
   checkShieldBeforeAttack,
   auditUse,
   startCooldown,
-  isTeamOnCooldown
+  isTeamOnCooldown,
+  getCooldownTimeRemaining,
+  sendSurpriseToTeam
 } from '../teamSurpriseManager.js';
 import { sendPrivateSystemMessage } from './messageService.js';
 
@@ -63,16 +65,18 @@ async function handleFlatTireAttack(attacker, defender) {
   if (!targetTeam || targetTeam === fromTeam) {
     throw new Error('Choose a different team to receive the Flat Tire.');
   }
-  if (await isOnCooldown(fromTeam)) {
+  if (await isTeamOnCooldown(fromTeam)) {
     const remaining = await getCooldownTimeRemaining(fromTeam);
     const seconds = Math.ceil(remaining / 1000);
     throw new Error(`On cooldown! Try again in ${seconds}s.`);
   }
 
   const result = await checkShieldBeforeAttack(fromTeam, async () => {
-    const consumed = await consumeSurprise(fromTeam, SurpriseTypes.FLAT_TIRE);
-    if (!consumed) {
-      return { ok: false, message: 'No Flat Tire surprises remaining.' };
+    const sendResult = await sendSurpriseToTeam(fromTeam, targetTeam, SurpriseTypes.FLAT_TIRE, {
+      message: `🚗 ${fromTeam} sent a FLAT TIRE to ${targetTeam}!`
+    });
+    if (!sendResult?.ok) {
+      return { ok: false, message: sendResult?.message || 'No Flat Tire surprises remaining.' };
     }
 
     await assignFlatTireTeam(targetTeam, { fromTeam });
@@ -82,14 +86,6 @@ async function handleFlatTireAttack(attacker, defender) {
 
     await sendPrivateSystemMessage(fromTeam, `🚗 Flat Tire dispatched to ${targetTeam}.`);
     await sendPrivateSystemMessage(targetTeam, `🚗 ${fromTeam} just sent your team a Flat Tire!`);
-
-    await broadcast({
-      teamName: fromTeam,
-      sender: fromTeam,
-      senderDisplay: fromTeam,
-      message: `🚗 ${fromTeam} sent a FLAT TIRE to ${targetTeam}!`, 
-      toTeam: targetTeam
-    });
 
     return { ok: true, message: `Sent to ${targetTeam}!` };
   });
@@ -109,16 +105,18 @@ async function handleBugSplatAttack(attacker, defender) {
   if (!targetTeam || targetTeam === fromTeam) {
     throw new Error('Choose a different team to splat.');
   }
-  if (await isOnCooldown(fromTeam)) {
+  if (await isTeamOnCooldown(fromTeam)) {
     const remaining = await getCooldownTimeRemaining(fromTeam);
     const seconds = Math.ceil(remaining / 1000);
     throw new Error(`On cooldown! Try again in ${seconds}s.`);
   }
 
   const result = await checkShieldBeforeAttack(fromTeam, async () => {
-    const consumed = await consumeSurprise(fromTeam, SurpriseTypes.BUG_SPLAT);
-    if (!consumed) {
-      return { ok: false, message: 'No Bug Splat surprises remaining.' };
+    const sendResult = await sendSurpriseToTeam(fromTeam, targetTeam, SurpriseTypes.BUG_SPLAT, {
+      message: `🐞 ${fromTeam} launched a BUG SPLAT on ${targetTeam}!`
+    });
+    if (!sendResult?.ok) {
+      return { ok: false, message: sendResult?.message || 'No Bug Splat surprises remaining.' };
     }
 
     await startCooldown(fromTeam);
@@ -126,14 +124,6 @@ async function handleBugSplatAttack(attacker, defender) {
 
     await sendPrivateSystemMessage(fromTeam, `🐞 Bug Splat launched at ${targetTeam}!`);
     await sendPrivateSystemMessage(targetTeam, `🐞 ${fromTeam} just splatted your windshield!`);
-
-    await broadcast({
-      teamName: fromTeam,
-      sender: fromTeam,
-      senderDisplay: fromTeam,
-      message: `🐞 ${fromTeam} launched a BUG SPLAT on ${targetTeam}!`, 
-      toTeam: targetTeam
-    });
 
     return { ok: true, message: `Splatted ${targetTeam}!` };
   });
@@ -184,7 +174,7 @@ export async function handleUseSurprise({
     throw new Error('Unknown surprise selected.');
   }
 
-  console.log('🎯 Using surprise', {
+  console.info('🎯 Using surprise', {
     type: SURPRISE_LABELS[normalizedType] || normalizedType,
     from: normalizedTeam,
     target: targetTeam || null
@@ -200,4 +190,12 @@ export async function handleUseSurprise({
     default:
       throw new Error('Unsupported surprise type.');
   }
+}
+
+export function sendSurprise(fromTeam, toTeam, surpriseType) {
+  return handleUseSurprise({
+    teamName: fromTeam,
+    surpriseType,
+    targetTeam: toTeam
+  });
 }

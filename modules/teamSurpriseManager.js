@@ -6,6 +6,7 @@
 import { db } from './config.js';
 import {
   collection,
+  addDoc,
   doc,
   getDoc,
   getDocs,
@@ -201,14 +202,114 @@ export async function consumeSurprise(teamName, key, amount = 1) {
   return success;
 }
 
+function defaultSurpriseLabel(type) {
+  switch (type) {
+    case SurpriseTypes.FLAT_TIRE:
+      return 'Flat Tire';
+    case SurpriseTypes.BUG_SPLAT:
+      return 'Bug Splat';
+    case SurpriseTypes.WILD_CARD:
+      return 'Super Shield Wax';
+    default:
+      return 'Surprise';
+  }
+}
+
+function defaultCommunicationMessage(type, fromTeam, toTeam) {
+  const label = defaultSurpriseLabel(type);
+  switch (type) {
+    case SurpriseTypes.FLAT_TIRE:
+      return `🚗 ${fromTeam} sent a FLAT TIRE to ${toTeam}!`;
+    case SurpriseTypes.BUG_SPLAT:
+      return `🐞 ${fromTeam} launched a BUG SPLAT on ${toTeam}!`;
+    case SurpriseTypes.WILD_CARD:
+      return `🛡️ ${fromTeam} activated Super Shield Wax.`;
+    default:
+      return `${fromTeam} used ${label} on ${toTeam}.`;
+  }
+}
+
+function sanitizeTeam(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+export async function sendSurpriseToTeam(fromTeam, toTeam, type, options = {}) {
+  const sender = sanitizeTeam(fromTeam);
+  const target = sanitizeTeam(toTeam);
+
+  if (!sender) {
+    return { ok: false, message: 'Missing sending team.' };
+  }
+  if (!target || sender === target) {
+    return { ok: false, message: 'Choose a different team.' };
+  }
+
+  const normalizedType = normalizeSurpriseKey(type);
+  if (!normalizedType) {
+    return { ok: false, message: 'Unknown surprise type.' };
+  }
+
+  const consumed = await consumeSurprise(sender, normalizedType);
+  if (!consumed) {
+    const label = defaultSurpriseLabel(normalizedType);
+    return { ok: false, message: `No ${label} surprises remaining.` };
+  }
+
+  const message = options.message || defaultCommunicationMessage(normalizedType, sender, target);
+  const commPayload = {
+    type: normalizedType,
+    from: sender,
+    to: target,
+    message,
+    timestamp: serverTimestamp(),
+    teamName: sender,
+    sender,
+    senderDisplay: sender,
+    toTeam: target,
+    isBroadcast: options.isBroadcast ?? true
+  };
+
+  if (options.extraFields && typeof options.extraFields === 'object') {
+    Object.assign(commPayload, options.extraFields);
+  }
+
+  try {
+    await addDoc(collection(db, 'communications'), commPayload);
+  } catch (err) {
+    console.warn('⚠️ Failed to record surprise communication:', err);
+  }
+
+  try {
+    await addDoc(collection(db, 'surpriseAudit'), {
+      from: sender,
+      to: target,
+      type: normalizedType,
+      timestamp: serverTimestamp(),
+      teamName: sender,
+      kind: normalizedType
+    });
+  } catch (err) {
+    console.debug('🔍 surprise audit skipped:', err?.message || err);
+  }
+
+  console.info(`🎯 Sent ${normalizedType} to ${target}`);
+
+  return { ok: true, type: normalizedType, message };
+}
+
 export async function auditUse(teamName, kind, meta = {}) {
   try {
     const auditRef = doc(collection(db, 'surpriseAudit'), `${teamName}-${Date.now()}`);
+    const timestamp = serverTimestamp();
     await setDoc(auditRef, {
       teamName,
       kind,
       meta,
-      updatedAt: serverTimestamp()
+      from: teamName,
+      to: meta?.targetTeam ?? meta?.to ?? null,
+      type: kind,
+      timestamp,
+      updatedAt: timestamp
     });
   } catch (err) {
     console.debug('🔍 surprise audit skipped:', err?.message || err);

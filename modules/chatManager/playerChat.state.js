@@ -40,24 +40,30 @@ export function setupPlayerChat(teamName, options = {}) {
   clearRegistry('player');
 
   const teardownCallbacks = [];
-  let latestByTeam = {};
+  let latestTeamNames = new Set();
   let activeTeamNames = [];
 
-  const applyTeamInventory = (byTeamSnapshot = {}) => {
-    const merged = { ...byTeamSnapshot };
-    activeTeamNames.forEach((name) => {
-      if (!merged[name]) merged[name] = {};
+  const applyTeamInventory = () => {
+    const combinedNames = new Set([
+      ...Array.from(latestTeamNames),
+      ...activeTeamNames
+    ]);
+    combinedNames.add(normalizedTeamName);
+
+    const sanitizedByTeam = {};
+    combinedNames.forEach((name) => {
+      if (name) sanitizedByTeam[name] = {};
     });
 
     console.log('🎯 Surprises snapshot', {
-      byTeam: merged,
+      teamNames: Array.from(combinedNames),
       currentTeamName: normalizedTeamName
     });
 
-    ui.renderInventory?.(merged, {
+    ui.renderInventory?.(sanitizedByTeam, {
       currentTeamName: normalizedTeamName,
       available: latestPlayerCounts,
-      teamNames: activeTeamNames
+      teamNames: Array.from(combinedNames)
     });
   };
 
@@ -66,10 +72,10 @@ export function setupPlayerChat(teamName, options = {}) {
     if (docSnap.exists()) {
       const data = docSnap.data();
       activeTeamNames = Array.isArray(data.list) ? data.list : [];
-      applyTeamInventory(latestByTeam);
+      applyTeamInventory();
     } else {
       activeTeamNames = [];
-      applyTeamInventory(latestByTeam);
+      applyTeamInventory();
     }
   });
   registerListener('player', unsubscribeActiveTeams);
@@ -79,9 +85,13 @@ export function setupPlayerChat(teamName, options = {}) {
     }
   });
 
-  const unsubscribeTeams = subscribeTeamSurprises((entries, byTeam) => {
-    latestByTeam = byTeam || {};
-    applyTeamInventory(latestByTeam);
+  const unsubscribeTeams = subscribeTeamSurprises((entries) => {
+    latestTeamNames = new Set(
+      Array.isArray(entries)
+        ? entries.map((entry) => entry?.teamName).filter(Boolean)
+        : []
+    );
+    applyTeamInventory();
   });
   registerListener('player', unsubscribeTeams);
   teardownCallbacks.push(() => {
@@ -98,7 +108,7 @@ export function setupPlayerChat(teamName, options = {}) {
     };
 
     ui.renderPlayerInventory?.(latestPlayerCounts);
-    applyTeamInventory(latestByTeam);
+    applyTeamInventory();
 
     if (isShieldActive(normalizedTeamName)) {
       ui.refreshShieldStatus?.();
