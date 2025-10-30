@@ -492,7 +492,103 @@ export function checkShieldBeforeAttack(teamName, onProceed) {
 }
 export const isTeamOnCooldown = isOnCooldown;
 
+// 🔐 Unified attackability check
 export async function isTeamAttackable(teamName) {
   if (!teamName) return false;
-  return !(isShieldActive(teamName) || isUnderWildCard(teamName));
+  // if shield is active → cannot be attacked
+  if (isShieldActive(teamName)) return false;
+  // if under wild-card / special protection → cannot be attacked
+  if (isUnderWildCard(teamName)) return false;
+  return true;
+}
+
+// 🧠 Centralized offensive-action helper
+// params: { fromTeam, toTeam, type, onSuccess }
+// - fromTeam: string (attacker)
+// - toTeam:   string (victim)
+// - type:     string ('flatTire' | 'bugSplat' | 'speedBump' | etc.)
+// - onSuccess: async fn that actually performs the effect ONLY WHEN
+//              the target is attackable
+//
+// Behavior:
+//   1. attacker ALWAYS loses the token (if they had it)
+//   2. if target is protected → send both messages and STOP
+//   3. else → run onSuccess() and send success messages
+export async function attemptSurpriseAttack({
+  fromTeam,
+  toTeam,
+  type,
+  onSuccess
+}) {
+  const normalizedType = normalizeSurpriseKey(type);
+
+  // 1) attacker always consumes their surprise, if they have it
+  if (fromTeam && normalizedType) {
+    try {
+      await consumeSurprise(fromTeam, normalizedType, 1);
+    } catch (err) {
+      console.warn('⚠️ Failed to consume surprise for', fromTeam, normalizedType, err);
+    }
+  }
+
+  // 2) cannot attack if victim is protected
+  const attackable = await isTeamAttackable(toTeam);
+  if (!attackable) {
+    // notify both sides
+    try {
+      // attacker message
+      if (typeof window !== 'undefined' && window?.chatManager?.sendPrivateSystemMessage) {
+        window.chatManager.sendPrivateSystemMessage(
+          fromTeam,
+          `🚫 ${toTeam} was protected by a Shield / Wax. Your ${normalizedType || type} was blocked.`
+        );
+      }
+      // victim message
+      if (typeof window !== 'undefined' && window?.chatManager?.sendPrivateSystemMessage) {
+        window.chatManager.sendPrivateSystemMessage(
+          toTeam,
+          `✨ Your shiny wax protected you from a ${normalizedType || type} from ${fromTeam}.`
+        );
+      }
+    } catch (err) {
+      console.debug('💬 shield-block notify failed:', err?.message || err);
+    }
+    return { ok: false, reason: 'shielded' };
+  }
+
+  // 3) proceed with real effect
+  if (typeof onSuccess === 'function') {
+    await onSuccess();
+  }
+
+  // 4) notify both sides on success
+  try {
+    if (typeof window !== 'undefined' && window?.chatManager?.sendPrivateSystemMessage) {
+      window.chatManager.sendPrivateSystemMessage(
+        fromTeam,
+        `✅ ${toTeam} was successfully hit with ${normalizedType || type}.`
+      );
+      window.chatManager.sendPrivateSystemMessage(
+        toTeam,
+        `💥 You were hit by ${normalizedType || type} from ${fromTeam}!`
+      );
+    }
+  } catch (err) {
+    console.debug('💬 success notify failed:', err?.message || err);
+  }
+
+  return { ok: true };
+}
+
+/** Keeps player UI inventories in live sync with Firestore updates. */
+export function subscribeAllTeamInventories(callback) {
+  if (typeof callback !== 'function') return () => {};
+  const ref = collection(db, 'teamSurprises');
+  return onSnapshot(ref, (snapshot) => {
+    const inventories = {};
+    snapshot.forEach((docSnap) => {
+      inventories[docSnap.id] = (docSnap.data()?.counts) || {};
+    });
+    callback(inventories);
+  });
 }

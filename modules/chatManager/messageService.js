@@ -220,3 +220,12 @@ export async function sendChirp(teamName, from, text, btnEl) {
     btnEl.dataset.chirpTimer = String(timerId);
   }
 }
+
+if (typeof window !== 'undefined') {
+  window.chatManager = window.chatManager || {};
+  if (typeof window.chatManager.sendPrivateSystemMessage !== 'function') {
+    window.chatManager.sendPrivateSystemMessage = (teamName, message) => {
+      return sendPrivateSystemMessage(teamName, message);
+    };
+  }
+}

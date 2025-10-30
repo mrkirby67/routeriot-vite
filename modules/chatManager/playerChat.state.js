@@ -8,7 +8,7 @@ import { db } from '../config.js';
 import { clearRegistry, registerListener } from './registry.js';
 import { listenForMyMessages } from './messageService.js';
 import {
-  subscribeTeamSurprises,
+  subscribeAllTeamInventories,
   subscribeSurprisesForTeam,
   isShieldActive
 } from '../teamSurpriseManager.js';
@@ -42,14 +42,25 @@ export function setupPlayerChat(teamName, options = {}) {
 
   const teardownCallbacks = [];
   let activeTeamNames = [];
-  let latestByTeam = {};
+  let latestInventories = {};
 
   const rerender = () => {
     if (!ui.renderInventory) return;
-    ui.renderInventory(latestByTeam, {
+    const combinedNames = new Set([
+      ...Object.keys(latestInventories || {}),
+      ...activeTeamNames,
+      normalizedTeamName
+    ]);
+    const mergedInventories = {};
+    combinedNames.forEach((name) => {
+      if (!name) return;
+      mergedInventories[name] = latestInventories?.[name] || {};
+    });
+
+    ui.renderInventory(mergedInventories, {
       currentTeamName: normalizedTeamName,
       available: latestPlayerCounts,
-      teamNames: activeTeamNames,
+      teamNames: Array.from(combinedNames)
     });
   };
 
@@ -70,14 +81,14 @@ export function setupPlayerChat(teamName, options = {}) {
     }
   });
 
-  const unsubscribeTeams = subscribeTeamSurprises((entries, byTeam) => {
-    latestByTeam = byTeam || {};
+  const unsubscribeInventories = subscribeAllTeamInventories((inventories = {}) => {
+    latestInventories = inventories || {};
     rerender();
   });
-  registerListener('player', unsubscribeTeams);
+  registerListener('player', unsubscribeInventories);
   teardownCallbacks.push(() => {
-    try { unsubscribeTeams?.(); } catch (err) {
-      console.debug('⚠️ Failed to detach team surprises listener:', err);
+    try { unsubscribeInventories?.(); } catch (err) {
+      console.debug('⚠️ Failed to detach team inventories listener:', err);
     }
   });
 

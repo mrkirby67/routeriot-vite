@@ -3,6 +3,14 @@
 // ============================================================================ 
 
 import { broadcastEvent } from '../zonesFirestore.js'; 
+import { db } from '../config.js';
+import {
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { 
   findTeamByName, 
   sanitize, 
@@ -23,7 +31,8 @@ import {
   isUnderWildCard, 
   isTeamOnCooldown,         // ✅ Correct function 
   isShieldActive, 
-  deactivateShield 
+  deactivateShield,
+  attemptSurpriseAttack 
 } from '../teamSurpriseManager.js'; 
 import { 
   clearValidationTimer, 
@@ -91,6 +100,7 @@ export async function releaseSpeedBump(teamName, releasedBy = 'Game Master', { f
   clearValidationTimer(key); 
   clearWildCard(key); 
   activeBumps.delete(key); 
+  await clearSpeedBumpForTeam(key);
 
   const cleanTeam = sanitize(teamName) || key; 
   const cleanActor = sanitize(releasedBy) || releasedBy || 'Game Master'; 
@@ -209,66 +219,120 @@ export function subscribeSpeedBumpsForAttacker(fromTeam, callback) {
 // ---------------------------------------------------------------------------- 
 // 🚧 Sending Speed Bumps 
 // ---------------------------------------------------------------------------- 
-export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override = false } = {}) { 
-  ensureCommsListener(); 
+export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override = false } = {}) {
+  ensureCommsListener();
 
-  const attacker = (fromTeam || '').trim(); 
-  const defender = (toTeam || '').trim(); 
-  if (!attacker || !defender) return { ok: false, reason: 'missing_team' }; 
+  const attacker = (fromTeam || '').trim();
+  const defender = (toTeam || '').trim();
+  if (!attacker || !defender) return { ok: false, reason: 'missing_team' };
 
-  if (isTeamOnCooldown(attacker)) return { ok: false, reason: 'cooldown' }; 
-  if (isUnderWildCard(attacker)) return { ok: false, reason: 'attacker_busy' }; 
-  if (isUnderWildCard(defender)) return { ok: false, reason: 'target_busy' }; 
+  if (isTeamOnCooldown(attacker)) return { ok: false, reason: 'cooldown' };
+  if (isUnderWildCard(attacker)) return { ok: false, reason: 'attacker_busy' };
 
-  if (isShieldActive(attacker)) { 
-    let proceed = true; 
-    if (typeof window !== 'undefined' && typeof window.confirm === 'function') { 
-      proceed = window.confirm( 
-        "Now why would you get that new Polish tarnished with those dirty deeds? Proceeding will cancel your Shield." 
-      ); 
-      if (!proceed) return { ok: false, reason: 'shield_cancelled' }; 
-    } 
-    deactivateShield(attacker); 
-  } 
+  if (isShieldActive(attacker)) {
+    let proceed = true;
+    if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      proceed = window.confirm(
+        "Now why would you get that new Polish tarnished with those dirty deeds? Proceeding will cancel your Shield."
+      );
+      if (!proceed) return { ok: false, reason: 'shield_cancelled' };
+    }
+    deactivateShield(attacker);
+  }
 
-  const challenge = (challengeText || '').trim() || 'Complete a surprise photo challenge!'; 
-  const sanitizedAttacker = sanitize(attacker) || attacker; 
-  const sanitizedDefender = sanitize(defender) || defender; 
-  const sanitizedChallenge = sanitize(challenge); 
+  const challenge = (challengeText || '').trim() || 'Complete a surprise photo challenge!';
+  const sanitizedChallenge = sanitize(challenge);
+  const reversal = findActiveBumpByAttacker(defender);
+  const successPayload = { ok: true };
 
-  const reversal = findActiveBumpByAttacker(defender); 
-  if (reversal && !override) { 
-    handleReversal(defender, reversal.victimTeam, attacker, sanitizedChallenge); 
-    startCooldown(attacker, 'bump', COOLDOWN_MS); 
-    return { ok: true, reason: 'reversal_triggered' }; 
-  } 
+  const result = await attemptSurpriseAttack({
+    fromTeam: attacker,
+    toTeam: defender,
+    type: 'speedBump',
+    async onSuccess() {
+      if (reversal && !override) {
+        handleReversal(defender, reversal.victimTeam, attacker, sanitizedChallenge);
+        startCooldown(attacker, 'bump', COOLDOWN_MS);
+        successPayload.reason = 'reversal_triggered';
+        return;
+      }
 
-  const { email: contactEmail, phone: contactPhone } = formatSenderContact(attacker); 
-  const sanitizedEmail = contactEmail ? sanitize(contactEmail) : ''; 
-  const sanitizedPhone = contactPhone ? sanitize(contactPhone) : ''; 
+      const sanitizedAttacker = sanitize(attacker) || attacker;
+      const sanitizedDefender = sanitize(defender) || defender;
 
-  const messageLines = [ 
-    `🚧 Speed Bump: ${sanitizedAttacker} challenged ${sanitizedDefender}!`, 
-    '', 
-    `Challenge: ${sanitizedChallenge}` 
-  ]; 
-  if (sanitizedEmail) messageLines.push('', `Contact Email: ${sanitizedEmail}`); 
-  if (sanitizedPhone) messageLines.push('', `Contact Phone: ${sanitizedPhone}`); 
-  messageLines.push('', 'Reply with a proof photo/video to clear your Speed Bump!'); 
+      const { email: contactEmail, phone: contactPhone } = formatSenderContact(attacker);
+      const sanitizedEmail = contactEmail ? sanitize(contactEmail) : '';
+      const sanitizedPhone = contactPhone ? sanitize(contactPhone) : '';
 
-  await broadcastEvent('Game Master', messageLines.join('\n'), true); 
+      const messageLines = [
+        `🚧 Speed Bump: ${sanitizedAttacker} challenged ${sanitizedDefender}!`,
+        '',
+        `Challenge: ${sanitizedChallenge}`
+      ];
+      if (sanitizedEmail) messageLines.push('', `Contact Email: ${sanitizedEmail}`);
+      if (sanitizedPhone) messageLines.push('', `Contact Phone: ${sanitizedPhone}`);
+      messageLines.push('', 'Reply with a proof photo/video to clear your Speed Bump!');
 
-  applySpeedBump(defender, { 
-    by: attacker, 
-    challenge: sanitizedChallenge, 
-    startedAt: Date.now(), 
-    contactEmail: sanitizedEmail || null, 
-    contactPhone: sanitizedPhone || null 
-  }); 
+      await broadcastEvent('Game Master', messageLines.join('\n'), true);
 
-  startCooldown(attacker, 'bump', override ? 0 : COOLDOWN_MS); 
-  return { ok: true }; 
-} 
+      applySpeedBump(defender, {
+        by: attacker,
+        challenge: sanitizedChallenge,
+        startedAt: Date.now(),
+        contactEmail: sanitizedEmail || null,
+        contactPhone: sanitizedPhone || null
+      });
+
+      const contactInfoParts = [];
+      if (sanitizedEmail) contactInfoParts.push(`Email: ${sanitizedEmail}`);
+      if (sanitizedPhone) contactInfoParts.push(`Phone: ${sanitizedPhone}`);
+
+      await assignSpeedBumpToTeam(defender, {
+        fromTeam: attacker,
+        contactInfo: contactInfoParts.join(' | '),
+        task: sanitizedChallenge,
+        expiresAt: Date.now() + VALIDATION_MS
+      });
+
+      startCooldown(attacker, 'bump', override ? 0 : COOLDOWN_MS);
+    }
+  });
+
+  if (result?.ok === false) {
+    return result;
+  }
+
+  return successPayload;
+}
+
+/** Assign a Speed Bump to a victim team. */
+export async function assignSpeedBumpToTeam(victimTeam, payload = {}) {
+  if (!victimTeam) return;
+  const ref = doc(db, 'speedBumpAssignments', victimTeam);
+  await setDoc(ref, {
+    active: true,
+    attacker: payload.fromTeam || 'Unknown',
+    contactInfo: payload.contactInfo || '',
+    task: payload.task || 'Complete your challenge!',
+    expiresAt: payload.expiresAt || (Date.now() + 5 * 60 * 1000),
+    assignedAt: serverTimestamp()
+  }, { merge: true });
+  console.log(`🚧 Speed Bump assigned → ${victimTeam}`);
+}
+
+/** Clear the victim’s Speed Bump entry. */
+export async function clearSpeedBumpForTeam(victimTeam) {
+  if (!victimTeam) return;
+  await deleteDoc(doc(db, 'speedBumpAssignments', victimTeam)).catch(() => {});
+  console.log(`✅ Speed Bump cleared for ${victimTeam}`);
+}
+
+/** Simple listener wrapper so the player page can subscribe. */
+export function subscribeSpeedBumpAssignments(teamName, callback) {
+  if (!teamName || typeof callback !== 'function') return () => {};
+  const ref = doc(db, 'speedBumpAssignments', teamName);
+  return onSnapshot(ref, (snap) => callback(snap.exists() ? snap.data() : null));
+}
 
 // ---------------------------------------------------------------------------- 
 // 🧠 Helper functions 

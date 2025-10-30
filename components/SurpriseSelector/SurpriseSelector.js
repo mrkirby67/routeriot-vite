@@ -13,7 +13,34 @@ import {
   subscribeAllCooldowns, // New
 } from '../../modules/teamSurpriseManager.js';
 import { escapeHtml } from '../../modules/utils.js';
-import { applyWildCardsToAllTeams } from '../../modules/controlActions.js';
+import { getDocs, collection, writeBatch, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from '../../modules/config.js';
+
+/** Apply the selected wild-card values to every team in Firestore. */
+export async function applyToAllTeams(selectedType, newCount = 0) {
+  if (!selectedType) {
+    alert('⚠️ No surprise type selected!');
+    return;
+  }
+
+  const snap = await getDocs(collection(db, 'teamSurprises'));
+  if (snap.empty) {
+    alert('⚠️ No teams found in Firestore.');
+    return;
+  }
+
+  const batch = writeBatch(db);
+  snap.docs.forEach((docSnap) => {
+    const data = docSnap.data() || {};
+    const counts = { ...(data.counts || {}) };
+    counts[selectedType] = newCount;
+    batch.set(doc(db, 'teamSurprises', docSnap.id), { counts }, { merge: true });
+  });
+
+  await batch.commit();
+  console.log(`✅ Applied ${selectedType}:${newCount} to all teams.`);
+  alert(`✅ ${selectedType} updated for every team!`);
+}
 
 const TYPE_CONFIG = [
   { key: SurpriseTypes.FLAT_TIRE, label: 'Flat Tire' },
@@ -87,8 +114,7 @@ export function initializeSurpriseSelector() {
       const target = Math.floor(raw);
       masterApplyBtn.disabled = true;
       try {
-        await applyWildCardsToAllTeams(target);
-        alert(`✅ All teams set to ${target} wild card${target === 1 ? '' : 's'}.`);
+        await applyToAllTeams(SurpriseTypes.WILD_CARD, target);
       } catch (err) {
         console.error('❌ Failed to apply wild cards to all teams:', err);
         alert('❌ Failed to update wild cards. Check console for details.');

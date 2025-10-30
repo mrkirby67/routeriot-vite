@@ -107,12 +107,7 @@ export function renderTeamInventory(byTeam = {}, options = {}) {
   const flatAvailable = Number(available.flatTire) || 0;
   const bugAvailable = Number(available.bugSplat) || 0;
 
-  const knownTeams = Array.from(
-    new Set([
-      ...teamNames,
-      ...Object.keys(byTeam || {})
-    ])
-  ).filter(Boolean);
+  const knownTeams = teamNames; // Use only the provided active teams list
 
   const currentPlayerTeam = teamSurprisesPanelState.teamName;
   const listedTeams = knownTeams
