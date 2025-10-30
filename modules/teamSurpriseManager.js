@@ -491,3 +491,8 @@ export function checkShieldBeforeAttack(teamName, onProceed) {
   });
 }
 export const isTeamOnCooldown = isOnCooldown;
+
+export async function isTeamAttackable(teamName) {
+  if (!teamName) return false;
+  return !(isShieldActive(teamName) || isUnderWildCard(teamName));
+}

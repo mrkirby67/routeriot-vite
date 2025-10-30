@@ -214,6 +214,11 @@ button:hover,
   margin-top: 10px;
 }
 
+body.shield-active {
+  border: 5px solid #03dac6;
+  box-sizing: border-box;
+}
+
 /* === Challenge Section === */
 #challenge-question {
   font-size: 1.6em;

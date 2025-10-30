@@ -62,3 +62,69 @@
   color: #ffb74d;
   margin-top: 4px;
 }
+
+.table {
+  margin-top: 15px;
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.table th,
+.table td {
+  padding: 8px;
+  border-bottom: 1px solid #333;
+  text-align: left;
+}
+
+.table thead tr {
+  background: #2c2c2c;
+  color: #fff;
+}
+
+.statusCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(76, 175, 80, 0.15);
+  color: #81c784;
+  border: 1px solid rgba(129, 199, 132, 0.5);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.82rem;
+  width: fit-content;
+}
+
+.actionGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cancelButton {
+  background: linear-gradient(145deg, #ff5252, #d32f2f);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s ease-in;
+}
+
+.cancelButton:hover {
+  transform: scale(1.05);
+  background: linear-gradient(145deg, #ff867c, #ef5350);
+}
+
+.cancelButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}

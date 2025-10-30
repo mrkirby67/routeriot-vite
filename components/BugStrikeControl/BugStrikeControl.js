@@ -1,20 +1,29 @@
 // ============================================================================
 // FILE: components/BugStrikeControl/BugStrikeControl.js
-// PURPOSE: Manage and trigger Bug Strikes from Control dashboard
+// PURPOSE: Manage Bug Swarm strikes from the Control dashboard
 // ============================================================================
 
 import { db } from '../../modules/config.js';
 import {
+  collection,
+  deleteDoc,
   doc,
   getDoc,
-  setDoc,
-  addDoc,
-  collection,
-  serverTimestamp
+  onSnapshot,
+  serverTimestamp,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import { isTeamAttackable } from '../../modules/teamSurpriseManager.js';
 import { allTeams } from '../../data.js';
-import styles from './BugStrikeControl.module.css'; // Scoped CSS styling
+import styles from './BugStrikeControl.module.css';
+
+const DEFAULT_SETTINGS = Object.freeze({
+  bugs: 25,
+  durationMinutes: 5
+});
+
+const BUG_SETTINGS_DOC = doc(db, 'settings', 'bugStrikeSettings');
 
 // ============================================================================
 // 🧱 COMPONENT MARKUP
@@ -26,13 +35,13 @@ export function BugStrikeControlComponent() {
 
       <div class="${styles.settingsRow}">
         <label>
-          Starting Strikes per Team:
-          <input id="starting-bugstrikes" type="number" min="0" value="3" class="${styles.numberInput}">
+          🪲 Bugs in the Strike:
+          <input id="bugstrike-bugcount" type="number" min="1" value="${DEFAULT_SETTINGS.bugs}" class="${styles.numberInput}">
         </label>
 
         <label>
-          Cooldown (minutes):
-          <input id="bugstrike-cooldown" type="number" min="5" value="30" class="${styles.numberInput}">
+          ⏳ Duration (minutes):
+          <input id="bugstrike-duration" type="number" min="1" value="${DEFAULT_SETTINGS.durationMinutes}" class="${styles.numberInput}">
         </label>
 
         <button id="apply-bugstrike-settings" class="${styles.launchButton}">
@@ -40,16 +49,16 @@ export function BugStrikeControlComponent() {
         </button>
       </div>
 
-      <table id="bugstrike-table" style="margin-top:15px;width:100%;border-collapse:collapse;">
+      <table id="bugstrike-table" class="${styles.table}">
         <thead>
-          <tr style="background:#2c2c2c;color:#fff;">
-            <th style="padding:6px;">Team</th>
-            <th style="padding:6px;">Remaining</th>
-            <th style="padding:6px;">Last Used</th>
-            <th style="padding:6px;">Action</th>
+          <tr>
+            <th>Team</th>
+            <th>Status</th>
+            <th>Last Launch</th>
+            <th>Actions</th>
           </tr>
         </thead>
-        <tbody id="bugstrike-tbody" style="text-align:center;"></tbody>
+        <tbody id="bugstrike-tbody"></tbody>
       </table>
     </div>
   `;
@@ -58,35 +67,45 @@ export function BugStrikeControlComponent() {
 // ============================================================================
 // 🚀 INITIALIZER
 // ============================================================================
-export async function initializeBugStrikeControl() {
+export async function initializeBugStrikeControl(controlTeamName = 'Game Master') {
   const tbody = document.getElementById('bugstrike-tbody');
-  const startInput = document.getElementById('starting-bugstrikes');
-  const cooldownInput = document.getElementById('bugstrike-cooldown');
+  const bugInput = document.getElementById('bugstrike-bugcount');
+  const durationInput = document.getElementById('bugstrike-duration');
   const applyBtn = document.getElementById('apply-bugstrike-settings');
-  if (!tbody) return;
+  if (!tbody || !bugInput || !durationInput || !applyBtn) return;
 
-  // 🔹 Load or initialize settings from Firestore
-  const settingsDocRef = doc(db, 'settings', 'bugStrikeSettings');
-  let currentSettings = { starting: 3, cooldown: 30 };
+  const cleanupFns = [];
+  const rowRegistry = new Map();
 
+  let currentSettings = { ...DEFAULT_SETTINGS };
   try {
-    const snap = await getDoc(settingsDocRef);
-    if (snap.exists()) currentSettings = { ...currentSettings, ...snap.data() };
+    const snap = await getDoc(BUG_SETTINGS_DOC);
+    if (snap.exists()) {
+      const data = snap.data();
+      currentSettings = {
+        bugs: Number(data.bugs) || DEFAULT_SETTINGS.bugs,
+        durationMinutes: Number(data.durationMinutes) || DEFAULT_SETTINGS.durationMinutes
+      };
+    }
   } catch (err) {
     console.error('⚠️ Error loading Bug Strike settings:', err);
   }
 
-  startInput.value = currentSettings.starting;
-  cooldownInput.value = currentSettings.cooldown;
+  bugInput.value = currentSettings.bugs;
+  durationInput.value = currentSettings.durationMinutes;
 
-  // 💾 Save updated settings
   applyBtn.addEventListener('click', async () => {
+    const bugs = sanitizeNumber(bugInput.value, currentSettings.bugs, 1);
+    const duration = sanitizeNumber(durationInput.value, currentSettings.durationMinutes, 1);
     try {
-      await setDoc(settingsDocRef, {
-        starting: Number(startInput.value),
-        cooldown: Number(cooldownInput.value),
+      await setDoc(BUG_SETTINGS_DOC, {
+        bugs,
+        durationMinutes: duration,
         updatedAt: serverTimestamp()
       }, { merge: true });
+      currentSettings = { bugs, durationMinutes: duration };
+      bugInput.value = bugs;
+      durationInput.value = duration;
       alert('✅ Bug Strike settings saved!');
     } catch (err) {
       console.error('❌ Failed to save Bug Strike settings:', err);
@@ -94,63 +113,257 @@ export async function initializeBugStrikeControl() {
     }
   });
 
-  // 🧩 Build live team table
   tbody.innerHTML = '';
-  allTeams.forEach(team => {
-    const safeId = team.name.replace(/\s+/g, '-');
-    const tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid #333';
-    tr.innerHTML = `
-      <td>${team.name}</td>
-      <td id="bugstrike-remaining-${safeId}">${currentSettings.starting}</td>
-      <td id="bugstrike-last-${safeId}">--</td>
-      <td>
-        <button class="bugstrike-launch ${styles.launchButton}" data-team="${team.name}">💥 Launch</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
+  allTeams.forEach((team) => {
+    const row = buildTeamRow(team.name, tbody);
+    rowRegistry.set(team.name, row);
   });
 
-  // ✅ Explicitly attach handlers AFTER rendering (no reliance on bubbling)
-  document.querySelectorAll('.bugstrike-launch').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const targetTeam = e.currentTarget.dataset.team;
-      if (!targetTeam) return;
+  const strikesRef = collection(db, 'bugStrikes');
+  const unsubscribeStrikes = onSnapshot(strikesRef, (snapshot) => {
+    const seenVictims = new Set();
+    snapshot.forEach((docSnap) => {
+      const victim = docSnap.id;
+      seenVictims.add(victim);
+      const row = rowRegistry.get(victim);
+      if (!row) return;
+      applyStrikeState(row, docSnap.data());
+    });
 
-      const safeId = targetTeam.replace(/\s+/g, '-');
-      const remainingEl = document.getElementById(`bugstrike-remaining-${safeId}`);
-      const lastUsedEl = document.getElementById(`bugstrike-last-${safeId}`);
-      let remaining = parseInt(remainingEl.textContent);
-
-      if (remaining <= 0) {
-        alert(`❌ ${targetTeam} has no Bug Strikes left!`);
-        return;
-      }
-
-      if (!confirm(`Launch a Bug Strike on ${targetTeam}?`)) return;
-
-      try {
-        await addDoc(collection(db, 'communications'), {
-          teamName: 'Game Master',
-          sender: 'Game Master',
-          senderDisplay: 'Game Master',
-          type: 'bugStrike',
-          to: targetTeam,
-          from: 'Game Master',
-          message: `🪰 A Bug Strike has been unleashed on ${targetTeam}!`,
-          isBroadcast: true,
-          timestamp: serverTimestamp()
-        });
-
-        // 🕐 Update UI
-        remaining -= 1;
-        remainingEl.textContent = remaining;
-        lastUsedEl.textContent = new Date().toLocaleTimeString();
-        console.log(`💥 Bug Strike launched on ${targetTeam}`);
-      } catch (err) {
-        console.error('❌ Failed to launch Bug Strike:', err);
-        alert('⚠️ Could not send Bug Strike.');
+    rowRegistry.forEach((row, teamName) => {
+      if (!seenVictims.has(teamName)) {
+        applyStrikeState(row, null);
       }
     });
+  }, (error) => {
+    console.error('❌ Bug Strike snapshot error:', error);
+    alert('⚠️ Live Bug Strike updates unavailable. Check console for details.');
   });
+  cleanupFns.push(unsubscribeStrikes);
+
+  rowRegistry.forEach((row, teamName) => {
+    row.launchBtn.addEventListener('click', () => {
+      handleLaunch({
+        row,
+        teamName,
+        bugInput,
+        durationInput,
+        controlTeamName,
+        currentSettings
+      });
+    });
+
+    row.cancelBtn.addEventListener('click', () => {
+      handleCancel({ row, teamName });
+    });
+  });
+
+  return (reason = 'manual') => {
+    cleanupFns.forEach((fn) => {
+      try { fn?.(reason); } catch (err) {
+        console.warn('⚠️ BugStrike cleanup failed:', err);
+      }
+    });
+    rowRegistry.forEach((row) => {
+      if (row.timerId) {
+        window.clearInterval(row.timerId);
+        row.timerId = null;
+      }
+    });
+  };
+}
+
+// ============================================================================
+// 🧩 HELPERS
+// ============================================================================
+function sanitizeNumber(value, fallback, min = 0) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < min) return fallback;
+  return Math.floor(num);
+}
+
+function buildTeamRow(teamName, tbody) {
+  const tr = document.createElement('tr');
+  tr.dataset.team = teamName;
+
+  const teamCell = document.createElement('td');
+  teamCell.textContent = teamName;
+
+  const statusCell = document.createElement('td');
+  statusCell.className = styles.statusCell;
+  const statusText = document.createElement('span');
+  statusText.textContent = 'No active attack';
+  const badge = document.createElement('span');
+  badge.className = styles.activeBadge;
+  badge.textContent = '🟢 Active Attack';
+  badge.hidden = true;
+  statusCell.append(statusText, badge);
+
+  const lastUsedCell = document.createElement('td');
+  lastUsedCell.textContent = '--';
+
+  const actionsCell = document.createElement('td');
+  const actionGroup = document.createElement('div');
+  actionGroup.className = styles.actionGroup;
+  const launchBtn = document.createElement('button');
+  launchBtn.className = `bugstrike-launch ${styles.launchButton}`;
+  launchBtn.dataset.team = teamName;
+  launchBtn.type = 'button';
+  launchBtn.textContent = '💥 Launch';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = `bugstrike-cancel ${styles.cancelButton}`;
+  cancelBtn.dataset.team = teamName;
+  cancelBtn.type = 'button';
+  cancelBtn.textContent = '❌ Cancel';
+  cancelBtn.disabled = true;
+
+  actionGroup.append(launchBtn, cancelBtn);
+  actionsCell.append(actionGroup);
+
+  tr.append(teamCell, statusCell, lastUsedCell, actionsCell);
+  tbody.appendChild(tr);
+
+  return {
+    teamName,
+    rowEl: tr,
+    statusText,
+    badge,
+    lastUsedCell,
+    launchBtn,
+    cancelBtn,
+    timerId: null
+  };
+}
+
+function applyStrikeState(row, data) {
+  if (row.timerId) {
+    window.clearInterval(row.timerId);
+    row.timerId = null;
+  }
+
+  const now = Date.now();
+  const isActive = Boolean(
+    data &&
+    data.active &&
+    !data.cancelled &&
+    (!data.expiresAt || normalizeTimestampMs(data.expiresAt) > now)
+  );
+
+  if (!isActive) {
+    row.statusText.textContent = 'No active attack';
+    row.badge.hidden = true;
+    row.badge.textContent = '🟢 Active Attack';
+    row.lastUsedCell.textContent = '--';
+    row.launchBtn.disabled = false;
+    row.cancelBtn.disabled = true;
+    return;
+  }
+
+  const expiresAtMs = normalizeTimestampMs(data.expiresAt);
+  const startedAtMs = normalizeTimestampMs(data.startedAt) || now;
+  row.statusText.textContent = data.message || `🪰 ${data.attacker || 'Unknown team'} unleashed a swarm!`;
+  row.badge.hidden = false;
+  row.lastUsedCell.textContent = formatTime(startedAtMs);
+  row.launchBtn.disabled = true;
+  row.cancelBtn.disabled = false;
+
+  if (expiresAtMs) {
+    const updateBadge = () => {
+      const remainingSec = Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 1000));
+      row.badge.textContent = remainingSec > 0
+        ? `🟢 Active Attack (${formatDuration(remainingSec)})`
+        : '🟢 Active Attack';
+      if (remainingSec <= 0) {
+        window.clearInterval(row.timerId);
+        row.timerId = null;
+      }
+    };
+    updateBadge();
+    row.timerId = window.setInterval(updateBadge, 1000);
+  } else {
+    row.badge.textContent = '🟢 Active Attack';
+  }
+}
+
+async function handleLaunch({
+  row,
+  teamName,
+  bugInput,
+  durationInput,
+  controlTeamName,
+  currentSettings
+}) {
+  const bugs = sanitizeNumber(bugInput.value, currentSettings.bugs, 1);
+  const durationMinutes = sanitizeNumber(durationInput.value, currentSettings.durationMinutes, 1);
+  const durationMs = durationMinutes * 60 * 1000;
+  const docRef = doc(db, 'bugStrikes', teamName);
+
+  row.launchBtn.disabled = true;
+  try {
+    const attackable = await isTeamAttackable(teamName);
+    if (!attackable) {
+      alert(`🚫 ${teamName} is protected and cannot be attacked!`);
+      row.launchBtn.disabled = false;
+      return;
+    }
+
+    const expiresAt = Date.now() + durationMs;
+    await setDoc(docRef, {
+      active: true,
+      victim: teamName,
+      attacker: controlTeamName,
+      bugs,
+      durationMs,
+      startedAt: serverTimestamp(),
+      expiresAt,
+      message: `🪰 ${controlTeamName} unleashed a swarm on ${teamName}!`,
+      cancelled: false
+    });
+
+    alert(`🪰 Bug Swarm launched on ${teamName}!`);
+  } catch (err) {
+    console.error('❌ Failed to launch Bug Strike:', err);
+    alert('⚠️ Could not send Bug Strike. Check console for details.');
+    row.launchBtn.disabled = false;
+  }
+}
+
+async function handleCancel({ row, teamName }) {
+  const docRef = doc(db, 'bugStrikes', teamName);
+  row.cancelBtn.disabled = true;
+  try {
+    await deleteDoc(docRef);
+    alert(`❌ Attack on ${teamName} cancelled.`);
+  } catch (err) {
+    console.error('❌ Failed to cancel Bug Strike:', err);
+    alert('⚠️ Could not cancel Bug Strike. Check console for details.');
+    row.cancelBtn.disabled = false;
+  }
+}
+
+function normalizeTimestampMs(value) {
+  if (!value) return null;
+  if (typeof value === 'number') return value;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (value.seconds !== undefined) {
+    return value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1e6);
+  }
+  return null;
+}
+
+function formatTime(ms) {
+  if (!ms) return '--';
+  try {
+    return new Date(ms).toLocaleTimeString();
+  } catch {
+    return '--';
+  }
+}
+
+function formatDuration(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins <= 0) return `${secs}s`;
+  return `${mins}m ${secs}s`;
 }

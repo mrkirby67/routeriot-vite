@@ -86,7 +86,8 @@ async function main() {
   registerCleanup(initializeGameControlsLogic() || null, 'gameControls');
   registerCleanup(initializeRacerManagementLogic() || null, 'racerManagement');
   registerCleanup(initializeBroadcastLogic() || null, 'broadcast');
-  registerCleanup(initializeBugStrikeControl() || null, 'bugStrikeControl');
+  const bugStrikeCleanup = await initializeBugStrikeControl();
+  registerCleanup(bugStrikeCleanup || null, 'bugStrikeControl');
 
   const speedBumpCleanup = await initializeSpeedBumpControl();
   registerCleanup(speedBumpCleanup, 'speedBumpControl');

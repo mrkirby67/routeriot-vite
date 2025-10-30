@@ -352,20 +352,41 @@ function attachSendHandlers({
 // 🧩 SHIELD STATUS + TICKER
 // ============================================================================
 function updateShieldChip() {
-  const { shieldChip, teamName } = teamSurprisesPanelState;
-  if (!shieldChip || !teamName) return;
+  const { teamName } = teamSurprisesPanelState;
+  if (!teamName) return;
 
   const active = isShieldActive(teamName);
   const remainingMs = Math.max(0, getShieldTimeRemaining(teamName));
+
+  // New UI: Add/remove a class on the body for the border
+  document.body.classList.toggle('shield-active', active && remainingMs > 0);
+
+  // New UI: Add/remove a status line in the Game Info section
+  const gameStatusEl = document.getElementById('game-status');
+  let shieldStatusEl = document.getElementById('shield-status-display');
+
   if (active && remainingMs > 0) {
+    if (!shieldStatusEl) {
+      shieldStatusEl = document.createElement('p');
+      shieldStatusEl.id = 'shield-status-display';
+      gameStatusEl?.parentElement?.insertAdjacentElement('afterend', shieldStatusEl);
+    }
     const seconds = Math.ceil(remainingMs / 1000);
-    shieldChip.classList.add('is-active');
-    shieldChip.textContent = `🛡️ Shield active — ${formatShieldDuration(seconds)}`;
-    showShieldTimer(teamName, remainingMs);
+    shieldStatusEl.innerHTML = `<strong>Shield Active:</strong> <span id="shield-timer-value">${seconds}s</span>`;
   } else {
-    shieldChip.classList.remove('is-active');
-    shieldChip.textContent = '🛡️ Shield inactive';
-    hideShieldTimer();
+    shieldStatusEl?.remove();
+  }
+
+  // Old UI logic (for the chip in the surprises panel) can be simplified or removed if not needed
+  const { shieldChip } = teamSurprisesPanelState;
+  if (shieldChip) {
+      if (active && remainingMs > 0) {
+        shieldChip.classList.add('is-active');
+        shieldChip.textContent = `🛡️ Shield Active`;
+      } else {
+        shieldChip.classList.remove('is-active');
+        shieldChip.textContent = '🛡️ Shield Inactive';
+      }
   }
 }
 

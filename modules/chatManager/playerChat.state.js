@@ -14,6 +14,7 @@ import {
 } from '../teamSurpriseManager.js';
 import { subscribeSpeedBumpsForAttacker } from '../speedBump/index.js';
 import { updateSpeedBumpOverlay } from '../playerUI/overlays/speedBumpOverlay.js';
+import { initializePlayerBugStrike } from '../playerBugStrike.js';
 
 const defaultCounts = Object.freeze({
   flatTire: 0,
@@ -96,6 +97,13 @@ export function setupPlayerChat(teamName, options = {}) {
   teardownCallbacks.push(() => {
     try { unsubscribeMine?.(); } catch (err) {
       console.debug('⚠️ Failed to detach personal surprises listener:', err);
+    }
+  });
+
+  const stopBugStrike = initializePlayerBugStrike(normalizedTeamName);
+  teardownCallbacks.push(() => {
+    try { stopBugStrike?.('player-state'); } catch (err) {
+      console.debug('⚠️ Failed to detach bug strike listener:', err);
     }
   });
 

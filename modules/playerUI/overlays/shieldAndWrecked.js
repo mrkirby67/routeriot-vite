@@ -80,43 +80,11 @@ function updateFloatingShieldOverlay(teamName, remainingMs) {
 }
 
 export function showShieldTimer(teamName, msRemaining = 0) {
-  if (typeof document === 'undefined' || !teamName) return;
-  const duration = Math.max(0, Number(msRemaining) || 0);
-  if (duration <= 0) {
-    hideShieldTimer();
-    return;
-  }
-
-  floatingShieldTeam = teamName;
-  floatingShieldEndAt = Date.now() + duration;
-  updateFloatingShieldOverlay(teamName, duration);
-
-  if (floatingShieldIntervalId) {
-    clearInterval(floatingShieldIntervalId);
-    floatingShieldIntervalId = null;
-  }
-
-  floatingShieldIntervalId = setInterval(() => {
-    const remaining = Math.max(0, floatingShieldEndAt - Date.now());
-    if (remaining <= 0 || !floatingShieldTeam) {
-      hideShieldTimer();
-      return;
-    }
-    updateFloatingShieldOverlay(floatingShieldTeam, remaining);
-  }, 1000);
+  // This floating overlay is disabled per user request.
 }
 
 export function hideShieldTimer() {
-  if (floatingShieldIntervalId) {
-    clearInterval(floatingShieldIntervalId);
-    floatingShieldIntervalId = null;
-  }
-  floatingShieldTeam = null;
-  floatingShieldEndAt = 0;
-  if (floatingShieldOverlay) {
-    floatingShieldOverlay.remove();
-    floatingShieldOverlay = null;
-  }
+  // This floating overlay is disabled per user request.
 }
 
 export function showWreckedOverlay(attacker, victim, karma) {

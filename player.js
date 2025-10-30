@@ -18,7 +18,6 @@ import {
 } from './modules/playerUI.js';
 import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
-import { initializeBugStrikeListener } from './modules/playerBugStrikeUI.js'; // 🪰 chaos overlay
 import { initializeSpeedBumpPlayer } from './modules/speedBumpPlayer.js';
 import { initializeFlatTireUI } from './modules/flatTireUI.js';
 
@@ -26,7 +25,6 @@ let gameStatusUnsub = null;
 let chatCleanup = null;
 let zonesCleanup = null;
 let speedBumpCleanup = null;
-let bugStrikeCleanup = null;
 let flatTireCleanup = null;
 let unloadHandler = null;
 
@@ -39,9 +37,6 @@ function teardownPlayerListeners(reason = 'manual') {
 
   speedBumpCleanup?.(reason);
   speedBumpCleanup = null;
-
-  bugStrikeCleanup?.(reason);
-  bugStrikeCleanup = null;
 
   flatTireCleanup?.(reason);
   flatTireCleanup = null;
@@ -96,7 +91,6 @@ export async function initializePlayerPage() {
     chatCleanup = setupPlayerChat(currentTeamName);
     zonesCleanup = initializeZones(currentTeamName);
     initializePlayerScoreboard();
-    bugStrikeCleanup = initializeBugStrikeListener(currentTeamName); // 🪰
     speedBumpCleanup = initializeSpeedBumpPlayer(currentTeamName);
     flatTireCleanup = initializeFlatTireUI(currentTeamName);
   } catch (err) {
