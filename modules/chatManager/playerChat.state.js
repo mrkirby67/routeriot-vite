@@ -40,30 +40,15 @@ export function setupPlayerChat(teamName, options = {}) {
   clearRegistry('player');
 
   const teardownCallbacks = [];
-  let latestTeamNames = new Set();
   let activeTeamNames = [];
+  let latestByTeam = {};
 
-  const applyTeamInventory = () => {
-    const combinedNames = new Set([
-      ...Array.from(latestTeamNames),
-      ...activeTeamNames
-    ]);
-    combinedNames.add(normalizedTeamName);
-
-    const sanitizedByTeam = {};
-    combinedNames.forEach((name) => {
-      if (name) sanitizedByTeam[name] = {};
-    });
-
-    console.log('🎯 Surprises snapshot', {
-      teamNames: Array.from(combinedNames),
-      currentTeamName: normalizedTeamName
-    });
-
-    ui.renderInventory?.(sanitizedByTeam, {
+  const rerender = () => {
+    if (!ui.renderInventory) return;
+    ui.renderInventory(latestByTeam, {
       currentTeamName: normalizedTeamName,
       available: latestPlayerCounts,
-      teamNames: Array.from(combinedNames)
+      teamNames: activeTeamNames,
     });
   };
 
@@ -72,11 +57,10 @@ export function setupPlayerChat(teamName, options = {}) {
     if (docSnap.exists()) {
       const data = docSnap.data();
       activeTeamNames = Array.isArray(data.list) ? data.list : [];
-      applyTeamInventory();
     } else {
       activeTeamNames = [];
-      applyTeamInventory();
     }
+    rerender();
   });
   registerListener('player', unsubscribeActiveTeams);
   teardownCallbacks.push(() => {
@@ -85,13 +69,9 @@ export function setupPlayerChat(teamName, options = {}) {
     }
   });
 
-  const unsubscribeTeams = subscribeTeamSurprises((entries) => {
-    latestTeamNames = new Set(
-      Array.isArray(entries)
-        ? entries.map((entry) => entry?.teamName).filter(Boolean)
-        : []
-    );
-    applyTeamInventory();
+  const unsubscribeTeams = subscribeTeamSurprises((entries, byTeam) => {
+    latestByTeam = byTeam || {};
+    rerender();
   });
   registerListener('player', unsubscribeTeams);
   teardownCallbacks.push(() => {
@@ -106,10 +86,8 @@ export function setupPlayerChat(teamName, options = {}) {
       bugSplat: Number(payload.bugSplat) || 0,
       superShieldWax: Number(payload.superShieldWax) || 0
     };
-
     ui.renderPlayerInventory?.(latestPlayerCounts);
-    applyTeamInventory();
-
+    rerender(); // Rerender to update disabled states
     if (isShieldActive(normalizedTeamName)) {
       ui.refreshShieldStatus?.();
     }
