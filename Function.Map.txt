@@ -5,6 +5,7 @@
  - components/Broadcast/Broadcast.module.css
  - components/BugStrikeControl/BugStrikeControl.js
  - components/BugStrikeControl/BugStrikeControl.module.css
+ - components/ChatLog/ChatLog.js
  - components/FlatTireControl/FlatTireControl.js
  - components/FlatTireControl/FlatTireControl.module.css
  - components/FlatTireControl/controller/autoScheduler.js
@@ -13,12 +14,14 @@
  - components/FlatTireControl/flatTireControlController.js
  - components/GameControls/GameControls.js
  - components/GameControls/GameControls.module.css
+ - components/OpponentList/OpponentList.js
  - components/RacerManagement/RacerManagement.js
  - components/RacerManagement/RacerManagement.module.css
  - components/Scoreboard/Scoreboard.js
  - components/Scoreboard/Scoreboard.module.css
  - components/SpeedBumpControl/SpeedBumpControl.js
  - components/SpeedBumpControl/SpeedBumpControl.module.css
+ - components/SpeedBumpControl/controller/actions.js
  - components/SpeedBumpControl/controller/domHandlers.js
  - components/SpeedBumpControl/controller/promptBank.js
  - components/SpeedBumpControl/controller/stateSync.js
