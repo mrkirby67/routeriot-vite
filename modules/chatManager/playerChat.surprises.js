@@ -111,6 +111,14 @@ async function handleBugSplatAttack(attacker, defender) {
     throw new Error(`On cooldown! Try again in ${seconds}s.`);
   }
 
+  // New shield check logic
+  if (await isShieldActive(targetTeam)) {
+    console.log(`🛡️ Attack from ${fromTeam} blocked — ${targetTeam} is shielded.`);
+    await consumeSurprise(fromTeam, SurpriseTypes.BUG_SPLAT);
+    await sendPrivateSystemMessage(targetTeam, `✨ Shiny wax protected you from a Bug Splat from ${fromTeam}!`);
+    throw new Error(`${targetTeam} was protected by a shield! Your attack failed.`);
+  }
+
   const result = await checkShieldBeforeAttack(fromTeam, async () => {
     const sendResult = await sendSurpriseToTeam(fromTeam, targetTeam, SurpriseTypes.BUG_SPLAT, {
       message: `🐞 ${fromTeam} launched a BUG SPLAT on ${targetTeam}!`

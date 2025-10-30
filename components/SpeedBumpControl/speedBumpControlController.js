@@ -28,9 +28,9 @@ import {
 } from './controller/teamPrompts.js';
 
 import {
-  sendSpeedBump,
-  releaseSpeedBump
-} from '../../modules/speedBump/index.js';
+  handleSendSpeedBump,
+  handleReleaseSpeedBump
+} from './controller/actions.js';
 
 // 🔁 NEW: propagate bank changes to the shared prompt pool immediately
 import { setSpeedBumpPromptBank } from '../../modules/speedBumpChallenges.js';
@@ -140,12 +140,28 @@ export class SpeedBumpControlController {
 
     const challenge = (this.promptByTeam.get(team) || '').trim();
     if (!challenge) return alert('⚠️ No prompt for this team.');
-    await sendSpeedBump('Control', team, 60_000, { challenge, override: true });
+    const result = await handleSendSpeedBump(team, {
+      attackerTeam: 'Game Master',
+      task: challenge,
+      contactInfo: 'game.master@route-riot.local',
+      durationMs: 60_000
+    });
+    if (result?.ok) {
+      this.activeChallenges.set(team, {
+        teamName: team,
+        by: 'Game Master',
+        challenge,
+        startedAt: Date.now()
+      });
+    }
     updateRow(this, team);
   }
 
   async handleRelease(team) {
-    await releaseSpeedBump(team, 'Control');
+    const result = await handleReleaseSpeedBump(team);
+    if (result?.ok) {
+      this.activeChallenges.delete(team);
+    }
     updateRow(this, team);
   }
 
