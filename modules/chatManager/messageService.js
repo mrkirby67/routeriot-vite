@@ -1,13 +1,12 @@
 // ============================================================================
 // FILE: modules/chatManager/messageService.js
-// PURPOSE: Message sending + player-side message feeds
+// PURPOSE: Message sending + player-side message feeds (bridged to new service)
 // ============================================================================
 
 import { db } from '../config.js';
 import {
   addDoc,
   collection,
-  collectionGroup,
   onSnapshot,
   orderBy,
   query,
@@ -17,32 +16,39 @@ import {
 import { clearRegistry, registerListener } from './registry.js';
 import { GAME_MASTER_NAME, resolveSenderName, safeHTML, shouldRenderRaw } from './utils.js';
 
-export async function sendMessage(sender, recipient, text) {
-  const sortedNames = [sender, recipient].sort();
-  const convoId = `${sortedNames[0].replace(/\s/g, '')}_${sortedNames[1].replace(/\s/g, '')}`;
-  const messagesRef = collection(db, 'conversations', convoId, 'messages');
+// ✅ NEW DATA-LAYER IMPORT (bridge to refactored service)
+import * as messageService from '../../services/messageService.js';
 
+// ----------------------------------------------------------------------------
+// 🔄 Bridge Functions (temporary, until full migration)
+// ----------------------------------------------------------------------------
+export async function sendMessage(fromTeam, toTeam, text) {
   try {
-    await addDoc(messagesRef, {
-      sender,
-      recipient,
-      text,
-      timestamp: Date.now()
-    });
+    await messageService.sendMessage(fromTeam, toTeam, text);
   } catch (err) {
-    console.error("❌ Error sending message:", err);
+    console.error('Chat bridge error:', err);
   }
 }
 
+export function listenForMyMessages(teamName, callback) {
+  try {
+    return messageService.listenForMyMessages(teamName, callback);
+  } catch (err) {
+    console.error('Chat listener bridge error:', err);
+    return () => {};
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 💬 Private + System Messaging
+// ----------------------------------------------------------------------------
 export async function sendPrivateSystemMessage(recipient, text) {
   if (!recipient || !text) return;
   return sendMessage(GAME_MASTER_NAME, recipient, text);
 }
 
 export async function sendPrivateMessage(senderOrTarget, recipientMaybe, rawText) {
-  let fromTeam;
-  let toTeam;
-  let text;
+  let fromTeam, toTeam, text;
 
   if (typeof rawText === 'undefined') {
     fromTeam = GAME_MASTER_NAME;
@@ -60,7 +66,6 @@ export async function sendPrivateMessage(senderOrTarget, recipientMaybe, rawText
 
   const snippet = text.length > 280 ? `${text.slice(0, 277)}…` : text;
   console.log(`💬 [Private] → ${toTeam}: ${snippet}`);
-  // TODO: wire to team-specific Firestore chat doc
 
   try {
     await sendMessage(fromTeam, toTeam, snippet);
@@ -71,6 +76,9 @@ export async function sendPrivateMessage(senderOrTarget, recipientMaybe, rawText
   }
 }
 
+// ----------------------------------------------------------------------------
+// 📣 Broadcasts / Chirps
+// ----------------------------------------------------------------------------
 export async function broadcastChirp(fromTeam, message) {
   const teamName = typeof fromTeam === 'string' ? fromTeam.trim() : '';
   const text = typeof message === 'string' ? message.trim() : '';
@@ -88,7 +96,10 @@ export async function broadcastChirp(fromTeam, message) {
   }
 }
 
-export function listenForMyMessages(myTeamName, logBox) {
+// ----------------------------------------------------------------------------
+// 🧠 Legacy Player Feed (kept for now – still used by Control dashboard)
+// ----------------------------------------------------------------------------
+export function legacyListenForMyMessages(myTeamName, logBox) {
   clearRegistry('playerMessages');
 
   const allMessages = [];
@@ -180,11 +191,9 @@ export function listenForMyMessages(myTeamName, logBox) {
   return () => clearRegistry('playerMessages');
 }
 
-/**
- * sendChirp(teamName, from, text, btnEl?)
- * Enforces the chirp cooldown before delivering the message. Optional btnEl
- * parameter will show a countdown and re-enable when cooldown expires.
- */
+// ----------------------------------------------------------------------------
+// 🕊️ Chirp Cooldown + UI Helper
+// ----------------------------------------------------------------------------
 export async function sendChirp(teamName, from, text, btnEl) {
   const { canChirp, markChirp, chirpRemainingMs } = await import('../chirpCooldown.js');
   if (!canChirp(teamName)) {
@@ -227,11 +236,13 @@ export async function sendChirp(teamName, from, text, btnEl) {
   }
 }
 
+// ----------------------------------------------------------------------------
+// 🌐 Expose to window.chatManager (for legacy hooks)
+// ----------------------------------------------------------------------------
 if (typeof window !== 'undefined') {
   window.chatManager = window.chatManager || {};
   if (typeof window.chatManager.sendPrivateSystemMessage !== 'function') {
-    window.chatManager.sendPrivateSystemMessage = (teamName, message) => {
-      return sendPrivateSystemMessage(teamName, message);
-    };
+    window.chatManager.sendPrivateSystemMessage = (teamName, message) =>
+      sendPrivateSystemMessage(teamName, message);
   }
 }

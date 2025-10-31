@@ -1,3 +1,13 @@
+// ============================================================================
+// FILE: services/messageService.js
+// PURPOSE: Data layer for handling chat messages.
+// DEPENDS_ON: firebase/firestore, ../modules/config.js
+// USED_BY: features/chat/playerChat.state.js
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 1.0
+// ============================================================================
+
 // services/messageService.js
 
 /**
@@ -36,3 +46,15 @@ export function onNewMessage(callback) {
     callback(messages);
   });
 }
+
+// # === AI-CONTEXT-MAP ===
+// phase: tier1_services_injection
+// aicp_category: service
+// exports: sendMessage, onNewMessage
+// linked_files: []
+// status: stable
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// sync_state: aligned
+// # === END ===

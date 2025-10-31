@@ -1,3 +1,13 @@
+// ============================================================================
+// FILE: services/firestoreRefs.js
+// PURPOSE: Centralizes all Firestore database references for the application.
+// DEPENDS_ON: firebase/firestore, ../modules/config.js, ../config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 1.0
+// ============================================================================
+
 // services/firestoreRefs.js
 
 /**
@@ -9,8 +19,21 @@
 import { doc, collection } from "firebase/firestore";
 import { db } from "../modules/config.js";
 
-// TODO: Consolidate all firestore references from across the codebase here.
+// --- Firestore Reference Map ---
+import { db } from '../config.js';
+import { collection, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+/** Centralized Firestore reference helpers. */
+export const refs = {
+  gameState:        () => doc(db, 'game', 'gameState'),
+  messages:         (teamA, teamB) => collection(db, 'messages', [teamA, teamB].sort().join('_')),
+  teamSurprises:    () => collection(db, 'teamSurprises'),
+  flatTireAssign:   () => collection(db, 'flatTireAssignments'),
+  bugStrikeAssign:  () => collection(db, 'bugStrikeAssignments'),
+  speedBumpAssign:  () => collection(db, 'speedBumpAssignments'),
+  teams:            () => collection(db, 'teams'),
+  zones:            () => collection(db, 'zones'),
+};
 /** Reference to the main game state document. */
 export const gameStateRef = doc(db, "gameState", "currentState");
 
@@ -26,3 +49,15 @@ export const getTeamRef = (teamId) => doc(db, "teams", teamId);
 
 /** Reference to the 'zones' collection. */
 export const zonesCollectionRef = collection(db, "zones");
+
+// # === AI-CONTEXT-MAP ===
+// phase: tier1_services_injection
+// aicp_category: service
+// exports: refs, gameStateRef, teamsCollectionRef, getTeamRef, zonesCollectionRef
+// linked_files: []
+// status: stable
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// sync_state: aligned
+// # === END ===

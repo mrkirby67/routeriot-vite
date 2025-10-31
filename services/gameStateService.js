@@ -1,3 +1,13 @@
+// ============================================================================
+// FILE: services/gameStateService.js
+// PURPOSE: Manages core game state logic, such as pausing, resuming, and resetting the game.
+// DEPENDS_ON: firebase/firestore, ./firestoreRefs.js
+// USED_BY: features/game-state/gameStateController.js
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 1.0
+// ============================================================================
+
 // services/gameStateService.js
 
 /**
@@ -36,3 +46,15 @@ export async function getGameState() {
   const docSnap = await getDoc(gameStateRef);
   return docSnap.exists() ? docSnap.data() : null;
 }
+
+// # === AI-CONTEXT-MAP ===
+// phase: tier1_services_injection
+// aicp_category: service
+// exports: pauseGame, resumeGame, getGameState
+// linked_files: []
+// status: stable
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// sync_state: aligned
+// # === END ===
