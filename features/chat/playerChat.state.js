@@ -1,3 +1,13 @@
+// ============================================================================
+// FILE: features/chat/playerChat.state.js
+// PURPOSE: Main controller for the player chat feature.
+// DEPENDS_ON: ../../services/messageService.js, ../../components/ChatLog/ChatLog.js, ./playerChat.events.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 1.0
+// ============================================================================
+
 // features/chat/playerChat.state.js
 
 /**
@@ -28,3 +38,15 @@ export function handleSendMessage(text) {
     messageService.sendMessage(teamId, text);
   }
 }
+
+// # === AI-CONTEXT-MAP ===
+// phase: tier2_features_injection
+// aicp_category: feature
+// exports: initializeChat, handleSendMessage
+// linked_files: []
+// status: stable
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// sync_state: aligned
+// # === END ===
