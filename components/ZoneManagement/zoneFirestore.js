@@ -1,6 +1,11 @@
 // ============================================================================
-// FILE: /modules/zonesFirestore.js
-// PURPOSE: Firebase read/write + broadcast helpers for zones
+// FILE: components/ZoneManagement/zoneFirestore.js
+// PURPOSE: Component module components/ZoneManagement/zoneFirestore.js
+// DEPENDS_ON: modules/config.js, modules/zonesUtils.js, modules/scoreboardManager.js, modules/data.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
 
 import { db } from '../../modules/config.js';
@@ -132,3 +137,21 @@ export async function updateTeamLocation(teamName, zoneName) {
     console.error("❌ updateTeamLocation error:", err);
   }
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: broadcastEvent, broadcastChallenge, broadcastWin, updateTeamLocation
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

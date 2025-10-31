@@ -1,6 +1,11 @@
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestionsLogic.js
-// PURPOSE: Shared helper logic for ZoneQuestionsUI and ZoneQuestionsEditor
+// PURPOSE: Component module components/ZoneQuestions/ZoneQuestionsLogic.js
+// DEPENDS_ON: components/ZoneQuestions/ZoneQuestionsTypes.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
 
 import { allowedQuestionTypes, booleanSets } from './ZoneQuestionsTypes.js';
@@ -107,3 +112,21 @@ export function renderAnswerSummary(q) {
       return '';
   }
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: validateQuestionBeforeSave, parseCsv, renderAnswerSummary
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

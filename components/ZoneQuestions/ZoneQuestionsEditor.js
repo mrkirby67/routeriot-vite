@@ -1,6 +1,11 @@
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestionsEditor.js
-// PURPOSE: Form for creating or editing questions for a specific zone.
+// PURPOSE: Component module components/ZoneQuestions/ZoneQuestionsEditor.js
+// DEPENDS_ON: modules/config.js, data.js, components/ZoneQuestions/ZoneQuestionsLogic.js, components/ZoneQuestions/ZoneQuestionsTypes.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
 
 import styles from './ZoneQuestions.module.css';
@@ -259,3 +264,21 @@ function loadIntoForm(els, d) {
   document.getElementById('q-points').value = d.points ?? 10;
   els.type.dispatchEvent(new Event('change')); // refresh dynamic fields
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: renderZoneQuestionEditor, initializeZoneQuestionEditor
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

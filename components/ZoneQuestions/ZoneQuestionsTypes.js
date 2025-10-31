@@ -1,6 +1,11 @@
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestionsTypes.js
-// PURPOSE: Central schema, constants, and shared validation helpers for question types.
+// PURPOSE: Component module components/ZoneQuestions/ZoneQuestionsTypes.js
+// DEPENDS_ON: none
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
 
 // 🔹 All supported question types
@@ -79,3 +84,21 @@ export function validateQuestionType(q) {
 
   return true;
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: allowedQuestionTypes, booleanSets, defaultTolerance, minChoices, questionTypeLabels, validateQuestionType
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

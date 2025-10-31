@@ -8,8 +8,6 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-// features/flat-tire/flatTireController.js
-
 /**
  * @file Controls the logic for the Flat Tire feature.
  * This will be the new home for logic from modules/flatTireUI.js and modules/flatTireManager.js
@@ -35,14 +33,14 @@ export function resolveFlatTire() {
   // Additional logic for flat tire state management
 }
 
-// # === AI-CONTEXT-MAP ===
-// phase: tier2_features_injection
-// aicp_category: feature
-// exports: activateFlatTire, resolveFlatTire
-// linked_files: []
-// status: stable
+// === AI-CONTEXT-MAP ===
 // ai_origin:
 //   primary: ChatGPT
 //   secondary: Gemini
+// aicp_category: feature
+// exports: activateFlatTire, resolveFlatTire
+// linked_files: []
+// phase: tier2_features_injection
+// status: stable
 // sync_state: aligned
-// # === END ===
+// === END ===

@@ -1,8 +1,11 @@
 // ============================================================================
-// HUB: SpeedBump Control Controller (modular) — DEDUP + BANK SYNC
-// - Removes internal table listeners to avoid double-firing (domHandlers owns it)
-// - Syncs challenge bank to global pool via setSpeedBumpPromptBank
-// - No visuals altered
+// FILE: components/SpeedBumpControl/speedBumpControlController.js
+// PURPOSE: Component module components/SpeedBumpControl/speedBumpControlController.js
+// DEPENDS_ON: modules/speedBumpChallenges.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
 
 import styles from './SpeedBumpControl.module.css';
@@ -315,3 +318,21 @@ export class SpeedBumpControlController {
 export function createSpeedBumpControlController() {
   return new SpeedBumpControlController();
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: SpeedBumpControlController, createSpeedBumpControlController
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

@@ -1,3 +1,13 @@
+// ============================================================================
+// FILE: components/TeamLinks/TeamLinks.js
+// PURPOSE: Component module components/TeamLinks/TeamLinks.js
+// DEPENDS_ON: data.js, modules/utils.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
+// ============================================================================
+
 // File: components/TeamLinks/TeamLinks.js
 import { allTeams } from '../../data.js';
 import styles from './TeamLinks.module.css';
@@ -44,3 +54,21 @@ export function TeamLinksComponent() {
 export function initializeTeamLinksLogic() {
   // Add any interactive logic here later if you need (copy buttons, filters, etc.)
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: TeamLinksComponent, initializeTeamLinksLogic
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

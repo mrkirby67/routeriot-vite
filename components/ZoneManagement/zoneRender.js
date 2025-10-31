@@ -1,8 +1,13 @@
 // ============================================================================
 // FILE: components/ZoneManagement/zoneRender.js
-// PURPOSE: Pure rendering for the Zone Management table (no event listeners).
-// Depends only on Firestore reads and firebaseConfig for Static Maps.
+// PURPOSE: Component module components/ZoneManagement/zoneRender.js
+// DEPENDS_ON: modules/config.js, data.js, components/ZoneQuestions/ZoneQuestionsTypes.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+
 import styles from './ZoneManagement.module.css';
 import { db, firebaseConfig } from '../../modules/config.js';
 import {
@@ -227,3 +232,21 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
 
   console.log(`✅ Rendered ${zoneDocs.size} zones.`);
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: renderZones
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

@@ -1,7 +1,11 @@
 // ============================================================================
 // FILE: components/GameControls/GameControls.js
-// PURPOSE: Main control dashboard for starting, pausing, ending, and resetting games.
-// UPDATED: Integrated gameMaintenance.js (resetFullGame / clearChatsAndScores)
+// PURPOSE: Component module components/GameControls/GameControls.js
+// DEPENDS_ON: modules/config.js, data.js, modules/emailTeams.js, modules/gameTimer.js, modules/gameRulesManager.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
 
 import { db } from '../../modules/config.js';
@@ -357,3 +361,21 @@ export function initializeGameControlsLogic() {
     showAnimatedBanner('🧹 All Data Cleared!', '#c62828');
   });
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: GameControlsComponent, initializeGameControlsLogic
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

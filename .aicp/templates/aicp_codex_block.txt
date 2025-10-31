@@ -1,0 +1,11 @@
+=== CODEX UNIVERSAL BLOCK v1.0 ===
+INTENT: {{intent}}
+MODELS: ChatGPT5, Gemini2
+REQUIREMENTS:
+ - Non-destructive edits
+ - Maintain AICP header/footer
+TARGET_FILES:
+ - {{target_files}}
+NOTES:
+ - Keep code atomic and reversible
+=== END CODEX UNIVERSAL BLOCK ===

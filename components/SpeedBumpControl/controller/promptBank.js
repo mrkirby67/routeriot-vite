@@ -1,6 +1,13 @@
 // ============================================================================
-// PROMPT BANK – Firestore sync + local persistence
+// FILE: components/SpeedBumpControl/controller/promptBank.js
+// PURPOSE: Component module components/SpeedBumpControl/controller/promptBank.js
+// DEPENDS_ON: modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, modules/speedBumpChallenges.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+
 import { db } from '../../../modules/config.js';
 import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getDefaultPrompts, setSpeedBumpPromptBank } from '../../../modules/speedBumpChallenges.js';
@@ -32,3 +39,21 @@ export async function saveBankToFirestore(bank) {
 export function saveBankLocal(bank) {
   localStorage.setItem(BANK_STORAGE_KEY, JSON.stringify(bank));
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: loadBank, saveBankToFirestore, saveBankLocal
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

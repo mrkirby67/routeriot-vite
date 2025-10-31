@@ -8,8 +8,6 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-// services/gameStateService.js
-
 /**
  * @file Manages core game state logic, such as pausing, resuming, and resetting the game.
  * This service will interact with Firestore to update and listen for game state changes.
@@ -47,14 +45,14 @@ export async function getGameState() {
   return docSnap.exists() ? docSnap.data() : null;
 }
 
-// # === AI-CONTEXT-MAP ===
-// phase: tier1_services_injection
-// aicp_category: service
-// exports: pauseGame, resumeGame, getGameState
-// linked_files: []
-// status: stable
+// === AI-CONTEXT-MAP ===
 // ai_origin:
 //   primary: ChatGPT
 //   secondary: Gemini
+// aicp_category: service
+// exports: pauseGame, resumeGame, getGameState
+// linked_files: []
+// phase: tier1_services_injection
+// status: stable
 // sync_state: aligned
-// # === END ===
+// === END ===

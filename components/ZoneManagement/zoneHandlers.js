@@ -1,8 +1,13 @@
 // ============================================================================
 // FILE: components/ZoneManagement/zoneHandlers.js
-// PURPOSE: All event handlers for Zone Management (clicks, edits, add zone).
-// No rendering here — only DOM events + Firestore writes.
+// PURPOSE: Component module components/ZoneManagement/zoneHandlers.js
+// DEPENDS_ON: modules/config.js, modules/scoreboardManager.js, data.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+
 import { db } from '../../modules/config.js';
 import {
   collection,
@@ -214,3 +219,21 @@ export function attachZoneHandlers({ tableBody, renderZones, googleMapsApiLoaded
   const refreshBtn = document.getElementById('refresh-zones-btn');
   if (refreshBtn) refreshBtn.onclick = () => renderZones({ tableBody, googleMapsApiLoaded });
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: attachZoneHandlers
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

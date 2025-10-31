@@ -1,6 +1,13 @@
 // ============================================================================
-// DOM HANDLERS for Flat Tire Control UI
+// FILE: components/FlatTireControl/controller/domHandlers.js
+// PURPOSE: Component module components/FlatTireControl/controller/domHandlers.js
+// DEPENDS_ON: modules/utils.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+
 import { escapeHtml } from '../../../modules/utils.js';
 import styles from '../FlatTireControl.module.css';
 
@@ -140,3 +147,21 @@ function formatCountdown(remainingMs) {
   const seconds = Math.floor((safeMs % 60000) / 1000);
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: setupDomRefs, renderRows
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

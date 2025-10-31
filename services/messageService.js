@@ -8,8 +8,6 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-// services/messageService.js
-
 /**
  * @file Data layer for handling chat messages.
  * This service is responsible for sending and receiving messages via Firestore,
@@ -47,14 +45,14 @@ export function onNewMessage(callback) {
   });
 }
 
-// # === AI-CONTEXT-MAP ===
-// phase: tier1_services_injection
-// aicp_category: service
-// exports: sendMessage, onNewMessage
-// linked_files: []
-// status: stable
+// === AI-CONTEXT-MAP ===
 // ai_origin:
 //   primary: ChatGPT
 //   secondary: Gemini
+// aicp_category: service
+// exports: sendMessage, onNewMessage
+// linked_files: []
+// phase: tier1_services_injection
+// status: stable
 // sync_state: aligned
-// # === END ===
+// === END ===

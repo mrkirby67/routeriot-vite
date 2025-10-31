@@ -1,6 +1,11 @@
 // ============================================================================
-// FILE: components/Scoreboard/Scoreboard.js (SYNC + RESET SAFE + DEBOUNCED)
-// Purpose: Live scoreboard view (Control + Player) with cache safety + refresh
+// FILE: components/Scoreboard/Scoreboard.js
+// PURPOSE: Component module components/Scoreboard/Scoreboard.js
+// DEPENDS_ON: modules/config.js, modules/scoreboardManager.js, modules/zoneManager.js, modules/utils.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
 
 import { db } from '../../modules/config.js';
@@ -231,3 +236,21 @@ export function initializeScoreboardListener({ editable = true } = {}) {
       : 'Team Standings (Live)';
   });
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: ScoreboardComponent, initializeScoreboardListener
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

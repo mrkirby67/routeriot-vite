@@ -1,8 +1,13 @@
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestionsUI.js
-// PURPOSE: Control page accordion that lists Tow-Time checkpoints (zones)
-// Integrates with ZoneQuestionsEditor.js for editing individual checkpoint tasks.
+// PURPOSE: Component module components/ZoneQuestions/ZoneQuestionsUI.js
+// DEPENDS_ON: components/ZoneQuestions/ZoneQuestionsEditor.js, components/ZoneQuestions/ZoneQuestionsLogic.js, modules/config.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+
 import styles from './ZoneQuestions.module.css';
 import { renderZoneQuestionEditor, initializeZoneQuestionEditor } from './ZoneQuestionsEditor.js';
 import { renderAnswerSummary } from './ZoneQuestionsLogic.js';
@@ -165,3 +170,21 @@ async function loadZoneCheckpoints(zoneId) {
     cont.innerHTML = `<p style="color:red;">⚠️ Failed to load tasks: ${err.message}</p>`;
   }
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: ZoneQuestionsComponent, initializeZoneQuestionsUI
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

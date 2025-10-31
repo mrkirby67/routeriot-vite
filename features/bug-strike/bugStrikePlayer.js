@@ -8,8 +8,6 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-// features/bug-strike/bugStrikePlayer.js
-
 /**
  * @file Handles the player-side logic for Bug Strikes.
  * This will replace the logic in modules/playerBugStrike.js
@@ -23,14 +21,14 @@ export function initializeBugStrikePlayer() {
   // Listener for bug strike events, etc.
 }
 
-// # === AI-CONTEXT-MAP ===
-// phase: tier2_features_injection
-// aicp_category: feature
-// exports: initializeBugStrikePlayer
-// linked_files: []
-// status: stable
+// === AI-CONTEXT-MAP ===
 // ai_origin:
 //   primary: ChatGPT
 //   secondary: Gemini
+// aicp_category: feature
+// exports: initializeBugStrikePlayer
+// linked_files: []
+// phase: tier2_features_injection
+// status: stable
 // sync_state: aligned
-// # === END ===
+// === END ===

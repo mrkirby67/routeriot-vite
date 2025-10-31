@@ -8,8 +8,6 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-// features/chat/playerChat.state.js
-
 /**
  * @file Main controller for the player chat feature.
  * It manages state, listens for new messages, and updates the UI.
@@ -39,14 +37,14 @@ export function handleSendMessage(text) {
   }
 }
 
-// # === AI-CONTEXT-MAP ===
-// phase: tier2_features_injection
-// aicp_category: feature
-// exports: initializeChat, handleSendMessage
-// linked_files: []
-// status: stable
+// === AI-CONTEXT-MAP ===
 // ai_origin:
 //   primary: ChatGPT
 //   secondary: Gemini
+// aicp_category: feature
+// exports: initializeChat, handleSendMessage
+// linked_files: []
+// phase: tier2_features_injection
+// status: stable
 // sync_state: aligned
-// # === END ===
+// === END ===

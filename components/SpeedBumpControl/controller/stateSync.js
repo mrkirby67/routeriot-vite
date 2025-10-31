@@ -1,6 +1,13 @@
 // ============================================================================
-// STATE SYNC – racer registry + SpeedBump snapshots
+// FILE: components/SpeedBumpControl/controller/stateSync.js
+// PURPOSE: Component module components/SpeedBumpControl/controller/stateSync.js
+// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, modules/config.js, modules/speedBump/index.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../../../modules/config.js';
 import { subscribeSpeedBumps } from '../../../modules/speedBump/index.js';
@@ -29,3 +36,21 @@ export function syncBumps(controller) {
     }
   });
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: syncTeams, syncBumps
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

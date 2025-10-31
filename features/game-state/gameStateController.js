@@ -8,8 +8,6 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-// features/game-state/gameStateController.js
-
 /**
  * @file Handles UI interactions related to game state changes.
  * This controller connects UI elements (e.g., pause/resume buttons) to the gameStateService.
@@ -44,14 +42,14 @@ export async function handleResumeGame() {
   }
 }
 
-// # === AI-CONTEXT-MAP ===
-// phase: tier2_features_injection
-// aicp_category: feature
-// exports: handlePauseGame, handleResumeGame
-// linked_files: []
-// status: stable
+// === AI-CONTEXT-MAP ===
 // ai_origin:
 //   primary: ChatGPT
 //   secondary: Gemini
+// aicp_category: feature
+// exports: handlePauseGame, handleResumeGame
+// linked_files: []
+// phase: tier2_features_injection
+// status: stable
 // sync_state: aligned
-// # === END ===
+// === END ===

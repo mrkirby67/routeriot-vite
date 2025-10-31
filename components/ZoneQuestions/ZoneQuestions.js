@@ -1,7 +1,11 @@
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestions.js
-// PURPOSE: Entry point that ties together UI + Logic for zone questions.
-// Exports main component and initialization method for Control Page integration.
+// PURPOSE: Component module components/ZoneQuestions/ZoneQuestions.js
+// DEPENDS_ON: components/ZoneQuestions/ZoneQuestionsUI.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
 
 import { ZoneQuestionsComponent, initializeZoneQuestionsUI } from './ZoneQuestionsUI.js';
@@ -20,3 +24,21 @@ export async function initializeZoneQuestions() {
   await initializeZoneQuestionsUI();
   console.log('✅ ZoneQuestions module initialized.');
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: initializeZoneQuestions
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

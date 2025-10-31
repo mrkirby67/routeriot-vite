@@ -8,8 +8,6 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-// features/player-page/playerPageController.js
-
 /**
  * @file Controller for the main player page.
  * It orchestrates the initialization of different UI components and features
@@ -29,14 +27,14 @@ export function initializePlayerPage() {
   // Other initialization logic will go here.
 }
 
-// # === AI-CONTEXT-MAP ===
-// phase: tier2_features_injection
-// aicp_category: feature
-// exports: initializePlayerPage
-// linked_files: []
-// status: stable
+// === AI-CONTEXT-MAP ===
 // ai_origin:
 //   primary: ChatGPT
 //   secondary: Gemini
+// aicp_category: feature
+// exports: initializePlayerPage
+// linked_files: []
+// phase: tier2_features_injection
+// status: stable
 // sync_state: aligned
-// # === END ===
+// === END ===

@@ -8,8 +8,6 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-// services/firestoreRefs.js
-
 /**
  * @file Centralizes all Firestore database references for the application.
  * This module provides a single source of truth for database paths, making it easier
@@ -50,14 +48,14 @@ export const getTeamRef = (teamId) => doc(db, "teams", teamId);
 /** Reference to the 'zones' collection. */
 export const zonesCollectionRef = collection(db, "zones");
 
-// # === AI-CONTEXT-MAP ===
-// phase: tier1_services_injection
-// aicp_category: service
-// exports: refs, gameStateRef, teamsCollectionRef, getTeamRef, zonesCollectionRef
-// linked_files: []
-// status: stable
+// === AI-CONTEXT-MAP ===
 // ai_origin:
 //   primary: ChatGPT
 //   secondary: Gemini
+// aicp_category: service
+// exports: refs, gameStateRef, teamsCollectionRef, getTeamRef, zonesCollectionRef
+// linked_files: []
+// phase: tier1_services_injection
+// status: stable
 // sync_state: aligned
-// # === END ===
+// === END ===

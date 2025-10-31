@@ -8,8 +8,6 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-// services/teamService.js
-
 /**
  * @file Manages team-related data, such as fetching team information and player lists.
  */
@@ -26,14 +24,14 @@ export async function getAllTeams() {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-// # === AI-CONTEXT-MAP ===
-// phase: tier1_services_injection
-// aicp_category: service
-// exports: getAllTeams
-// linked_files: []
-// status: stable
+// === AI-CONTEXT-MAP ===
 // ai_origin:
 //   primary: ChatGPT
 //   secondary: Gemini
+// aicp_category: service
+// exports: getAllTeams
+// linked_files: []
+// phase: tier1_services_injection
+// status: stable
 // sync_state: aligned
-// # === END ===
+// === END ===

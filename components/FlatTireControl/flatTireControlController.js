@@ -1,6 +1,13 @@
 // ============================================================================
-// CENTRAL HUB: Flat Tire Control Controller
+// FILE: components/FlatTireControl/flatTireControlController.js
+// PURPOSE: Component module components/FlatTireControl/flatTireControlController.js
+// DEPENDS_ON: components/FlatTireControl/controller/domHandlers.js, components/FlatTireControl/controller/firestoreSync.js, components/FlatTireControl/controller/autoScheduler.js, modules/zonesMap.js, modules/googleMapsLoader.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+
 import { setupDomRefs, renderRows } from './controller/domHandlers.js';
 import { subscribeToRacers, applyConfig } from './controller/firestoreSync.js';
 import { startAutoScheduler, stopAutoScheduler } from './controller/autoScheduler.js';
@@ -471,3 +478,21 @@ function escapeSelector(value) {
   }
   return String(value).replace(/["]/g, '\\$&');
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: FlatTireControlController, createFlatTireControlController
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

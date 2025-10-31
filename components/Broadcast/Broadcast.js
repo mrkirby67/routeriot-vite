@@ -1,3 +1,13 @@
+// ============================================================================
+// FILE: components/Broadcast/Broadcast.js
+// PURPOSE: Component module components/Broadcast/Broadcast.js
+// DEPENDS_ON: modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
+// ============================================================================
+
 import { db } from '../../modules/config.js';
 import { onSnapshot, doc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './Broadcast.module.css';
@@ -53,3 +63,21 @@ export function initializeBroadcastLogic() {
         } catch (error) { console.error("Error sending broadcast:", error); }
     });
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: BroadcastComponent, initializeBroadcastLogic
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

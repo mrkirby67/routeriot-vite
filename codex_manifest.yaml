@@ -1,0 +1,15 @@
+# ROUTE RIOT AI INSTRUCTION MANIFEST
+version: 1.0
+modules:
+  chat:
+    service: services/messageService.js
+    controller: features/chat/playerChat.state.js
+    ui: components/ChatLog/ChatLog.js
+  surprises:
+    service: services/surpriseService.js
+    controller: features/surprises/surpriseController.js
+    ui: components/SurpriseSelector/SurpriseSelector.js
+ai_directives:
+  - "Use ESM imports only"
+  - "Do not modify Firebase config files"
+  - "All Firestore calls must live in services/"

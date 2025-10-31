@@ -1,6 +1,13 @@
 // ============================================================================
-// TEAM PROMPTS – mapping, shuffle, and persistence
+// FILE: components/SpeedBumpControl/controller/teamPrompts.js
+// PURPOSE: Component module components/SpeedBumpControl/controller/teamPrompts.js
+// DEPENDS_ON: modules/speedBumpChallenges.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+
 import { getRandomSpeedBumpPrompt, getSpeedBumpPromptBank } from '../../../modules/speedBumpChallenges.js';
 const PROMPTS_STORAGE_KEY = 'speedBumpPrompts';
 
@@ -36,3 +43,21 @@ export function reconcileWithBank(controller) {
     if (!bank.includes(p)) controller.promptByTeam.set(team, getRandomSpeedBumpPrompt());
   });
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: loadPrompts, savePrompts, ensurePrompt, shufflePrompt, reconcileWithBank
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

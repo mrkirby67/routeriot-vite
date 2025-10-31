@@ -1,0 +1,75 @@
+# =====================================================================
+# Route Riot — AICP Inject Configuration
+# Defines metadata injection tiers for ChatGPT VS and Gemini VS
+# =====================================================================
+
+aicp_project:
+  name: "Route Riot"
+  maintainer: "James Kirby"
+  description: "AICP dual-AI metadata system for Route Riot refactor"
+  version: 3.0
+  template_dir: ".aicp/templates/"
+  report_dir: "docs/"
+
+tiers:
+  # ---------------------------------------------------------------
+  tier1_services:
+    description: "Inject AICP headers/footers for core service layer"
+    target_folders:
+      - services/
+    header_template: .aicp/templates/aicp_header.txt
+    footer_template: .aicp/templates/aicp_footer.yaml
+    markers:
+      header_start: "// === AICP SERVICE HEADER ==="
+      header_end: "// === END AICP SERVICE HEADER ==="
+      footer_start: "=== AICP SERVICE FOOTER ==="
+      footer_end: "=== END AICP SERVICE FOOTER ==="
+    yaml_keys:
+      AICP_VERSION: 3.0
+      ai_role: "Data Layer"
+      export_scope: "features/*"
+      owner: "RouteRiot-AICP"
+      codex_phase: "tier1_services_injection"
+      review_status: "complete"
+
+  # ---------------------------------------------------------------
+  tier2_features:
+    description: "Inject AICP headers/footers for feature controllers"
+    target_folders:
+      - features/
+    header_template: .aicp/templates/aicp_header.txt
+    footer_template: .aicp/templates/aicp_footer.yaml
+    markers:
+      header_start: "// === AICP FEATURE HEADER ==="
+      header_end: "// === END AICP FEATURE HEADER ==="
+      footer_start: "=== AICP FEATURE FOOTER ==="
+      footer_end: "=== END AICP FEATURE FOOTER ==="
+    yaml_keys:
+      AICP_VERSION: 3.0
+      ai_role: "Logic Layer"
+      depends_on: "services/*"
+      export_scope: "components/*"
+      codex_phase: "tier2_features_injection"
+      owner: "RouteRiot-AICP"
+      review_status: "complete"
+
+  # ---------------------------------------------------------------
+  tier3_components:
+    description: "Inject AICP headers/footers for UI components"
+    target_folders:
+      - components/
+    header_template: .aicp/templates/aicp_header.txt
+    footer_template: .aicp/templates/aicp_footer.yaml
+    markers:
+      header_start: "// === AICP COMPONENT HEADER ==="
+      header_end: "// === END AICP COMPONENT HEADER ==="
+      footer_start: "=== AICP COMPONENT FOOTER ==="
+      footer_end: "=== END AICP COMPONENT FOOTER ==="
+    yaml_keys:
+      AICP_VERSION: 3.0
+      ai_role: "UI Layer"
+      ui_dependency: "features/*"
+      export_bridge: "services/*"
+      codex_phase: "tier3_components_injection"
+      owner: "RouteRiot-AICP"
+      review_status: "pending_alignment"

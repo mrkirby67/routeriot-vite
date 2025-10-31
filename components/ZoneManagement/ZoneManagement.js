@@ -1,8 +1,13 @@
 // ============================================================================
 // FILE: components/ZoneManagement/ZoneManagement.js
-// PURPOSE: Orchestrator – ties together UI, rendering, and handlers
-// Syncs zone edits & captures with teamStatus/{teamName} (lastKnownLocation + timestamp)
+// PURPOSE: Component module components/ZoneManagement/ZoneManagement.js
+// DEPENDS_ON: components/ZoneManagement/zoneUI.js, components/ZoneManagement/zoneRender.js, components/ZoneManagement/zoneHandlers.js, modules/config.js, data.js
+// USED_BY: none
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+
 import { ZoneManagementComponent } from './zoneUI.js';
 import { renderZones } from './zoneRender.js';
 import { attachZoneHandlers } from './zoneHandlers.js';
@@ -256,3 +261,21 @@ export async function initializeZoneManagementLogic(googleMapsApiLoaded) {
     stopCooldownTicker();
   };
 }
+
+// === AI-CONTEXT-MAP ===
+// aicp_category: component
+// ai_origin:
+//   primary: ChatGPT
+//   secondary: Gemini
+// ai_role: UI Layer
+// codex_phase: tier3_components_injection
+// export_bridge: services/*
+// exports: ZoneManagementComponent, initializeZoneManagementLogic
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier3_components_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: features/*
+// === END ===

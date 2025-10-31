@@ -1,0 +1,11 @@
+# === AI-CONTEXT-MAP ===
+phase: {{phase}}
+aicp_category: {{category}}
+exports: {{exports}}
+linked_files: {{linked_files}}
+status: {{status}}
+ai_origin:
+  primary: {{primary_ai}}
+  secondary: {{secondary_ai}}
+sync_state: {{sync_state}}
+# === END ===
