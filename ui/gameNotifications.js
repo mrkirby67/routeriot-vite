@@ -1,3 +1,15 @@
+// === AICP UI HEADER ===
+// ============================================================================
+// FILE: ui/gameNotifications.js
+// PURPOSE: Displays UI notifications and alerts to the user.
+// DEPENDS_ON: none
+// USED_BY: features/game-state/gameStateController.js
+// AUTHOR: James Kirby / Route Riot Project
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
+// ============================================================================
+// === END AICP UI HEADER ===
+
 // ui/gameNotifications.js
 
 /**
@@ -94,3 +106,19 @@ export function showInfo(message) {
   console.log(`INFO: ${message}`);
   alert(`INFO: ${message}`);
 }
+
+// === AICP UI FOOTER ===
+// ai_origin: ui/gameNotifications.js
+// ai_role: Presentation Layer
+// aicp_category: ui
+// aicp_version: 3.0
+// codex_phase: tier4_ui_injection
+// export_bridge: components/*
+// exports: showFlashMessage, showCountdownBanner, showSuccess, showError, showInfo
+// linked_files: []
+// owner: RouteRiot-AICP
+// phase: tier4_ui_injection
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// === END AICP UI FOOTER ===

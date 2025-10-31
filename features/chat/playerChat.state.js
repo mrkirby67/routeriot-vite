@@ -1,12 +1,14 @@
+// === AICP FEATURE HEADER ===
 // ============================================================================
 // FILE: features/chat/playerChat.state.js
 // PURPOSE: Main controller for the player chat feature.
-// DEPENDS_ON: ../../services/messageService.js, ../../components/ChatLog/ChatLog.js, ./playerChat.events.js
-// USED_BY: none
+// DEPENDS_ON: services/messageService.js, components/ChatLog/ChatLog.js, features/chat/playerChat.events.js
+// USED_BY: features/chat/playerChat.events.js, features/player-page/playerPageController.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
-// AICP_VERSION: 1.0
+// AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP FEATURE HEADER ===
 
 /**
  * @file Main controller for the player chat feature.
@@ -37,14 +39,19 @@ export function handleSendMessage(text) {
   }
 }
 
-// === AI-CONTEXT-MAP ===
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP FEATURE FOOTER ===
+// ai_origin: features/chat/playerChat.state.js
+// ai_role: Logic Layer
 // aicp_category: feature
+// aicp_version: 3.0
+// codex_phase: tier2_features_injection
+// depends_on: services/*
+// export_bridge: components/*
 // exports: initializeChat, handleSendMessage
 // linked_files: []
+// owner: RouteRiot-AICP
 // phase: tier2_features_injection
+// review_status: complete
 // status: stable
 // sync_state: aligned
-// === END ===
+// === END AICP FEATURE FOOTER ===

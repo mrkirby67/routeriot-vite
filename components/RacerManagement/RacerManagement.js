@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/RacerManagement/RacerManagement.js
-// PURPOSE: Component module components/RacerManagement/RacerManagement.js
-// DEPENDS_ON: modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// PURPOSE: === AI-CONTEXT-MAP ===
+// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { db } from '../../modules/config.js';
 import { onSnapshot, collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -64,12 +66,11 @@ export function initializeRacerManagementLogic() {
     });
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/RacerManagement/RacerManagement.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: RacerManagementComponent, initializeRacerManagementLogic
@@ -80,4 +81,4 @@ export function initializeRacerManagementLogic() {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

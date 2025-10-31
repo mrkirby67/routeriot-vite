@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestionsUI.js
-// PURPOSE: Component module components/ZoneQuestions/ZoneQuestionsUI.js
-// DEPENDS_ON: components/ZoneQuestions/ZoneQuestionsEditor.js, components/ZoneQuestions/ZoneQuestionsLogic.js, modules/config.js
-// USED_BY: none
+// PURPOSE: 🧱 Component (UI)
+// DEPENDS_ON: components/ZoneQuestions/ZoneQuestionsEditor.js, components/ZoneQuestions/ZoneQuestionsLogic.js, ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// USED_BY: components/ZoneQuestions/ZoneQuestions.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import styles from './ZoneQuestions.module.css';
 import { renderZoneQuestionEditor, initializeZoneQuestionEditor } from './ZoneQuestionsEditor.js';
@@ -171,12 +173,11 @@ async function loadZoneCheckpoints(zoneId) {
   }
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/ZoneQuestions/ZoneQuestionsUI.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: ZoneQuestionsComponent, initializeZoneQuestionsUI
@@ -187,4 +188,4 @@ async function loadZoneCheckpoints(zoneId) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

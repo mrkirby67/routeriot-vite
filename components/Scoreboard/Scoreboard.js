@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/Scoreboard/Scoreboard.js
-// PURPOSE: Component module components/Scoreboard/Scoreboard.js
-// DEPENDS_ON: modules/config.js, modules/scoreboardManager.js, modules/zoneManager.js, modules/utils.js
+// PURPOSE: SCOREBOARD COMPONENT (Unified Control + Player)
+// DEPENDS_ON: ../../modules/config.js, ../../modules/scoreboardManager.js, ../../modules/zoneManager.js, ../../modules/utils.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { db } from '../../modules/config.js';
 import { addPointsToTeam } from '../../modules/scoreboardManager.js';
@@ -237,12 +239,11 @@ export function initializeScoreboardListener({ editable = true } = {}) {
   });
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/Scoreboard/Scoreboard.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: ScoreboardComponent, initializeScoreboardListener
@@ -253,4 +254,4 @@ export function initializeScoreboardListener({ editable = true } = {}) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

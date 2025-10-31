@@ -1,12 +1,14 @@
+// === AICP FEATURE HEADER ===
 // ============================================================================
 // FILE: features/game-state/gameStateController.js
 // PURPOSE: Handles UI interactions related to game state changes.
-// DEPENDS_ON: ../../services/gameStateService.js, ../../ui/gameNotifications.js
+// DEPENDS_ON: services/gameStateService.js, ui/gameNotifications.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
-// AICP_VERSION: 1.0
+// AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP FEATURE HEADER ===
 
 /**
  * @file Handles UI interactions related to game state changes.
@@ -42,14 +44,19 @@ export async function handleResumeGame() {
   }
 }
 
-// === AI-CONTEXT-MAP ===
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP FEATURE FOOTER ===
+// ai_origin: features/game-state/gameStateController.js
+// ai_role: Logic Layer
 // aicp_category: feature
+// aicp_version: 3.0
+// codex_phase: tier2_features_injection
+// depends_on: services/*
+// export_bridge: components/*
 // exports: handlePauseGame, handleResumeGame
 // linked_files: []
+// owner: RouteRiot-AICP
 // phase: tier2_features_injection
+// review_status: complete
 // status: stable
 // sync_state: aligned
-// === END ===
+// === END AICP FEATURE FOOTER ===

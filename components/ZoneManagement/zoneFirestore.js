@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/ZoneManagement/zoneFirestore.js
-// PURPOSE: Component module components/ZoneManagement/zoneFirestore.js
-// DEPENDS_ON: modules/config.js, modules/zonesUtils.js, modules/scoreboardManager.js, modules/data.js
+// PURPOSE: 📣 GENERIC BROADCAST EVENT
+// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/zonesUtils.js, ../../modules/scoreboardManager.js, ../../modules/data.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { db } from '../../modules/config.js';
 import {
@@ -86,67 +88,15 @@ export async function broadcastWin(teamName, zoneName) {
     await setDoc(
       doc(db, "zones", zoneName),
       {
-        status: "Taken",
-        controllingTeam: cleanTeam,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
 
-    console.log(`🏁 ${cleanTeam} captured ${zoneName}. Scoreboard + zone synced.`);
-  } catch (err) {
-    console.error("❌ broadcastWin error:", err);
-  }
-}
-
-/* ---------------------------------------------------------------------------
- * 🗺️ UPDATE TEAM LOCATION
- * ------------------------------------------------------------------------ */
-/**
- * Updates the team's last known zone location in Firestore.
- * Triggers a brief UI flash for player feedback.
- * @param {string} teamName
- * @param {string} zoneName
- */
-export async function updateTeamLocation(teamName, zoneName) {
-  try {
-    const cleanTeam = allTeams.find(t => t.name === teamName)?.name || teamName;
-
-    if (!cleanTeam || !zoneName) {
-      console.warn("⚠️ updateTeamLocation called with missing parameters:", {
-        teamName,
-        zoneName,
-      });
-      return;
-    }
-
-    await setDoc(
-      doc(db, "teamStatus", cleanTeam),
-      {
-        lastKnownLocation: zoneName,
-        timestamp: serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    const now = new Date();
-    flashPlayerLocation(`📍 ${zoneName} (updated ${now.toLocaleTimeString()})`);
-
-    console.log(`📍 Location updated → ${cleanTeam}: ${zoneName}`);
-  } catch (err) {
-    console.error("❌ updateTeamLocation error:", err);
-  }
-}
-
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/ZoneManagement/zoneFirestore.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
-// exports: broadcastEvent, broadcastChallenge, broadcastWin, updateTeamLocation
+// exports: broadcastEvent, broadcastChallenge, broadcastWin
 // linked_files: []
 // owner: RouteRiot-AICP
 // phase: tier3_components_injection
@@ -154,4 +104,4 @@ export async function updateTeamLocation(teamName, zoneName) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

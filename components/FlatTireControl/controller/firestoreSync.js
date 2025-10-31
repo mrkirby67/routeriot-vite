@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/FlatTireControl/controller/firestoreSync.js
-// PURPOSE: Component module components/FlatTireControl/controller/firestoreSync.js
-// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, modules/config.js
-// USED_BY: none
+// PURPOSE: === AI-CONTEXT-MAP ===
+// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../../modules/config.js
+// USED_BY: features/flat-tire/flatTireController.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../../../modules/config.js';
@@ -46,12 +48,11 @@ export function applyConfig(controller, config) {
   controller.ignoreConfigInput = false;
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/FlatTireControl/controller/firestoreSync.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: subscribeToRacers, applyConfig
@@ -62,4 +63,4 @@ export function applyConfig(controller, config) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

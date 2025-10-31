@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/SpeedBumpControl.js
-// PURPOSE: Component module components/SpeedBumpControl/SpeedBumpControl.js
+// PURPOSE: === AI-CONTEXT-MAP ===
 // DEPENDS_ON: components/SpeedBumpControl/speedBumpControlController.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import styles from './SpeedBumpControl.module.css';
 import { createSpeedBumpControlController } from './speedBumpControlController.js';
@@ -80,12 +82,11 @@ export function teardownSpeedBumpControl(reason = 'manual') {
   controllerInstance = null;
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/SpeedBumpControl/SpeedBumpControl.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: SpeedBumpControlComponent, initializeSpeedBumpControl, teardownSpeedBumpControl
@@ -96,4 +97,4 @@ export function teardownSpeedBumpControl(reason = 'manual') {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

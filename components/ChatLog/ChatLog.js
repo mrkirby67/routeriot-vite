@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/ChatLog/ChatLog.js
 // PURPOSE: Renders the chat log UI.
 // DEPENDS_ON: none
-// USED_BY: none
+// USED_BY: features/chat/playerChat.state.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 // components/ChatLog/ChatLog.js
 
@@ -31,12 +33,11 @@ export function renderMessages(messages) {
   });
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/ChatLog/ChatLog.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: renderMessages
@@ -47,4 +48,4 @@ export function renderMessages(messages) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

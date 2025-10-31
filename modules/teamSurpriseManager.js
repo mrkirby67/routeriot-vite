@@ -1,6 +1,6 @@
 // === AICP MODULE HEADER ===
 // ============================================================================
-// FILE: modules/teamSurpriseManager.js
+// FILE: features/team-surprise/teamSurpriseController.js
 // PURPOSE: Re-export Team Surprise logic split across features, services, and UI.
 // DEPENDS_ON: ../features/team-surprise/teamSurpriseController.js, ../services/team-surprise/teamSurpriseService.js, ../ui/team-surprise/teamSurpriseUI.js
 // USED_BY: components/SurpriseSelector/SurpriseSelector.js, modules/chatManager/playerChat.ui.js, modules/controlActions.js
@@ -18,7 +18,7 @@ export { checkShieldBeforeAttack } from '../ui/team-surprise/teamSurpriseUI.js';
 
 // === AICP MODULE FOOTER ===
 // aicp_category: module
-// ai_origin: modules/teamSurpriseManager.js
+// ai_origin: features/team-surprise/teamSurpriseController.js
 // ai_role: Refactoring Stub
 // codex_phase: tier3_components_injection
 // export_bridge: features/team-surprise

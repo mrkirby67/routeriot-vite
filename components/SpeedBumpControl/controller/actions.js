@@ -1,14 +1,16 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/controller/actions.js
-// PURPOSE: Component module components/SpeedBumpControl/controller/actions.js
-// DEPENDS_ON: modules/teamSurpriseManager.js
-// USED_BY: none
+// PURPOSE: Called when control clicks “Send” beside a team row.
+// DEPENDS_ON: ../../../features/team-surprise/teamSurpriseController.js, ../../../modules/speedBump/interactions.js
+// USED_BY: components/SpeedBumpControl/speedBumpControlController.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
-import { attemptSurpriseAttack } from '../../../modules/teamSurpriseManager.js';
+import { attemptSurpriseAttack } from '../../../features/team-surprise/teamSurpriseController.js';
 import {
   assignSpeedBumpToTeam,
   clearSpeedBumpForTeam
@@ -76,12 +78,11 @@ export async function handleReleaseSpeedBump(victimTeam) {
   }
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/SpeedBumpControl/controller/actions.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: handleSendSpeedBump, handleReleaseSpeedBump
@@ -92,4 +93,4 @@ export async function handleReleaseSpeedBump(victimTeam) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestions.js
-// PURPOSE: Component module components/ZoneQuestions/ZoneQuestions.js
+// PURPOSE: 🔹 Export both together for streamlined imports
 // DEPENDS_ON: components/ZoneQuestions/ZoneQuestionsUI.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { ZoneQuestionsComponent, initializeZoneQuestionsUI } from './ZoneQuestionsUI.js';
 
@@ -25,15 +27,14 @@ export async function initializeZoneQuestions() {
   console.log('✅ ZoneQuestions module initialized.');
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/ZoneQuestions/ZoneQuestions.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
-// exports: initializeZoneQuestions
+// exports: initializeZoneQuestions, ZoneQuestionsComponent, initializeZoneQuestionsUI
 // linked_files: []
 // owner: RouteRiot-AICP
 // phase: tier3_components_injection
@@ -41,4 +42,4 @@ export async function initializeZoneQuestions() {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

@@ -1,0 +1,48 @@
+# =====================================================================
+# Route Riot — AICP Project Index
+# Universal metadata registry for ChatGPT VS / Gemini VS dual-AI workflow
+# =====================================================================
+
+version: 1.0
+project: "Route Riot"
+maintainer: "James Kirby"
+generated: 2025-10-30T22:45-04:00
+
+description: >
+  Central registry linking AICP v3 metadata, Codex-Refresh pipelines,
+  and documentation output. Enables cross-AI synchronization,
+  validation, and auto-repair for all project layers.
+
+layers:
+  services: 18
+  features: 22
+  components: 31
+  ui: 7
+
+validation:
+  last_pass: 2025-10-30T22:40
+  result: "100% aligned"
+  reports:
+    - docs/aicp_autorepair_report.md
+    - docs/aicp_validation_report.md
+    - docs/aicp_tier3_report.md
+    - docs/aicp_doc_export_report.md
+
+docs:
+  summary_path: docs/aicp_summary/
+  index_path: docs/aicp_summary/INDEX.md
+  latest_split: docs/aicp_split_report.md
+  latest_validation: docs/aicp_validation_report.md
+
+automation:
+  codex_refresh_linked: true
+  refresh_trigger: "npm run codex-refresh"
+  validation_trigger: "npm run aicp-validate"
+  autorepair_trigger: "npm run aicp-repair"
+  export_trigger: "npm run aicp-export"
+
+notes:
+  - All modules carry AICP v3 headers/footers with unified schemas.
+  - Codex-Refresh and AICP injectors now share config and templates.
+  - Future Codex tiers (5 +) should reference this index for layer counts
+    and schema versioning.

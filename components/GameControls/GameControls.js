@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/GameControls/GameControls.js
-// PURPOSE: Component module components/GameControls/GameControls.js
-// DEPENDS_ON: modules/config.js, data.js, modules/emailTeams.js, modules/gameTimer.js, modules/gameRulesManager.js
+// PURPOSE: 🎉 Animated Broadcast Banner
+// DEPENDS_ON: ../../modules/config.js, ../../data.js, ../../modules/emailTeams.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/gameTimer.js, ../../modules/gameStateManager.js, ../../modules/gameMaintenance.js, ../../modules/gameRulesManager.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { db } from '../../modules/config.js';
 import { allTeams } from '../../data.js';
@@ -312,62 +314,13 @@ export function initializeGameControlsLogic() {
     clearCountdownTimer();
     await announceTopThree();
   });
-
-  // 💬 CLEAR CHAT ONLY
-  clearChatBtn.addEventListener('click', async () => {
-    if (confirm('Clear all chat messages?')) {
-      await clearChatsAndScores(); // uses maintenance.js function
-      await addDoc(collection(db, 'communications'), {
-        teamName: 'Game Master',
-        sender: 'Game Master',
-        senderDisplay: 'Game Master',
-        message: '💬 All chats cleared by Control.',
-        isBroadcast: true,
-        timestamp: serverTimestamp()
-      });
-      showAnimatedBanner('💬 Chats Cleared!', '#2196f3');
-    }
-  });
-
-  // 🔄 RESET GAME (full reset)
-  resetBtn.addEventListener('click', async () => {
-    const confirmReset = confirm(
-      '⚠️  This will clear all game data, scores, zones, and statuses.\nContinue?'
-    );
-    if (!confirmReset) return;
-    resetBtn.disabled = true;
-    try {
-      await clearAllCollectionsAndReset();
-      showAnimatedBanner('🔄 Game Reset', '#ffa000');
-    } finally {
-      resetBtn.disabled = false;
-    }
-  });
-
-  // 🧹 CLEAR ALL (chat + scores)
-  clearScoresBtn.addEventListener('click', async () => {
-    if (!confirm('⚠️ Clear ALL chat, scores, zones, and team status?')) return;
-    await clearChatsAndScores();
-    const teamSnap = await getDocs(collection(db, 'teamStatus'));
-    for (const t of teamSnap.docs) await deleteDoc(t.ref);
-    await addDoc(collection(db, 'communications'), {
-      teamName: 'Game Master',
-      sender: 'Game Master',
-      senderDisplay: 'Game Master',
-      message: '🧹 All chat, scores, zones & team data cleared by Control.',
-      isBroadcast: true,
-      timestamp: serverTimestamp()
-    });
-    showAnimatedBanner('🧹 All Data Cleared!', '#c62828');
-  });
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/GameControls/GameControls.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: GameControlsComponent, initializeGameControlsLogic
@@ -378,4 +331,4 @@ export function initializeGameControlsLogic() {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/controller/stateSync.js
-// PURPOSE: Component module components/SpeedBumpControl/controller/stateSync.js
-// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, modules/config.js, modules/speedBump/index.js
+// PURPOSE: === AI-CONTEXT-MAP ===
+// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../../modules/config.js, ../../../modules/speedBump/index.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../../../modules/config.js';
@@ -37,12 +39,11 @@ export function syncBumps(controller) {
   });
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/SpeedBumpControl/controller/stateSync.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: syncTeams, syncBumps
@@ -53,4 +54,4 @@ export function syncBumps(controller) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/OpponentList/OpponentList.js
 // PURPOSE: Renders and manages the list of opponent players.
 // DEPENDS_ON: services/teamService.js
-// USED_BY: none
+// USED_BY: features/player-page/playerPageController.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 // components/OpponentList/OpponentList.js
 
@@ -36,12 +38,11 @@ export async function initializeOpponentList() {
   }
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/OpponentList/OpponentList.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: initializeOpponentList
@@ -52,4 +53,4 @@ export async function initializeOpponentList() {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

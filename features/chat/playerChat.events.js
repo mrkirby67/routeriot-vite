@@ -1,12 +1,14 @@
+// === AICP FEATURE HEADER ===
 // ============================================================================
 // FILE: features/chat/playerChat.events.js
 // PURPOSE: Bridges UI events (like sending a message) to the chat state controller.
-// DEPENDS_ON: ./playerChat.state.js
-// USED_BY: none
+// DEPENDS_ON: features/chat/playerChat.state.js
+// USED_BY: features/chat/playerChat.state.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
-// AICP_VERSION: 1.0
+// AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP FEATURE HEADER ===
 
 /**
  * @file Bridges UI events (like sending a message) to the chat state controller.
@@ -29,14 +31,19 @@ export function attachChatEventListeners() {
   }
 }
 
-// === AI-CONTEXT-MAP ===
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP FEATURE FOOTER ===
+// ai_origin: features/chat/playerChat.events.js
+// ai_role: Logic Layer
 // aicp_category: feature
+// aicp_version: 3.0
+// codex_phase: tier2_features_injection
+// depends_on: services/*
+// export_bridge: components/*
 // exports: attachChatEventListeners
 // linked_files: []
+// owner: RouteRiot-AICP
 // phase: tier2_features_injection
+// review_status: complete
 // status: stable
 // sync_state: aligned
-// === END ===
+// === END AICP FEATURE FOOTER ===

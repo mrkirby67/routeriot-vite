@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/FlatTireControl/controller/autoScheduler.js
-// PURPOSE: Component module components/FlatTireControl/controller/autoScheduler.js
-// DEPENDS_ON: modules/flatTireManager.js
-// USED_BY: none
+// PURPOSE: === AI-CONTEXT-MAP ===
+// DEPENDS_ON: ../../../modules/flatTireManager.js
+// USED_BY: features/flat-tire/flatTireController.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { assignFlatTireTeam } from '../../../modules/flatTireManager.js';
 
@@ -47,21 +49,15 @@ function runAutoCycle(controller) {
     status: 'auto-assigned'
   }).catch(err => console.warn('Auto assign fail', err));
 }
-
 // === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
-// ai_role: UI Layer
-// codex_phase: tier3_components_injection
-// export_bridge: services/*
-// exports: startAutoScheduler, stopAutoScheduler
-// linked_files: []
-// owner: RouteRiot-AICP
-// phase: tier3_components_injection
-// review_status: pending_alignment
-// status: stable
-// sync_state: aligned
-// ui_dependency: features/*
+phase: {{phase}}
+aicp_category: {{category}}
+exports: {{exports}}
+linked_files: {{linked_files}}
+status: {{status}}
+ai_origin:
+  primary: {{primary_ai}}
+  secondary: {{secondary_ai}}
+sync_state: {{sync_state}}
 // === END ===
+

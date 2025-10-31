@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SurpriseSelector/SurpriseSelector.js
-// PURPOSE: Component module components/SurpriseSelector/SurpriseSelector.js
-// DEPENDS_ON: data.js, modules/utils.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, modules/config.js
+// PURPOSE: export async function applyToAllTeams(selectedType, newCount = 0) {
+// DEPENDS_ON: ../../data.js, ../../features/team-surprise/teamSurpriseController.js, ../../modules/utils.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/config.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import styles from './SurpriseSelector.module.css';
 import { allTeams } from '../../data.js';
@@ -16,7 +18,7 @@ import {
   decrement,
   SurpriseTypes,
   subscribeAllCooldowns, // New
-} from '../../modules/teamSurpriseManager.js';
+} from '../../features/team-surprise/teamSurpriseController.js';
 import { escapeHtml } from '../../modules/utils.js';
 import { getDocs, collection, writeBatch, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../../modules/config.js';
@@ -325,12 +327,11 @@ function normalizeCount(value) {
   return Number.isFinite(num) && num >= 0 ? num : 0;
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/SurpriseSelector/SurpriseSelector.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: applyToAllTeams, SurpriseSelectorComponent, initializeSurpriseSelector, teardownSurpriseSelector
@@ -341,4 +342,4 @@ function normalizeCount(value) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/controller/teamPrompts.js
-// PURPOSE: Component module components/SpeedBumpControl/controller/teamPrompts.js
-// DEPENDS_ON: modules/speedBumpChallenges.js
-// USED_BY: none
+// PURPOSE: === AI-CONTEXT-MAP ===
+// DEPENDS_ON: ../../../modules/speedBumpChallenges.js
+// USED_BY: components/SpeedBumpControl/speedBumpControlController.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { getRandomSpeedBumpPrompt, getSpeedBumpPromptBank } from '../../../modules/speedBumpChallenges.js';
 const PROMPTS_STORAGE_KEY = 'speedBumpPrompts';
@@ -44,12 +46,11 @@ export function reconcileWithBank(controller) {
   });
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/SpeedBumpControl/controller/teamPrompts.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: loadPrompts, savePrompts, ensurePrompt, shufflePrompt, reconcileWithBank
@@ -60,4 +61,4 @@ export function reconcileWithBank(controller) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

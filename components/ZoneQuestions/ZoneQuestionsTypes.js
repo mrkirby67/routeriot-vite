@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestionsTypes.js
-// PURPOSE: Component module components/ZoneQuestions/ZoneQuestionsTypes.js
+// PURPOSE: 🔹 All supported question types
 // DEPENDS_ON: none
-// USED_BY: none
+// USED_BY: components/ZoneManagement/zoneRender.js, components/ZoneQuestions/ZoneQuestionsEditor.js, components/ZoneQuestions/ZoneQuestionsLogic.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 // 🔹 All supported question types
 export const allowedQuestionTypes = [
@@ -85,15 +87,14 @@ export function validateQuestionType(q) {
   return true;
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/ZoneQuestions/ZoneQuestionsTypes.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
-// exports: allowedQuestionTypes, booleanSets, defaultTolerance, minChoices, questionTypeLabels, validateQuestionType
+// exports: validateQuestionType, allowedQuestionTypes, booleanSets, defaultTolerance, minChoices, questionTypeLabels
 // linked_files: []
 // owner: RouteRiot-AICP
 // phase: tier3_components_injection
@@ -101,4 +102,4 @@ export function validateQuestionType(q) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

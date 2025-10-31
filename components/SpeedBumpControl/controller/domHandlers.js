@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/controller/domHandlers.js
-// PURPOSE: Component module components/SpeedBumpControl/controller/domHandlers.js
-// DEPENDS_ON: modules/utils.js
-// USED_BY: none
+// PURPOSE: Auto-generated metadata for domHandlers
+// DEPENDS_ON: ../../../modules/utils.js, ../../../modules/speedBump/index.js
+// USED_BY: components/SpeedBumpControl/speedBumpControlController.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import styles from '../SpeedBumpControl.module.css';
 import { escapeHtml } from '../../../modules/utils.js';
@@ -148,12 +150,11 @@ export function updateRow(ctrl, team) {
   }
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/SpeedBumpControl/controller/domHandlers.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: setupDomRefs, wireButtons, renderTeamRows, updateRow
@@ -164,4 +165,4 @@ export function updateRow(ctrl, team) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

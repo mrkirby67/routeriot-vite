@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestionsLogic.js
-// PURPOSE: Component module components/ZoneQuestions/ZoneQuestionsLogic.js
+// PURPOSE: ✅ Validate structure before saving a question
 // DEPENDS_ON: components/ZoneQuestions/ZoneQuestionsTypes.js
-// USED_BY: none
+// USED_BY: components/ZoneQuestions/ZoneQuestionsEditor.js, components/ZoneQuestions/ZoneQuestionsUI.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { allowedQuestionTypes, booleanSets } from './ZoneQuestionsTypes.js';
 
@@ -113,12 +115,11 @@ export function renderAnswerSummary(q) {
   }
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/ZoneQuestions/ZoneQuestionsLogic.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: validateQuestionBeforeSave, parseCsv, renderAnswerSummary
@@ -129,4 +130,4 @@ export function renderAnswerSummary(q) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

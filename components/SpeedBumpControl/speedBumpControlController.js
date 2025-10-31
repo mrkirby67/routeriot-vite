@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/speedBumpControlController.js
-// PURPOSE: Component module components/SpeedBumpControl/speedBumpControlController.js
-// DEPENDS_ON: modules/speedBumpChallenges.js
-// USED_BY: none
+// PURPOSE: 🔁 NEW: propagate bank changes to the shared prompt pool immediately
+// DEPENDS_ON: components/SpeedBumpControl/controller/domHandlers.js, components/SpeedBumpControl/controller/promptBank.js, components/SpeedBumpControl/controller/teamPrompts.js, components/SpeedBumpControl/controller/actions.js, ../../modules/speedBumpChallenges.js
+// USED_BY: components/SpeedBumpControl/SpeedBumpControl.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import styles from './SpeedBumpControl.module.css';
 import {
@@ -319,15 +321,14 @@ export function createSpeedBumpControlController() {
   return new SpeedBumpControlController();
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/SpeedBumpControl/speedBumpControlController.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
-// exports: SpeedBumpControlController, createSpeedBumpControlController
+// exports: createSpeedBumpControlController, SpeedBumpControlController
 // linked_files: []
 // owner: RouteRiot-AICP
 // phase: tier3_components_injection
@@ -335,4 +336,4 @@ export function createSpeedBumpControlController() {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

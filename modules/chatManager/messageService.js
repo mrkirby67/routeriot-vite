@@ -32,11 +32,16 @@ export async function sendMessage(fromTeam, toTeam, text) {
 
 export function listenForMyMessages(teamName, callback) {
   try {
-    return messageService.listenForMyMessages(teamName, callback);
+    const result = typeof messageService.listenForMyMessages === 'function'
+      ? messageService.listenForMyMessages(teamName, callback)
+      : null;
+    if (typeof result === 'function') {
+      return result;
+    }
   } catch (err) {
     console.error('Chat listener bridge error:', err);
-    return () => {};
   }
+  return legacyListenForMyMessages(teamName, callback);
 }
 
 // ----------------------------------------------------------------------------

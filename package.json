@@ -1,16 +1,47 @@
 {
   "name": "routeriot-vite",
   "private": true,
-  "version": "0.0.0",
+  "version": "3.0.0",
   "type": "module",
+  "description": "Route Riot — AICP-integrated Vite build with dual-AI Codex pipeline.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "npm run build && firebase deploy",
-    "go": "[ -d .git ] || { echo '❌ Not in a Git repo!'; exit 1; }; npm run deploy && git add -A && git commit -m \"🔄 Auto-sync on $(date '+%Y-%m-%d %H:%M:%S')\" || echo '⚠️ No changes to commit' && git push origin main && echo '✅ Firebase + GitHub Sync Complete 🚀'"
+
+    "aicp-health": "node tools/aicp_file_health.js",
+    "aicp-audit": "node tools/aicp_redundancy_audit.js",
+    "aicp-validate": "node tools/aicp_validate.js",
+    "aicp-repair": "node tools/aicp_validate.js --fix",
+    "codex-repair": "node tools/codex_repair_pass_v3.js",
+    "aicp-autofix": "node tools/aicp_import_autofix.js",
+    "aicp-docs": "node tools/aicp_doc_exporter.js",
+    "aicp-export": "node tools/aicp_doc_export.js",
+
+    "codex-refresh": "node tools/codex_refresh.js && npm run aicp-validate -- --fix",
+    "codex-refresh:export": "node tools/codex_refresh.js --export",
+
+    "aicp-all": "npm run codex-refresh && npm run aicp-docs",
+
+    "go": "[ -d .git ] || { echo '❌ Not in a Git repo!'; exit 1; }; npm run aicp-all && npm run deploy && git add -A && git commit -m \"🔄 Auto-sync on $(date '+%Y-%m-%d %H:%M:%S')\" || echo '⚠️ No changes to commit' && git push origin main && echo '✅ Firebase + GitHub Sync Complete 🚀'"
   },
   "devDependencies": {
-    "vite": "^5.3.1"
-  }
+    "vite": "^5.3.1",
+    "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "route-riot",
+    "vite",
+    "firebase",
+    "aicp",
+    "codex-refresh",
+    "dual-ai",
+    "automation"
+  ],
+  "author": "James Kirby",
+  "license": "UNLICENSED"
 }

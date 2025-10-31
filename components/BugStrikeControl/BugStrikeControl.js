@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/BugStrikeControl/BugStrikeControl.js
-// PURPOSE: Component module components/BugStrikeControl/BugStrikeControl.js
-// DEPENDS_ON: modules/config.js, modules/teamSurpriseManager.js, data.js
+// PURPOSE: 🧱 COMPONENT MARKUP
+// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../features/team-surprise/teamSurpriseController.js, ../../data.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import { db } from '../../modules/config.js';
 import {
@@ -19,7 +21,7 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { isTeamAttackable } from '../../modules/teamSurpriseManager.js';
+import { isTeamAttackable } from '../../features/team-surprise/teamSurpriseController.js';
 import { allTeams } from '../../data.js';
 import styles from './BugStrikeControl.module.css';
 
@@ -373,12 +375,11 @@ function formatDuration(seconds) {
   return `${mins}m ${secs}s`;
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/BugStrikeControl/BugStrikeControl.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: BugStrikeControlComponent, initializeBugStrikeControl
@@ -389,4 +390,4 @@ function formatDuration(seconds) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

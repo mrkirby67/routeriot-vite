@@ -1,12 +1,14 @@
+// === AICP SERVICE HEADER ===
 // ============================================================================
 // FILE: services/firestoreRefs.js
 // PURPOSE: Centralizes all Firestore database references for the application.
-// DEPENDS_ON: firebase/firestore, ../modules/config.js, ../config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
-// USED_BY: none
+// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../modules/config.js
+// USED_BY: services/gameStateService.js, services/teamService.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
-// AICP_VERSION: 1.0
+// AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP SERVICE HEADER ===
 
 /**
  * @file Centralizes all Firestore database references for the application.
@@ -14,12 +16,8 @@
  * to manage and update references.
  */
 
-import { doc, collection } from "firebase/firestore";
+import { doc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../modules/config.js";
-
-// --- Firestore Reference Map ---
-import { db } from '../config.js';
-import { collection, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /** Centralized Firestore reference helpers. */
 export const refs = {
@@ -48,14 +46,18 @@ export const getTeamRef = (teamId) => doc(db, "teams", teamId);
 /** Reference to the 'zones' collection. */
 export const zonesCollectionRef = collection(db, "zones");
 
-// === AI-CONTEXT-MAP ===
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP SERVICE FOOTER ===
+// ai_origin: services/firestoreRefs.js
+// ai_role: Data Layer
 // aicp_category: service
+// aicp_version: 3.0
+// codex_phase: tier1_services_injection
+// export_bridge: features/*
 // exports: refs, gameStateRef, teamsCollectionRef, getTeamRef, zonesCollectionRef
 // linked_files: []
+// owner: RouteRiot-AICP
 // phase: tier1_services_injection
+// review_status: complete
 // status: stable
 // sync_state: aligned
-// === END ===
+// === END AICP SERVICE FOOTER ===

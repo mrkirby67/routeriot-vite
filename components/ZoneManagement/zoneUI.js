@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/ZoneManagement/zoneUI.js
-// PURPOSE: Component module components/ZoneManagement/zoneUI.js
+// PURPOSE: === AI-CONTEXT-MAP ===
 // DEPENDS_ON: none
-// USED_BY: none
+// USED_BY: components/ZoneManagement/ZoneManagement.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import styles from './ZoneManagement.module.css';
 
@@ -83,12 +85,11 @@ export function ZoneManagementComponent() {
   `;
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/ZoneManagement/zoneUI.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: ZoneManagementComponent
@@ -99,4 +100,4 @@ export function ZoneManagementComponent() {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

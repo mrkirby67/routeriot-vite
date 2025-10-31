@@ -1,18 +1,20 @@
+// === AICP SERVICE HEADER ===
 // ============================================================================
 // FILE: services/teamService.js
 // PURPOSE: Manages team-related data, such as fetching team information and player lists.
-// DEPENDS_ON: firebase/firestore, ./firestoreRefs.js
-// USED_BY: none
+// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, services/firestoreRefs.js
+// USED_BY: components/OpponentList/OpponentList.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
-// AICP_VERSION: 1.0
+// AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP SERVICE HEADER ===
 
 /**
  * @file Manages team-related data, such as fetching team information and player lists.
  */
 
-import { getDocs } from "firebase/firestore";
+import { getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { teamsCollectionRef } from "./firestoreRefs.js";
 
 /**
@@ -24,14 +26,18 @@ export async function getAllTeams() {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-// === AI-CONTEXT-MAP ===
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP SERVICE FOOTER ===
+// ai_origin: services/teamService.js
+// ai_role: Data Layer
 // aicp_category: service
+// aicp_version: 3.0
+// codex_phase: tier1_services_injection
+// export_bridge: features/*
 // exports: getAllTeams
 // linked_files: []
+// owner: RouteRiot-AICP
 // phase: tier1_services_injection
+// review_status: complete
 // status: stable
 // sync_state: aligned
-// === END ===
+// === END AICP SERVICE FOOTER ===

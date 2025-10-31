@@ -1,12 +1,14 @@
+// === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestionsEditor.js
-// PURPOSE: Component module components/ZoneQuestions/ZoneQuestionsEditor.js
-// DEPENDS_ON: modules/config.js, data.js, components/ZoneQuestions/ZoneQuestionsLogic.js, components/ZoneQuestions/ZoneQuestionsTypes.js
-// USED_BY: none
+// PURPOSE: 🧱 Render Form
+// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../data.js, components/ZoneQuestions/ZoneQuestionsLogic.js, components/ZoneQuestions/ZoneQuestionsTypes.js
+// USED_BY: components/ZoneQuestions/ZoneQuestionsUI.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP COMPONENT HEADER ===
 
 import styles from './ZoneQuestions.module.css';
 import { db } from '../../modules/config.js';
@@ -265,12 +267,11 @@ function loadIntoForm(els, d) {
   els.type.dispatchEvent(new Event('change')); // refresh dynamic fields
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: component
-// ai_origin:
-//   primary: ChatGPT
-//   secondary: Gemini
+// === AICP COMPONENT FOOTER ===
+// ai_origin: components/ZoneQuestions/ZoneQuestionsEditor.js
 // ai_role: UI Layer
+// aicp_category: component
+// aicp_version: 3.0
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: renderZoneQuestionEditor, initializeZoneQuestionEditor
@@ -281,4 +282,4 @@ function loadIntoForm(els, d) {
 // status: stable
 // sync_state: aligned
 // ui_dependency: features/*
-// === END ===
+// === END AICP COMPONENT FOOTER ===

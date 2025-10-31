@@ -3,7 +3,7 @@
 // FILE: features/team-surprise/teamSurpriseController.js
 // PURPOSE: Orchestrates Team Surprise actions across UI, events, and services.
 // DEPENDS_ON: ./teamSurpriseTypes.js, ./teamSurpriseEvents.js, ../../services/team-surprise/teamSurpriseService.js, ../../ui/team-surprise/teamSurpriseUI.js
-// USED_BY: modules/teamSurpriseManager.js, components/TeamSurpriseManager/TeamSurpriseManager.js
+// USED_BY: features/team-surprise/teamSurpriseController.js, components/TeamSurpriseManager/TeamSurpriseManager.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
 // AICP_VERSION: 3.0
@@ -172,6 +172,8 @@ export {
 };
 
 export { checkShieldBeforeAttack };
+
+export const isTeamOnCooldown = isOnCooldown;
 
 // === AICP FEATURE FOOTER ===
 // aicp_category: feature
