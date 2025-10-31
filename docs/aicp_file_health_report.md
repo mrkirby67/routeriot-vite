@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-10-31T03:50:56.245Z
+# AICP File Health Report — 2025-10-31T04:18:48.940Z
 Files scanned: 118
 
 | File | Lines | Size (KB) | Complexity | Comment % |
@@ -29,6 +29,7 @@ Files scanned: 118
 | modules/flatTireManager.js | 234 | 8.3 | 40 | 2% |
 | features/flat-tire/flatTireController.js | 221 | 8.1 | 41 | 12% |
 | modules/playerUI/core.js | 219 | 7.5 | 54 | 3% |
+| features/team-surprise/teamSurpriseController.js | 212 | 6.4 | 17 | 14% |
 | modules/chatManager/playerChat.surprises.js | 211 | 7.3 | 33 | 2% |
 | modules/scoreboardManager.js | 204 | 6.8 | 27 | 5% |
 | modules/bugStrikeManager.js | 200 | 6.5 | 16 | 16% |
@@ -36,7 +37,6 @@ Files scanned: 118
 | modules/controlUI.js | 198 | 6.8 | 27 | 6% |
 | ui/flat-tire/flatTireUI.js | 198 | 8.1 | 38 | 13% |
 | modules/gameUI.js | 195 | 6.3 | 29 | 12% |
-| features/team-surprise/teamSurpriseController.js | 192 | 5.8 | 12 | 14% |
 | components/ZoneQuestions/ZoneQuestionsUI.js | 192 | 7.0 | 21 | 21% |
 | modules/zonesUtils.js | 186 | 5.9 | 42 | 3% |
 | modules/chatManager/playerChat.state.js | 184 | 5.8 | 31 | 2% |
@@ -64,10 +64,10 @@ Files scanned: 118
 | modules/speedBumpPlayer.js | 98 | 3.1 | 22 | 4% |
 | components/SpeedBumpControl/controller/actions.js | 97 | 3.1 | 7 | 28% |
 | modules/chatManager/controlFeed.js | 91 | 3.6 | 13 | 4% |
+| services/messageService.js | 90 | 2.9 | 14 | 33% |
 | ui/team-surprise/teamSurpriseUI.js | 90 | 3.0 | 13 | 30% |
 | modules/emailTeams.js | 88 | 2.9 | 15 | 9% |
 | modules/zonesFirestore.js | 87 | 3.2 | 13 | 16% |
-| services/messageService.js | 87 | 2.7 | 14 | 30% |
 | components/Broadcast/Broadcast.js | 85 | 3.3 | 11 | 32% |
 | components/RacerManagement/RacerManagement.js | 85 | 3.4 | 9 | 32% |
 | modules/flatTire_fixGPS.js | 80 | 2.4 | 11 | 6% |
@@ -81,8 +81,8 @@ Files scanned: 118
 | modules/speedBump/core.js | 65 | 2.0 | 9 | 5% |
 | components/SpeedBumpControl/controller/teamPrompts.js | 65 | 2.2 | 11 | 42% |
 | services/firestoreRefs.js | 64 | 2.5 | 12 | 41% |
-| components/FlatTireControl/controller/autoScheduler.js | 64 | 2.2 | 11 | 20% |
 | features/game-state/gameStateController.js | 63 | 1.9 | 4 | 43% |
+| components/FlatTireControl/controller/autoScheduler.js | 63 | 2.2 | 11 | 35% |
 | modules/config.js | 62 | 2.5 | 2 | 26% |
 | modules/chatManager/playerChat.utils.js | 61 | 1.7 | 14 | 7% |
 | components/SpeedBumpControl/controller/promptBank.js | 61 | 2.2 | 8 | 44% |
@@ -109,7 +109,7 @@ Files scanned: 118
 | features/speed-bump/speedBumpPlayer.js | 42 | 1.2 | 5 | 67% |
 | modules/chatManager/registry.js | 40 | 1.4 | 16 | 10% |
 | features/team-surprise/teamSurpriseTypes.js | 40 | 1.4 | 1 | 68% |
-| modules/teamSurpriseManager.js | 34 | 1.7 | 0 | 76% |
+| modules/teamSurpriseManager.js | 33 | 1.7 | 0 | 79% |
 | modules/playerUI/autoInit.js | 32 | 1.0 | 6 | 13% |
 | modules/chatManager/utils.js | 31 | 1.1 | 5 | 13% |
 | features/flat-tire/flatTireTypes.js | 31 | 1.0 | 1 | 87% |

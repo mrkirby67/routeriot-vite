@@ -31,6 +31,7 @@
  - components/SurpriseSelector/SurpriseSelector.module.css
  - components/TeamLinks/TeamLinks.js
  - components/TeamLinks/TeamLinks.module.css
+ - components/TeamSurpriseManager/TeamSurpriseManager.js
  - components/ZoneManagement/ZoneManagement.js
  - components/ZoneManagement/ZoneManagement.module.css
  - components/ZoneManagement/zoneFirestore.js

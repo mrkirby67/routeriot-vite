@@ -12,7 +12,6 @@
 
 export * from '../features/team-surprise/teamSurpriseController.js';
 export * from '../services/team-surprise/teamSurpriseService.js';
-export * from '../features/team-surprise/teamSurpriseEvents.js';
 export * from '../features/team-surprise/teamSurpriseTypes.js';
 export { checkShieldBeforeAttack } from '../ui/team-surprise/teamSurpriseUI.js';
 

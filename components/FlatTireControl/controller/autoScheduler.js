@@ -50,14 +50,13 @@ function runAutoCycle(controller) {
   }).catch(err => console.warn('Auto assign fail', err));
 }
 // === AI-CONTEXT-MAP ===
-phase: {{phase}}
-aicp_category: {{category}}
-exports: {{exports}}
-linked_files: {{linked_files}}
-status: {{status}}
-ai_origin:
-  primary: {{primary_ai}}
-  secondary: {{secondary_ai}}
-sync_state: {{sync_state}}
+// phase: [dynamic]
+// aicp_category: [dynamic]
+// exports: [dynamic]
+// linked_files: [dynamic]
+// status: [dynamic]
+// ai_origin:
+//   primary: [dynamic]
+//   secondary: [dynamic]
+// sync_state: [dynamic]
 // === END ===
-

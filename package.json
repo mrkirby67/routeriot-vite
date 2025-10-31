@@ -8,27 +8,28 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "prebuild": "npm run aicp-integrity",
     "deploy": "npm run build && firebase deploy",
-
     "aicp-health": "node tools/aicp_file_health.js",
     "aicp-audit": "node tools/aicp_redundancy_audit.js",
     "aicp-validate": "node tools/aicp_validate.js",
     "aicp-repair": "node tools/aicp_validate.js --fix",
+    "aicp-integrity": "node tools/aicp_integrity_check.js",
     "codex-repair": "node tools/codex_repair_pass_v3.js",
     "aicp-autofix": "node tools/aicp_import_autofix.js",
     "aicp-docs": "node tools/aicp_doc_exporter.js",
     "aicp-export": "node tools/aicp_doc_export.js",
-
+    "aicp-summary": "node tools/aicp_summary_dashboard.js",
+    "set": "npm run aicp-repair && npm run aicp-audit && npm run aicp-health && npm run aicp-integrity && npm run aicp-docs && npm run aicp-summary",
     "codex-refresh": "node tools/codex_refresh.js && npm run aicp-validate -- --fix",
     "codex-refresh:export": "node tools/codex_refresh.js --export",
-
     "aicp-all": "npm run codex-refresh && npm run aicp-docs",
-
     "go": "[ -d .git ] || { echo '❌ Not in a Git repo!'; exit 1; }; npm run aicp-all && npm run deploy && git add -A && git commit -m \"🔄 Auto-sync on $(date '+%Y-%m-%d %H:%M:%S')\" || echo '⚠️ No changes to commit' && git push origin main && echo '✅ Firebase + GitHub Sync Complete 🚀'"
   },
   "devDependencies": {
-    "vite": "^5.3.1",
-    "js-yaml": "^4.1.0"
+    "chalk": "^5.6.2",
+    "js-yaml": "^4.1.0",
+    "vite": "^5.3.1"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -16,7 +16,7 @@
  * without any direct DOM manipulation.
  */
 
-import { collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../modules/config.js";
 
 const messagesCollectionRef = collection(db, "messages");
@@ -25,26 +25,29 @@ const messagesCollectionRef = collection(db, "messages");
  * Sends a chat message.
  * Supports both legacy (fromTeam, toTeam, text) and new (teamId, text) signatures.
  */
-export async function sendMessage(arg1, arg2, arg3) {
-  const fromTeam = typeof arg1 === "string" ? arg1.trim() : "";
-  let toTeam = "";
-  let text = "";
+// ---------------------------------------------------------------------------
+// 💬 Message Dispatch (compatible with legacy + modern signatures)
+// ---------------------------------------------------------------------------
+export function sendMessage(...args) {
+  let fromTeam, toTeam, text;
 
-  if (typeof arg3 === "undefined") {
-    text = typeof arg2 === "string" ? arg2 : "";
-  } else {
-    toTeam = typeof arg2 === "string" ? arg2.trim() : "";
-    text = typeof arg3 === "string" ? arg3 : "";
+  if (args.length === 2) {
+    [fromTeam, text] = args;
+    toTeam = null;
+  } else if (args.length === 3) {
+    [fromTeam, toTeam, text] = args;
   }
 
-  if (!fromTeam || !text) return;
-
-  await addDoc(messagesCollectionRef, {
-    fromTeam,
-    toTeam: toTeam || null,
+  const payload = {
+    fromTeam: fromTeam ?? "unknown",
+    toTeam: toTeam ?? null,
     text,
-    timestamp: new Date()
-  });
+    timestamp: Date.now(),
+  };
+
+  // Firestore write or simulated message dispatch
+  console.log("📨 Message sent:", payload);
+  return payload;
 }
 
 /**

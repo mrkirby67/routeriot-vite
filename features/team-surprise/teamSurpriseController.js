@@ -23,8 +23,8 @@ import {
   readShieldDurationMinutes,
   getShieldDurationMs,
   activateShield,
-  isShieldActive,
-  deactivateShield,
+  isShieldActive as eventIsShieldActive,
+  deactivateShield as eventDeactivateShield,
   getShieldTimeRemaining,
   isUnderWildCard,
   startWildCard,
@@ -62,7 +62,7 @@ export async function clearAllTeamSurprises() {
 
 export async function isTeamAttackable(teamName) {
   if (!teamName) return false;
-  if (isShieldActive(teamName)) return false;
+  if (eventIsShieldActive(teamName)) return false;
   if (isUnderWildCard(teamName)) return false;
   return true;
 }
@@ -140,8 +140,6 @@ export {
   readShieldDurationMinutes,
   getShieldDurationMs,
   activateShield,
-  isShieldActive,
-  deactivateShield,
   getShieldTimeRemaining,
   isUnderWildCard,
   startWildCard,
@@ -174,6 +172,28 @@ export {
 export { checkShieldBeforeAttack };
 
 export const isTeamOnCooldown = isOnCooldown;
+
+// ---------------------------------------------------------------------------
+// 🛡️ Shield State Helpers
+// ---------------------------------------------------------------------------
+export function isShieldActive(teamState) {
+  if (typeof teamState === 'string') {
+    return eventIsShieldActive(teamState);
+  }
+  return teamState?.shield?.active === true;
+}
+
+export function deactivateShield(teamState) {
+  if (typeof teamState === 'string') {
+    eventDeactivateShield(teamState);
+    return teamState;
+  }
+  if (teamState?.shield) {
+    teamState.shield.active = false;
+    teamState.shield.deactivatedAt = Date.now();
+  }
+  return teamState;
+}
 
 // === AICP FEATURE FOOTER ===
 // aicp_category: feature
