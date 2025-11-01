@@ -49,6 +49,7 @@ function handleSpeedBumpUpdate(bump) {
     (typeof bump.id === 'string' && bump.id.trim()) ||
     currentTeamDisplay ||
     'unknown team';
+  console.info('🏎️ Speed Bump triggered:', { team: teamLabel, type });
   showSpeedBumpOverlay(type, { team: teamLabel });
   scheduleAutoClear(currentTeamId);
 }

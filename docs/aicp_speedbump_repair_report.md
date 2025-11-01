@@ -1,15 +1,31 @@
 # Speed Bump Repair Report
 
+- **Repair Timestamp:** 2025-03-17T14:32:00Z
+
+## Files Updated
+- `components/SpeedBumpControl/SpeedBumpControl.js`
+- `services/speed-bump/speedBumpService.js`
+- `modules/speedBumpPlayer.js`
+- `ui/overlays/speedBumpOverlay.js`
+- `ui/overlays/speedBumpOverlay.css`
+- `firestore.rules`
+
 ## Validation Summary
-- `npm run aicp-validate -- --fix` &rarr; ✅
-- `npm run aicp-integrity` &rarr; ✅
-- `npm run build` &rarr; ✅
+- `npm run aicp-validate -- --fix` → ✅
+- `npm run aicp-integrity` → ✅
+- `npm run build` → ✅
 
-## Feature Checks
-- Control panel now renders `SpeedBumpControlComponent()` inside `#speedbump-container` with live status cells fed by Firestore.
-- `[data-speedbump]` buttons dispatch `triggerSpeedBump(teamId, type)` and update their status states while awaiting Firestore confirmation.
-- Player module subscribes to `speedBumps/{team}` docs and invokes `showSpeedBumpOverlay(type)` on every active bump.
-- Overlay (`ui/overlays/speedBumpOverlay.js`) applies new CSS, displays the correct label per bump type, and self-clears after 4 seconds.
+## Manual Test Steps
+1. Open `control.html`, locate the Speed Bump control panel, and trigger each bump type.
+2. Open `player.html?teamName=<TEAM>` in a separate tab and observe the overlay for 4 seconds per bump.
+3. Confirm Firestore gains/clears documents under `speedBumps/<team>`.
+4. Verify browser consoles log:
+   - `🚧 Speed Bump triggered: { team, type }`
+   - `🏎️ Speed Bump triggered: { team, type }`
+   - `[SpeedBump] Overlay displayed for team ...`
+   - `[SpeedBump] Cleared in 4 s`
 
-## Notes
-- Firestore listeners auto-clear documents after overlays complete via `clearSpeedBump`, keeping the control status table in sync.
+## Observations
+- Control buttons disable for five seconds post-click to prevent repeat spam.
+- Player listener auto-clears each document via `clearSpeedBump`, keeping control status accurate.
+- Overlay styling now matches the lightweight banner spec and remains compatible with the messaging system changes.

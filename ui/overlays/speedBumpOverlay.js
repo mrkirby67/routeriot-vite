@@ -28,9 +28,9 @@ export function showSpeedBumpOverlay(type, context = {}) {
 
   const normalizedType =
     typeof type === 'string' && type.trim() ? type.trim().toLowerCase() : 'slowdown';
-  const friendlyLabel = normalizedType === 'flat-tire' ? 'Flat Tire!' : 'Speed Bump!';
-  const description =
-    normalizedType === 'flat-tire' ? 'flat tire' : normalizedType.replace(/-/g, ' ');
+  const labelText = normalizedType === 'flat-tire'
+    ? 'Flat Tire'
+    : normalizedType.replace(/-/g, ' ');
   const teamLabel = typeof context.team === 'string' && context.team.trim()
     ? context.team.trim()
     : 'unknown team';
@@ -39,10 +39,8 @@ export function showSpeedBumpOverlay(type, context = {}) {
   overlay.id = 'speedbump-overlay';
   overlay.className = 'speedbump-overlay';
   overlay.innerHTML = `
-    <div class="overlay-content">
-      <h2>🚧 ${friendlyLabel}</h2>
-      <p>Your vehicle hit a ${description}! Slow down briefly!</p>
-    </div>
+    <span class="speedbump-type">🚧 Speed Bump: ${labelText}!</span>
+    <small class="speedbump-team">Team: ${teamLabel}</small>
   `;
 
   document.body.appendChild(overlay);

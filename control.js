@@ -47,7 +47,7 @@ import { wireGameControls } from './modules/controlUI.js';
 import { watchLiveGameStatus, clearAllChatAndScores } from './modules/controlStatus.js';
 import { listenForGameStatus } from './modules/gameStateManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
-import { clearCountdownTimer, getRemainingMs } from './modules/gameTimer.js';
+import { clearCountdownTimer, getRemainingMs, startCountdownTimer, pauseCountdownTimer } from './modules/gameTimer.js';
 import { db } from './modules/config.js';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -143,6 +143,67 @@ async function main() {
 // ---------------------------------------------------------------------------
 // ⏱️ HANDLE CONTROL TIMER DISPLAY (matches player.js logic)
 // ---------------------------------------------------------------------------
+function getEndTimestampMs(data) {
+  if (!data) return null;
+
+  const et = data.endTime;
+  if (et) {
+    if (typeof et.toMillis === 'function') return et.toMillis();
+    if (et.seconds) return et.seconds * 1000 + Math.floor((et.nanoseconds || 0) / 1e6);
+    if (typeof et === 'number') return et;
+  }
+
+  const st = data.startTime;
+  if (st && data.durationMinutes) {
+    if (typeof st.toMillis === 'function') return st.toMillis() + data.durationMinutes * 60 * 1000;
+    if (st.seconds) return st.seconds * 1000 + data.durationMinutes * 60 * 1000;
+  }
+
+  if (typeof data.remainingMs === 'number') return Date.now() + data.remainingMs;
+  return null;
+}
+
+function handleControlTimer(state) {
+  const timerEl = document.getElementById('control-timer-display');
+  if (!timerEl) return;
+
+  const { status } = state || {};
+
+  switch (status) {
+    case 'waiting':
+    case 'finished':
+    case 'ended':
+    case 'over':
+      clearCountdownTimer();
+      timerEl.textContent = '00:00:00';
+      break;
+
+    case 'active': {
+      const endTimestamp = getEndTimestampMs(state);
+      if (endTimestamp) {
+        const duration = endTimestamp - Date.now();
+        startCountdownTimer(duration, (ms) => {
+          timerEl.hidden = false;
+          timerEl.textContent = formatCountdown(ms);
+        });
+      } else {
+        clearCountdownTimer();
+      }
+      break;
+    }
+
+    case 'paused':
+      pauseCountdownTimer();
+      timerEl.hidden = false;
+      timerEl.textContent = `⏸️ ${formatCountdown(getRemainingMs())}`;
+      break;
+
+    default:
+      clearCountdownTimer();
+      break;
+  }
+}
+
 function formatCountdown(ms) {
   if (!Number.isFinite(ms) || ms <= 0) return '00:00:00';
   const totalSeconds = Math.floor(ms / 1000);
@@ -154,51 +215,6 @@ function formatCountdown(ms) {
     String(minutes).padStart(2, '0'),
     String(seconds).padStart(2, '0'),
   ].join(':');
-}
-
-function handleControlTimer(state) {
-  const { status, remainingMs } = state || {};
-  const timerEl = document.getElementById('control-timer-display');
-  if (!timerEl) return;
-
-  const currentStatus = status || 'waiting';
-
-  switch (currentStatus) {
-    case 'waiting':
-      timerEl.hidden = true;
-      timerEl.textContent = '--:--:--';
-      break;
-
-    case 'active': {
-      timerEl.hidden = false;
-      const ms = Number.isFinite(remainingMs) ? remainingMs : getRemainingMs();
-      if (Number.isFinite(ms)) {
-        timerEl.textContent = formatCountdown(ms);
-      }
-      break;
-    }
-
-    case 'paused':
-      timerEl.hidden = false;
-      if (Number.isFinite(remainingMs)) {
-        timerEl.textContent = `⏸️ ${formatCountdown(remainingMs)}`;
-      } else {
-        const ms = getRemainingMs();
-        timerEl.textContent = ms ? `⏸️ ${formatCountdown(ms)}` : '⏸️ PAUSED';
-      }
-      break;
-
-    case 'finished':
-    case 'ended':
-    case 'over':
-      timerEl.hidden = false;
-      timerEl.textContent = '00:00:00';
-      break;
-
-    default:
-      timerEl.hidden = false;
-      timerEl.textContent = '00:00:00';
-  }
 }
 
 // ---------------------------------------------------------------------------

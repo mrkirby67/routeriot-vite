@@ -60,6 +60,10 @@ export async function triggerSpeedBump(teamId, bumpType, meta = {}) {
   });
 
   await setDoc(ref, payload, { merge: true });
+  console.info('🚧 Speed Bump triggered:', {
+    team: payload.teamName,
+    type: payload.type
+  });
 }
 
 /*
@@ -75,6 +79,7 @@ export async function clearSpeedBump(teamId) {
       clearedAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    console.info('✅ Speed Bump cleared:', normalizedTeam);
   } catch (error) {
     if (error?.code === 'not-found') {
       await setDoc(
@@ -86,6 +91,7 @@ export async function clearSpeedBump(teamId) {
         },
         { merge: true }
       );
+      console.info('✅ Speed Bump cleared (upsert):', normalizedTeam);
     } else {
       throw error;
     }
