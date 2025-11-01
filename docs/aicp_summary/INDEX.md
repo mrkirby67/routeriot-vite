@@ -1,12 +1,14 @@
-# AICP Summary Index — 2025-10-31T04:18:56.600Z
+# AICP Summary Index — 2025-11-01T01:26:24.118Z
 
 
 
-## SERVICES (6)
+## SERVICES (8)
 - [services/firestoreRefs.js](./services/firestoreRefs.js.md)
 - [services/flat-tire/flatTireService.js](./services/flat-tire/flatTireService.js.md)
+- [services/gameRulesManager.js](./services/gameRulesManager.js.md)
 - [services/gameStateService.js](./services/gameStateService.js.md)
 - [services/messageService.js](./services/messageService.js.md)
+- [services/speed-bump/speedBumpService.js](./services/speed-bump/speedBumpService.js.md)
 - [services/team-surprise/teamSurpriseService.js](./services/team-surprise/teamSurpriseService.js.md)
 - [services/teamService.js](./services/teamService.js.md)
 
@@ -58,8 +60,9 @@
 - [components/ZoneQuestions/ZoneQuestionsTypes.js](./components/ZoneQuestions/ZoneQuestionsTypes.js.md)
 - [components/ZoneQuestions/ZoneQuestionsUI.js](./components/ZoneQuestions/ZoneQuestionsUI.js.md)
 
-## UI (4)
+## UI (5)
 - [ui/flat-tire/flatTireUI.js](./ui/flat-tire/flatTireUI.js.md)
 - [ui/gameNotifications.js](./ui/gameNotifications.js.md)
 - [ui/overlays/FlatTireOverlay.js](./ui/overlays/FlatTireOverlay.js.md)
+- [ui/overlays/speedBumpOverlay.js](./ui/overlays/speedBumpOverlay.js.md)
 - [ui/team-surprise/teamSurpriseUI.js](./ui/team-surprise/teamSurpriseUI.js.md)

@@ -1,16 +1,18 @@
-# AICP Validation Report — 2025-10-31T04:18:56.461Z
-Files scanned: 54
+# AICP Validation Report — 2025-11-01T01:26:23.980Z
+Files scanned: 57
 ✅ OK: 47
 ⚠️ Warnings: 0
 ❌ Errors: 0
-🛠️ Fixed: 7
+🛠️ Fixed: 10
 
 | File | Status | Note |
 |------|---------|------|
 | services/firestoreRefs.js | ✅ OK |  |
 | services/flat-tire/flatTireService.js | ✅ OK |  |
+| services/gameRulesManager.js | 🛠️ Fixed | Footer missing key: ai_role (auto-repaired) |
 | services/gameStateService.js | ✅ OK |  |
 | services/messageService.js | ✅ OK |  |
+| services/speed-bump/speedBumpService.js | ✅ OK |  |
 | services/team-surprise/teamSurpriseService.js | 🛠️ Fixed | Footer missing key: aicp_version (auto-repaired) |
 | services/teamService.js | ✅ OK |  |
 | features/bug-strike/bugStrikePlayer.js | ✅ OK |  |
@@ -19,7 +21,7 @@ Files scanned: 54
 | features/flat-tire/flatTireController.js | ✅ OK |  |
 | features/flat-tire/flatTireEvents.js | 🛠️ Fixed | Footer missing key: aicp_version (auto-repaired) |
 | features/flat-tire/flatTireTypes.js | ✅ OK |  |
-| features/game-state/gameStateController.js | ✅ OK |  |
+| features/game-state/gameStateController.js | 🛠️ Fixed | Footer missing key: ai_role (auto-repaired) |
 | features/player-page/playerPageController.js | ✅ OK |  |
 | features/speed-bump/speedBumpPlayer.js | ✅ OK |  |
 | features/team-surprise/teamSurpriseController.js | 🛠️ Fixed | Footer missing key: aicp_version (auto-repaired) |
@@ -33,7 +35,7 @@ Files scanned: 54
 | components/FlatTireControl/controller/domHandlers.js | ✅ OK |  |
 | components/FlatTireControl/controller/firestoreSync.js | ✅ OK |  |
 | components/FlatTireControl/flatTireControlController.js | ✅ OK |  |
-| components/GameControls/GameControls.js | ✅ OK |  |
+| components/GameControls/GameControls.js | 🛠️ Fixed | Footer missing key: phase (auto-repaired) |
 | components/OpponentList/OpponentList.js | ✅ OK |  |
 | components/RacerManagement/RacerManagement.js | ✅ OK |  |
 | components/Scoreboard/Scoreboard.js | ✅ OK |  |
@@ -60,6 +62,7 @@ Files scanned: 54
 | ui/flat-tire/flatTireUI.js | ✅ OK |  |
 | ui/gameNotifications.js | ✅ OK |  |
 | ui/overlays/FlatTireOverlay.js | ✅ OK |  |
+| ui/overlays/speedBumpOverlay.js | ✅ OK |  |
 | ui/team-surprise/teamSurpriseUI.js | 🛠️ Fixed | Footer missing key: aicp_version (auto-repaired) |
 
 Template header hash: 361 chars

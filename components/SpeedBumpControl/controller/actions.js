@@ -16,7 +16,7 @@ import {
   clearSpeedBumpForTeam
 } from '../../../modules/speedBump/interactions.js';
 
-/**
+/*
  * Called when control clicks “Send” beside a team row.
  * Handles shield logic, token consumption, and Firestore write.
  */
@@ -61,7 +61,7 @@ export async function handleSendSpeedBump(
   }
 }
 
-/**
+/*
  * Called when control clicks “Release” beside a team row.
  * Clears the victim’s assignment immediately.
  */

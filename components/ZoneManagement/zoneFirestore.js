@@ -26,7 +26,7 @@ import { allTeams } from '../../modules/data.js';
 /* ---------------------------------------------------------------------------
  * 📣 GENERIC BROADCAST EVENT
  * ------------------------------------------------------------------------ */
-/**
+/*
  * Adds a broadcast message to Firestore for display in control & player UIs.
  * @param {string} teamName - Team name or fallback string.
  * @param {string} message - Message content.
@@ -69,7 +69,7 @@ export async function broadcastChallenge(teamName, zoneName) {
 /* ---------------------------------------------------------------------------
  * 🏆 CHALLENGE WIN / ZONE CAPTURE
  * ------------------------------------------------------------------------ */
-/**
+/*
  * Broadcasts a win, updates Firestore zones & scoreboard.
  * @param {string} teamName
  * @param {string} zoneName

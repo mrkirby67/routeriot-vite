@@ -10,25 +10,46 @@
 // ============================================================================
 // === END AICP FEATURE HEADER ===
 
-/**
+/*
  * @file Bridges UI events (like sending a message) to the chat state controller.
  */
 
 import { handleSendMessage } from "./playerChat.state.js";
 
-/**
+let listenersAttached = false;
+
+/*
  * Attaches event listeners for the chat UI.
  */
 export function attachChatEventListeners() {
+  if (listenersAttached) return;
+
   const sendButton = document.getElementById("send-chat-button");
   const chatInput = document.getElementById("chat-input");
+  const recipientInput = document.getElementById("chat-recipient");
+
+  const triggerSend = () => {
+    if (!chatInput) return;
+    const text = chatInput.value;
+    const recipient = recipientInput?.value?.trim() || 'ALL';
+    handleSendMessage(text, recipient);
+    chatInput.value = "";
+  };
 
   if (sendButton && chatInput) {
-    sendButton.addEventListener("click", () => {
-      handleSendMessage(chatInput.value);
-      chatInput.value = ""; // Clear input
+    sendButton.addEventListener("click", triggerSend);
+  }
+
+  if (chatInput) {
+    chatInput.addEventListener("keydown", (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        triggerSend();
+      }
     });
   }
+
+  listenersAttached = true;
 }
 
 // === AICP FEATURE FOOTER ===

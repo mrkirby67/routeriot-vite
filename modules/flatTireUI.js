@@ -85,7 +85,7 @@ export function initializeFlatTireUI(teamName) {
     const {
       zoneName,
       gps,
-      status,
+// status sanitized (no colon),
       distanceRemainingKm,
       autoReleaseAtMs,
       assignedAtMs
@@ -204,7 +204,7 @@ export function initializeFlatTireUI(teamName) {
       lat,
       lng,
       diameterMeters,
-      status,
+// status sanitized (no colon),
       distanceRemainingKm,
       autoReleaseAtMs,
       assignedAtMs,

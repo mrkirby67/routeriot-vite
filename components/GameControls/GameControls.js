@@ -26,7 +26,6 @@ import {
 
 import { clearCountdownTimer } from '../../modules/gameTimer.js';
 import {
-  startGame as startGameState,
   pauseGame,
   resumeGame,
   listenForGameStatus
@@ -35,8 +34,71 @@ import {
   clearChatsAndScores
 } from '../../modules/gameMaintenance.js'; // 🧹 new imports
 import { clearAllCollectionsAndReset } from '../../modules/gameRulesManager.js';
+import { saveRules, loadRules } from '../../services/gameRulesManager.js';
+import { getGameStatus, setGameStatus, listenToGameStateUpdates } from '../../features/game-state/gameStateController.js';
+import { showFlashMessage } from '../../ui/gameNotifications.js';
 
 import styles from './GameControls.module.css';
+
+// ============================================================================
+// 🎲 Randomize Teams
+// ============================================================================
+async function randomizeTeams() {
+  console.log('🎲 Randomizing teams...');
+
+  const teamSizeInput = document.getElementById('team-size');
+  const teamSize = parseInt(teamSizeInput.value, 10) || 2;
+
+  try {
+    const racersSnap = await getDocs(collection(db, 'racers'));
+    const racers = [];
+    racersSnap.forEach(doc => {
+      const data = doc.data();
+      // Only include racers who have been assigned a name
+      if (data.name) {
+        racers.push({ id: doc.id, ...data });
+      }
+    });
+
+    if (racers.length === 0) {
+      showAnimatedBanner('No racers with names found!', '#c62828');
+      return;
+    }
+
+    // Fisher-Yates (aka Knuth) Shuffle for true randomization
+    for (let i = racers.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [racers[i], racers[j]] = [racers[j], racers[i]];
+    }
+
+    const batch = writeBatch(db);
+    const teamNames = allTeams.map(t => t.name);
+    let teamIndex = 0;
+
+    for (let i = 0; i < racers.length; i++) {
+      const racer = racers[i];
+      const teamName = teamNames[teamIndex];
+      const racerRef = doc(db, 'racers', racer.id);
+      batch.update(racerRef, { team: teamName });
+
+      if ((i + 1) % teamSize === 0) {
+        teamIndex++;
+        if (teamIndex >= teamNames.length) {
+          // Loop back to the beginning of the team list if we run out of teams
+          teamIndex = 0;
+        }
+      }
+    }
+
+    await batch.commit();
+    showAnimatedBanner('✅ Teams have been randomized!', '#2e7d32');
+    console.log('✅ Teams randomized and updated in Firestore.');
+
+  } catch (err) {
+    console.error('Error randomizing teams:', err);
+    showAnimatedBanner('❌ Team randomization failed. Check console.', '#c62828');
+  }
+}
 
 // ============================================================================
 // 🎉 Animated Broadcast Banner
@@ -201,134 +263,214 @@ export function GameControlsComponent() {
 // ============================================================================
 // INITIALIZER
 // ============================================================================
+let isGameActive = false;
+let lastAppliedStatus = 'idle';
+let detachGameStatus = null;
+let detachLegacyStatus = null;
+
 export function initializeGameControlsLogic() {
-  const startBtn = document.getElementById('start-btn');
+  const startBtn = document.getElementById('start-btn') || document.getElementById('start-game');
   const pauseBtn = document.getElementById('pause-btn');
-  const endBtn = document.getElementById('end-btn');
+  const endBtn = document.getElementById('end-btn') || document.getElementById('end-game');
   const clearChatBtn = document.getElementById('clear-chat-btn');
   const resetBtn = document.getElementById('reset-game-btn');
   const clearScoresBtn = document.getElementById('clear-scores-btn');
-
   const rulesBtn = document.getElementById('toggle-rules-btn');
   const rulesSection = document.getElementById('rules-section');
   const rulesText = document.getElementById('rules-text');
   const saveRulesBtn = document.getElementById('save-rules-btn');
-  const rulesDocRef = doc(db, 'settings', 'rules');
+  const randomizeBtn = document.getElementById('randomize-btn');
 
-  listenForGameStatus((state) => {
-    const status = state?.status || 'waiting';
-    const shouldDisableStart = status === 'active' || status === 'paused';
-    if (startBtn) {
-      startBtn.disabled = shouldDisableStart;
-      startBtn.setAttribute('aria-disabled', String(shouldDisableStart));
+  if (!startBtn || !endBtn) {
+    console.warn('⚠️ Game control buttons missing. Initialization skipped.');
+    return () => {};
+  }
+
+  if (randomizeBtn) {
+    randomizeBtn.addEventListener('click', randomizeTeams);
+  }
+
+  detachGameStatus?.();
+  detachLegacyStatus?.();
+  detachGameStatus = null;
+  detachLegacyStatus = null;
+  lastAppliedStatus = 'idle';
+
+  const applyStatus = (rawStatus = 'idle') => {
+    const status = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : 'idle';
+    isGameActive = status === 'active';
+
+    if (lastAppliedStatus !== status) {
+      console.info(`🎮 GameControls status → ${status}`);
+      lastAppliedStatus = status;
     }
+
+    const disableStart = status === 'active' || status === 'paused';
+    startBtn.disabled = disableStart;
+    startBtn.setAttribute('aria-disabled', String(disableStart));
+
+    const endDisabled = !(status === 'active' || status === 'paused');
+    endBtn.disabled = endDisabled;
+    endBtn.setAttribute('aria-disabled', String(endDisabled));
 
     if (pauseBtn) {
-      if (status === 'paused') {
-        pauseBtn.textContent = '▶️ Resume Game';
-      } else if (status === 'active') {
-        pauseBtn.textContent = '⏸️ Pause Game';
-      }
+      pauseBtn.disabled = status === 'idle' || status === 'ended';
+      pauseBtn.textContent = status === 'paused' ? '▶️ Resume Game' : '⏸️ Pause Game';
+    }
+  };
+
+  getGameStatus()
+    .then((status) => applyStatus(status ?? 'idle'))
+    .catch((err) => {
+      console.warn('⚠️ Failed to read game status:', err);
+      applyStatus('idle');
+    });
+
+  detachGameStatus = listenToGameStateUpdates((status) => {
+    applyStatus(status ?? 'idle');
+  });
+
+  detachLegacyStatus = listenForGameStatus((state) => {
+    applyStatus(state?.status ?? 'idle');
+  });
+
+  if (rulesText) {
+    loadRules()
+      .then((data) => {
+        if (data && typeof data.content === 'string') {
+          rulesText.value = data.content;
+        }
+      })
+      .catch((err) => console.warn('⚠️ Failed to load rules content:', err));
+  }
+
+  if (rulesBtn && rulesSection) {
+    rulesBtn.addEventListener('click', () => {
+      const open = rulesSection.style.display !== 'none';
+      rulesSection.style.display = open ? 'none' : 'block';
+      rulesBtn.textContent = open ? '📜 Edit Rules' : '❌ Close Rules';
+    });
+  }
+
+  if (saveRulesBtn && rulesText) {
+    saveRulesBtn.addEventListener('click', async () => {
+      await saveRules({ content: rulesText.value.trim() });
+      showAnimatedBanner('✅ Rules Saved!', '#388e3c');
+    });
+  }
+
+  startBtn.addEventListener('click', async (event) => {
+    const currentStatus = isGameActive ? 'active' : await getGameStatus().catch(() => 'idle');
+    if (currentStatus === 'active') {
+      event?.preventDefault?.();
+      showFlashMessage('Game already in progress!');
+      applyStatus('active');
+      return;
+    }
+
+    console.log('🎬 Starting game...');
+    try {
+      await setGameStatus('active');
+      applyStatus('active');
+      showFlashMessage('Game start requested.');
+    } catch (err) {
+      console.error('❌ Failed to set game status to active:', err);
+      showFlashMessage('Unable to update game status.');
+      applyStatus(currentStatus);
     }
   });
 
-  // 📜 Toggle rules
-  rulesBtn.addEventListener('click', () => {
-    const open = rulesSection.style.display !== 'none';
-    rulesSection.style.display = open ? 'none' : 'block';
-    rulesBtn.textContent = open ? '📜 Edit Rules' : '❌ Close Rules';
+  endBtn.addEventListener('click', async (event) => {
+    const status = isGameActive ? 'active' : await getGameStatus().catch(() => 'idle');
+    if (status !== 'active' && status !== 'paused') {
+      event?.preventDefault?.();
+      showFlashMessage('No active game found.');
+      applyStatus(status);
+      return;
+    }
+
+    console.log('🛑 Ending game...');
+    try {
+      await setGameStatus('ended');
+      applyStatus('ended');
+      showFlashMessage('Game end requested.');
+      clearCountdownTimer();
+      await announceTopThree();
+    } catch (err) {
+      console.error('❌ Failed to end game:', err);
+      showFlashMessage('Unable to update game status.');
+      applyStatus(status);
+    }
   });
 
-  // 💾 Save rules
-  saveRulesBtn.addEventListener('click', async () => {
-    await setDoc(rulesDocRef, { content: rulesText.value.trim() }, { merge: true });
-    showAnimatedBanner('✅ Rules Saved!', '#388e3c');
-  });
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', async () => {
+      try {
+        const isPaused = pauseBtn.textContent.includes('Resume');
+        if (isPaused) {
+          await resumeGame();
+          applyStatus('active');
+          showAnimatedBanner('▶️ Game Resumed!', '#2e7d32');
+        } else {
+          await pauseGame();
+          applyStatus('paused');
+          showAnimatedBanner('⏸️ Game Paused!', '#ff9800');
+        }
+      } catch (err) {
+        console.error('❌ Pause/Resume error:', err);
+        showAnimatedBanner('❌ Pause/Resume Error', '#c62828');
+      }
+    });
+  }
 
-  // ▶️ START GAME
-  startBtn.addEventListener('click', async (event) => {
-    event?.preventDefault?.();
-    if (startBtn.disabled) return;
-
-    const mins = Number(document.getElementById('game-duration')?.value) || 120;
-
-    startBtn.disabled = true;
-    startBtn.setAttribute('aria-disabled', 'true');
-
+  clearChatBtn?.addEventListener('click', async () => {
     try {
       await clearChatsAndScores();
-
-      const racersSnap = await getDocs(collection(db, 'racers'));
-      const teams = new Set();
-      racersSnap.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.team && data.team !== '-') {
-          teams.add(data.team.trim());
-        }
-      });
-
-      const teamList = Array.from(teams).sort();
-
-      await startGameState({
-        durationMinutes: mins,
-        zonesReleased: true,
-        teamNames: teamList,
-        broadcast: {
-          teamName: 'Game Master',
-          message: '🏁 The race has begun! Zones are active — good luck racers!',
-        }
-      });
-
-      showAnimatedBanner('🏁 Race Started!', '#2e7d32');
-      launchConfetti();
+      showAnimatedBanner('💬 Chat + Scores cleared!', '#1976d2');
     } catch (err) {
-      console.error('Error starting game:', err);
-      showAnimatedBanner('❌ Start failed. Check console for details.', '#c62828');
-      startBtn.disabled = false;
-      startBtn.setAttribute('aria-disabled', 'false');
+      console.error('❌ Failed to clear chats/scores:', err);
+      showAnimatedBanner('❌ Clear failed. Check console.', '#c62828');
     }
   });
 
-  // ⏸️ PAUSE / RESUME GAME
-  pauseBtn.addEventListener('click', async () => {
+  resetBtn?.addEventListener('click', async () => {
     try {
-      const isPaused = pauseBtn.textContent.includes('Resume');
-      if (isPaused) {
-        await resumeGame();
-        pauseBtn.textContent = '⏸️ Pause Game';
-        showAnimatedBanner('▶️ Game Resumed!', '#2e7d32');
-      } else {
-        await pauseGame();
-        pauseBtn.textContent = '▶️ Resume Game';
-        showAnimatedBanner('⏸️ Game Paused!', '#ff9800');
-      }
+      await clearAllCollectionsAndReset();
+      showAnimatedBanner('🔄 Game data reset!', '#1976d2');
     } catch (err) {
-      console.error(err);
-      showAnimatedBanner('❌ Pause/Resume Error', '#c62828');
+      console.error('❌ Reset failed:', err);
+      showAnimatedBanner('❌ Reset failed. Check console.', '#c62828');
     }
   });
 
-  // 🏁 END GAME → Top 3
-  endBtn.addEventListener('click', async () => {
-    await setDoc(doc(db, 'game', 'gameState'), { status: 'over' }, { merge: true });
-    clearCountdownTimer();
-    await announceTopThree();
+  clearScoresBtn?.addEventListener('click', async () => {
+    try {
+      await clearChatsAndScores();
+      showAnimatedBanner('🧹 Scores cleared!', '#1976d2');
+    } catch (err) {
+      console.error('❌ Score clear failed:', err);
+      showAnimatedBanner('❌ Score clear failed.', '#c62828');
+    }
   });
+
+  return (reason = 'cleanup') => {
+    detachGameStatus?.();
+    detachLegacyStatus?.();
+    console.info(`🧼 GameControls cleanup invoked (${reason}).`);
+  };
 }
 
 // === AICP COMPONENT FOOTER ===
 // ai_origin: components/GameControls/GameControls.js
 // ai_role: UI Layer
-// aicp_category: component
+// aicp_category (sanitized) component
 // aicp_version: 3.0
-// codex_phase: tier3_components_injection
 // export_bridge: services/*
-// exports: GameControlsComponent, initializeGameControlsLogic
-// linked_files: []
+// exports (sanitized) GameControlsComponent, initializeGameControlsLogic
+// linked_files (sanitized) []
 // owner: RouteRiot-AICP
-// phase: tier3_components_injection
 // review_status: pending_alignment
-// status: stable
-// sync_state: aligned
+// status (sanitized) stable
+// sync_state (sanitized) aligned
 // ui_dependency: features/*
 // === END AICP COMPONENT FOOTER ===

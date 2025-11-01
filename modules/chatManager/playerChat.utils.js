@@ -3,7 +3,7 @@
 // PURPOSE: Helper utilities for Player Chat modules
 // ============================================================================
 
-/**
+/*
  * Extracts a count value from an object using multiple possible key names.
  */
 export function extractSurpriseCount(counts = {}, ...keys) {
@@ -18,7 +18,7 @@ export function extractSurpriseCount(counts = {}, ...keys) {
   return 0;
 }
 
-/**
+/*
  * Converts seconds into a formatted mm:ss or Xm Ys display.
  */
 export function formatShieldDuration(seconds) {
@@ -31,7 +31,7 @@ export function formatShieldDuration(seconds) {
     : `${minutes}m`;
 }
 
-/**
+/*
  * Converts Firestore shield duration (in ms) into whole minutes.
  */
 export function getShieldDurationMinutes(getShieldDurationMs) {
@@ -40,7 +40,7 @@ export function getShieldDurationMinutes(getShieldDurationMs) {
   return Math.max(1, minutes || 0);
 }
 
-/**
+/*
  * Simple debounce helper to limit rapid function calls.
  */
 export function debounce(fn, delay = 300) {
@@ -51,7 +51,7 @@ export function debounce(fn, delay = 300) {
   };
 }
 
-/**
+/*
  * Escapes HTML in user-generated text to prevent XSS.
  */
 export function escapeHtml(text = '') {

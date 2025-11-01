@@ -15,7 +15,7 @@ import { allTeams } from '../../data.js';
 import styles from './TeamLinks.module.css';
 import { escapeHtml } from '../../modules/utils.js';
 
-/** ---------------------------------------------------------------------------
+/* ---------------------------------------------------------------------------
  *  Component markup
  *  ------------------------------------------------------------------------ */
 export function TeamLinksComponent() {
@@ -50,7 +50,7 @@ export function TeamLinksComponent() {
   `;
 }
 
-/** ---------------------------------------------------------------------------
+/* ---------------------------------------------------------------------------
  *  Initialization Logic (optional)
  *  ------------------------------------------------------------------------ */
 export function initializeTeamLinksLogic() {

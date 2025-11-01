@@ -22,7 +22,7 @@ import {
 /* ---------------------------------------------------------------------------
  * 🧮 ADD POINTS TO TEAM (Transaction Safe + Standardized)
  * ------------------------------------------------------------------------ */
-/**
+/*
  * Adds or subtracts a given number of points to a team's score.
  * @param {string} teamName - The team's standardized name.
  * @param {number} points - Positive or negative integer.
@@ -50,7 +50,7 @@ export async function addPointsToTeam(teamName, points) {
 /* ---------------------------------------------------------------------------
  * 🧭 UPDATE CONTROLLED ZONES (Standardized)
  * ------------------------------------------------------------------------ */
-/**
+/*
  * Updates the 'zonesControlled' field for a team in the scoreboard.
  * @param {string} teamName - The team's standardized name.
  * @param {string} zoneName - The name of the captured zone.
@@ -77,7 +77,7 @@ export async function updateControlledZones(teamName, zoneName) {
 /* ---------------------------------------------------------------------------
  * 🧹 RESET ALL SCORES & ZONES (Batch Operation)
  * ------------------------------------------------------------------------ */
-/**
+/*
  * Resets all team scores and clears zone control data.
  * Called by Control panel → “Clear All” button.
  */
@@ -116,7 +116,7 @@ export async function resetScores() {
 /* ---------------------------------------------------------------------------
  * 🏆 INITIALIZE PLAYER SCOREBOARD (Live View)
  * ------------------------------------------------------------------------ */
-/**
+/*
  * Realtime scoreboard listener for player dashboard.
  * Displays team names, scores, and sorts by score descending.
  */
@@ -157,7 +157,7 @@ export function initializePlayerScoreboard() {
 /* ---------------------------------------------------------------------------
  * 🏁 BROADCAST TOP 3 FINISHERS (called when game ends)
  * ------------------------------------------------------------------------ */
-/**
+/*
  * Broadcasts the top 3 finishers to all players.
  * Adds spacing for visibility and includes celebration emojis.
  */

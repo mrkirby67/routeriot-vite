@@ -305,7 +305,7 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
   return successPayload;
 }
 
-/** Assign a Speed Bump to a victim team. */
+/* Assign a Speed Bump to a victim team. */
 export async function assignSpeedBumpToTeam(victimTeam, payload = {}) {
   if (!victimTeam) return;
   const ref = doc(db, 'speedBumpAssignments', victimTeam);
@@ -320,14 +320,14 @@ export async function assignSpeedBumpToTeam(victimTeam, payload = {}) {
   console.log(`🚧 Speed Bump assigned → ${victimTeam}`);
 }
 
-/** Clear the victim’s Speed Bump entry. */
+/* Clear the victim’s Speed Bump entry. */
 export async function clearSpeedBumpForTeam(victimTeam) {
   if (!victimTeam) return;
   await deleteDoc(doc(db, 'speedBumpAssignments', victimTeam)).catch(() => {});
   console.log(`✅ Speed Bump cleared for ${victimTeam}`);
 }
 
-/** Simple listener wrapper so the player page can subscribe. */
+/* Simple listener wrapper so the player page can subscribe. */
 export function subscribeSpeedBumpAssignments(teamName, callback) {
   if (!teamName || typeof callback !== 'function') return () => {};
   const ref = doc(db, 'speedBumpAssignments', teamName);

@@ -7,7 +7,7 @@
  * 🧩 DOM HELPERS
  * ------------------------------------------------------------------------ */
 
-/**
+/*
  * Waits for an element with a given ID to appear in the DOM.
  * @param {string} id - Element ID to wait for.
  * @param {number} timeout - Max time (ms) to wait before rejecting.
@@ -34,7 +34,7 @@ export function waitForElement(id, timeout = 4000) {
   });
 }
 
-/**
+/*
  * Visually flashes the player's current location message in the UI.
  * @param {string} text - Text to display (e.g., "📍 Zone 3 (updated 12:05pm)").
  */
@@ -51,7 +51,7 @@ export function flashPlayerLocation(text) {
  * 🏁 GAME START COUNTDOWN
  * ------------------------------------------------------------------------ */
 
-/**
+/*
  * Displays a temporary full-screen countdown banner.
  * @param {string} message - Message to show (e.g., "3", "2", "GO!").
  * @param {string} color - Background color for the banner.
@@ -91,7 +91,7 @@ export function showCountdownBanner(message, color = '#222') {
   }, 2000);
 }
 
-/**
+/*
  * Plays the animated 3-2-1-GO countdown and final "Race is ON!" banner.
  */
 export async function playRaceStartSequence() {
@@ -108,7 +108,7 @@ export async function playRaceStartSequence() {
  * 📏 MATH HELPERS
  * ------------------------------------------------------------------------ */
 
-/**
+/*
  * Calculates the distance in kilometers between two lat/lon coordinates.
  * Uses the Haversine formula.
  */
@@ -127,7 +127,7 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
  * 🧠 ANSWER VALIDATION
  * ------------------------------------------------------------------------ */
 
-/**
+/*
  * Validates a player's submitted answer against the correct one.
  * @param {string|number|Array} playerAnswer - Player input.
  * @param {string|number|Array} correctAnswer - Correct answer from Firestore.

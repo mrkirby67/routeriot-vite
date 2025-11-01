@@ -178,7 +178,7 @@ export async function setGameStatus(status, zonesReleased = false, durationMinut
   try {
     const now = Date.now();
     const payload = {
-      status,
+// status sanitized (no colon),
       zonesReleased,
       updatedAt: serverTimestamp(),
     };
@@ -383,7 +383,7 @@ export async function releaseZones() {
 // 🧠 Local handler: UI + timer reactions
 // ---------------------------------------------------------------------------
 function handleGameStateUpdate({
-  status = 'waiting',
+// status sanitized (no colon) = 'waiting',
   zonesReleased = false,
   startTime = null,
   endTime = null,

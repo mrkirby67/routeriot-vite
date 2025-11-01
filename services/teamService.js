@@ -10,14 +10,14 @@
 // ============================================================================
 // === END AICP SERVICE HEADER ===
 
-/**
+/*
  * @file Manages team-related data, such as fetching team information and player lists.
  */
 
 import { getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { teamsCollectionRef } from "./firestoreRefs.js";
 
-/**
+/*
  * Fetches all teams from Firestore.
  * @returns {Promise<Array>} A list of team objects.
  */

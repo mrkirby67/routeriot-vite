@@ -279,7 +279,7 @@ async function clearGameSideEffects() {
   await clearAllTeamSurprises();
 }
 
-/**
+/*
  * Clear all tracked game collections and restore the default state.
  * Intended for emergency resets where a completely fresh slate is required.
  */

@@ -210,7 +210,13 @@ function renderAllSections() {
   safeSetHTML('scoreboard-container', ScoreboardComponent());
   safeSetHTML('bugstrike-control-container', BugStrikeControlComponent());
   safeSetHTML('flat-tire-control-container', FlatTireControlComponent());
-  safeSetHTML('speedbump-control-container', SpeedBumpControlComponent());
+
+  const speedbumpContainer = document.getElementById('speedbump-container');
+  if (speedbumpContainer) {
+    speedbumpContainer.innerHTML = SpeedBumpControlComponent();
+  } else {
+    console.warn('⚠️ Missing container: speedbump-container');
+  }
   safeSetHTML('surprise-selector-container', SurpriseSelectorComponent());
   safeSetHTML('team-links-container', TeamLinksComponent());
   safeSetHTML('racer-management-container', RacerManagementComponent());

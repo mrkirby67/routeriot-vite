@@ -10,7 +10,7 @@
 // ============================================================================
 // === END AICP SERVICE HEADER ===
 
-/**
+/*
  * @file Centralizes all Firestore database references for the application.
  * This module provides a single source of truth for database paths, making it easier
  * to manage and update references.
@@ -19,7 +19,7 @@
 import { doc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../modules/config.js";
 
-/** Centralized Firestore reference helpers. */
+/* Centralized Firestore reference helpers. */
 export const refs = {
   gameState:        () => doc(db, 'game', 'gameState'),
   messages:         (teamA, teamB) => collection(db, 'messages', [teamA, teamB].sort().join('_')),
@@ -30,20 +30,20 @@ export const refs = {
   teams:            () => collection(db, 'teams'),
   zones:            () => collection(db, 'zones'),
 };
-/** Reference to the main game state document. */
+/* Reference to the main game state document. */
 export const gameStateRef = doc(db, "gameState", "currentState");
 
-/** Reference to the 'teams' collection. */
+/* Reference to the 'teams' collection. */
 export const teamsCollectionRef = collection(db, "teams");
 
-/**
+/*
  * Get a reference to a specific team document.
  * @param {string} teamId - The ID of the team.
  * @returns {import("firebase/firestore").DocumentReference}
  */
 export const getTeamRef = (teamId) => doc(db, "teams", teamId);
 
-/** Reference to the 'zones' collection. */
+/* Reference to the 'zones' collection. */
 export const zonesCollectionRef = collection(db, "zones");
 
 // === AICP SERVICE FOOTER ===

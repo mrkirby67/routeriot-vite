@@ -9,28 +9,36 @@
 // ============================================================================
 
 // ============================================================================
-// PATCH: gameStateController.js — Game State Helpers
+// PATCH: gameRulesManager.js — Persistent Game Rules
 // ============================================================================
 
-import { db } from '../../modules/config.js';
-import { doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { db } from '../modules/config.js';
+import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-const gameStateRef = doc(db, 'state', 'gameStatus');
+const rulesRef = doc(db, 'config', 'gameRules');
 
-export async function getGameStatus() {
-  const snap = await getDoc(gameStateRef);
-  if (snap.exists()) return snap.data().status;
-  return 'idle';
+export async function saveRules(rules) {
+  try {
+    await setDoc(rulesRef, rules, { merge: true });
+    console.info('✅ Rules saved successfully.');
+  } catch (err) {
+    console.error('❌ Failed to save rules:', err);
+  }
 }
 
-export async function setGameStatus(status) {
-  await setDoc(gameStateRef, { status, updatedAt: new Date().toISOString() }, { merge: true });
-}
-
-export function listenToGameStateUpdates(callback) {
-  return onSnapshot(gameStateRef, (snap) => {
-    if (snap.exists()) callback(snap.data().status);
-  });
+export async function loadRules() {
+  try {
+    const snap = await getDoc(rulesRef);
+    if (snap.exists()) {
+      console.info('📜 Rules loaded successfully.');
+      return snap.data();
+    }
+    console.warn('⚠️ No rules found. Returning empty defaults.');
+    return {};
+  } catch (err) {
+    console.error('❌ Failed to load rules:', err);
+    return {};
+  }
 }
 // === AICP-METADATA === (sanitized)
 // aicp_category: sanitized placeholder

@@ -23,7 +23,7 @@ import { escapeHtml } from '../../modules/utils.js';
 import { getDocs, collection, writeBatch, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../../modules/config.js';
 
-/** Apply the selected wild-card values to every team in Firestore. */
+/* Apply the selected wild-card values to every team in Firestore. */
 export async function applyToAllTeams(selectedType, newCount = 0) {
   if (!selectedType) {
     alert('⚠️ No surprise type selected!');

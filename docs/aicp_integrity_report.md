@@ -1,9 +1,15 @@
-# AICP Integrity Report — 2025-10-31T04:18:56.914Z
+# AICP Integrity Report — 2025-11-01T01:26:24.435Z
 
 Scanned directories: modules, services, features, components, ui
 
-## Missing Exports (0)
-✅ None
+## Missing Exports (1)
+| File | Function | Issue |
+|------|-----------|--------|
+| services/messageService.js | sendMessage | Missing expected export |
 
-## Possible Undefined Variables (0)
-✅ None
+## Possible Undefined Variables (3)
+| File | Symbol | Count | Issue |
+|------|---------|--------|--------|
+| services/gameRulesManager.js | phase | 1 | Possible undefined variable |
+| features/game-state/gameStateController.js | phase | 1 | Possible undefined variable |
+| components/FlatTireControl/controller/autoScheduler.js | phase | 1 | Possible undefined variable |

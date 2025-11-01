@@ -4,15 +4,18 @@
 // ============================================================================
 
 import { getTeamNameFromUrl, initializePlayerUI } from './core.js';
-import { subscribeSpeedBumps } from '../speedBump/index.js';
-import { onSpeedBumpUpdate } from './overlays/speedBumpOverlay.js';
+import { initializeSpeedBumpPlayer } from '../speedBumpPlayer.js';
 
 let detachSpeedBumpWatcher = null;
 
 function watchSpeedBumps(teamName) {
   if (!teamName) return;
-  detachSpeedBumpWatcher?.();
-  detachSpeedBumpWatcher = subscribeSpeedBumps(teamName, onSpeedBumpUpdate);
+  try {
+    detachSpeedBumpWatcher?.('handover');
+  } catch (err) {
+    console.warn('[playerUI:autoInit] Failed to hand off previous speed bump watcher:', err);
+  }
+  detachSpeedBumpWatcher = initializeSpeedBumpPlayer(teamName);
 }
 
 if (typeof document !== 'undefined') {
@@ -25,7 +28,7 @@ if (typeof document !== 'undefined') {
   });
 
   window.addEventListener('beforeunload', () => {
-    detachSpeedBumpWatcher?.();
+    detachSpeedBumpWatcher?.('page-unload');
     detachSpeedBumpWatcher = null;
   }, { once: true });
 }

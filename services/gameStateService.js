@@ -10,7 +10,7 @@
 // ============================================================================
 // === END AICP SERVICE HEADER ===
 
-/**
+/*
  * @file Manages core game state logic, such as pausing, resuming, and resetting the game.
  * This service will interact with Firestore to update and listen for game state changes.
  */
@@ -18,7 +18,7 @@
 import { doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { gameStateRef } from "./firestoreRefs.js";
 
-/**
+/*
  * Pauses the game.
  * This function will be moved from modules/gameStateManager.js
  */

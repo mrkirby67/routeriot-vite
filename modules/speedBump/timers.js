@@ -7,7 +7,7 @@ import { validationTimers } from './core.js';
 // ⏱️ Lazy reference injection to avoid circular import between timers ↔ interactions
 let _releaseSpeedBump = null;
 
-/**
+/*
  * Registers the release function after interactions.js has loaded.
  * interactions.js should call registerReleaseHandler(releaseSpeedBump)
  */

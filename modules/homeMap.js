@@ -2,7 +2,7 @@
 import { db, firebaseConfig } from './config.js';
 import { getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/** Parse "lat, lng" -> {lat, lng} or null */
+/* Parse "lat, lng" -> {lat, lng} or null */
 function parseGPS(gps) {
   if (typeof gps !== 'string') return null;
   const parts = gps.split(',').map(s => parseFloat(s.trim()));
@@ -10,14 +10,14 @@ function parseGPS(gps) {
   return { lat: parts[0], lng: parts[1] };
 }
 
-/** Compute average center from points */
+/* Compute average center from points */
 function averageCenter(points) {
   if (!points.length) return { lat: 0, lng: 0 };
   const sum = points.reduce((a, p) => ({ lat: a.lat + p.lat, lng: a.lng + p.lng }), { lat: 0, lng: 0 });
   return { lat: sum.lat / points.length, lng: sum.lng / points.length };
 }
 
-/** Compute bounds of points */
+/* Compute bounds of points */
 function boundsOf(points) {
   let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
   points.forEach(({ lat, lng }) => {
@@ -29,7 +29,7 @@ function boundsOf(points) {
   return { minLat, maxLat, minLng, maxLng };
 }
 
-/** Compute a zoom that fits bounds in given pixel size (rough but effective) */
+/* Compute a zoom that fits bounds in given pixel size (rough but effective) */
 function computeZoom(bounds, widthPx = 900, heightPx = 600, aroundLat = 45) {
   const PAD = 1.10;
   const latSpan = Math.max(0.000001, (bounds.maxLat - bounds.minLat) * PAD);
@@ -41,7 +41,7 @@ function computeZoom(bounds, widthPx = 900, heightPx = 600, aroundLat = 45) {
   return Math.max(3, Math.min(21, Math.floor(Math.min(lngZoom, latZoom))));
 }
 
-/** Create circle path (as polygon) around center, radiusMeters */
+/* Create circle path (as polygon) around center, radiusMeters */
 function circlePathPoints(center, radiusMeters, stepDeg = 10) {
   const R = 6371000; // Earth radius (m)
   const latRad = center.lat * Math.PI / 180;
@@ -64,7 +64,7 @@ function circlePathPoints(center, radiusMeters, stepDeg = 10) {
   return pts;
 }
 
-/** Build a Google Static Maps URL with red circle overlays */
+/* Build a Google Static Maps URL with red circle overlays */
 function buildStaticMapUrl(center, zoom, zones, size = '900x600', maptype = 'roadmap') {
   const base = new URL('https://maps.googleapis.com/maps/api/staticmap');
   base.searchParams.set('size', size);
@@ -90,7 +90,7 @@ function buildStaticMapUrl(center, zoom, zones, size = '900x600', maptype = 'roa
   return base.toString();
 }
 
-/** Render big home map into #home-map (container) */
+/* Render big home map into #home-map (container) */
 export async function renderHomeMap() {
   try {
     const container = document.getElementById('home-map');

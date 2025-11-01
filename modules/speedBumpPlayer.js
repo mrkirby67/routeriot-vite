@@ -1,97 +1,103 @@
 // ============================================================================
 // FILE: modules/speedBumpPlayer.js
-// PURPOSE: Player-side hooks for Speed Bump interactions and overlays
+// PURPOSE: Player-side hooks for Speed Bump overlays and quick triggers.
 // ============================================================================
 
-import { getRandomSpeedBumpPrompt } from './speedBumpChallenges.js';
 import {
-  sendSpeedBump,
-  releaseSpeedBump,
-  subscribeSpeedBumps,
-  getCooldownRemaining,
-  getActiveBump,
-  markProofSent,
-  sendSpeedBumpChirp
-} from './speedBump/index.js';
-import {
-  showSpeedBumpOverlay,
-  hideSpeedBumpOverlay
-} from './playerUI/overlays.js';
+  triggerSpeedBump,
+  clearSpeedBump,
+  subscribeToSpeedBump
+} from '../services/speed-bump/speedBumpService.js';
+import { showSpeedBumpOverlay } from '../ui/overlays/speedBumpOverlay.js';
 
-let currentTeamName = null;
+let currentTeamId = null;
+let currentTeamDisplay = null;
 let unsubscribe = null;
+let clearTimer = null;
+
+function resetTimer() {
+  if (clearTimer) {
+    clearTimeout(clearTimer);
+    clearTimer = null;
+  }
+}
+
+async function scheduleAutoClear(teamId, delayMs = 4_200) {
+  resetTimer();
+  if (!teamId) return;
+  clearTimer = setTimeout(async () => {
+    try {
+      await clearSpeedBump(teamId);
+    } catch (err) {
+      console.warn('[speedBumpPlayer] failed to clear speed bump:', err);
+    } finally {
+      clearTimer = null;
+    }
+  }, delayMs);
+}
+
+function handleSpeedBumpUpdate(bump) {
+  if (!bump || !bump.active) {
+    resetTimer();
+    return;
+  }
+
+  const type = typeof bump.type === 'string' && bump.type.trim() ? bump.type.trim() : 'Speed Bump';
+  const teamLabel =
+    (typeof bump.teamName === 'string' && bump.teamName.trim()) ||
+    (typeof bump.team === 'string' && bump.team.trim()) ||
+    (typeof bump.id === 'string' && bump.id.trim()) ||
+    currentTeamDisplay ||
+    'unknown team';
+  showSpeedBumpOverlay(type, { team: teamLabel });
+  scheduleAutoClear(currentTeamId);
+}
 
 export function initializeSpeedBumpPlayer(teamName) {
-  currentTeamName = teamName;
+  const normalizedTeam =
+    typeof teamName === 'string' && teamName.trim() ? teamName.trim().toLowerCase() : null;
+  const displayTeam = typeof teamName === 'string' && teamName.trim() ? teamName.trim() : null;
+  currentTeamId = normalizedTeam;
+  currentTeamDisplay = displayTeam;
+
   unsubscribe?.();
-  unsubscribe = subscribeSpeedBumps(teamName, handleStateUpdate);
-  handleStateUpdate();
+  resetTimer();
+
+  if (!normalizedTeam) {
+    console.warn('[speedBumpPlayer] initialize called without a team name');
+    return () => {};
+  }
+
+  unsubscribe = subscribeToSpeedBump(
+    normalizedTeam,
+    handleSpeedBumpUpdate,
+    (error) => console.warn('[speedBumpPlayer] speed bump subscription error:', error)
+  );
+
   return (reason = 'manual') => {
     unsubscribe?.();
     unsubscribe = null;
-    hideSpeedBumpOverlay();
-    if (reason !== 'handover') currentTeamName = null;
+    resetTimer();
+    if (reason !== 'handover') {
+      currentTeamId = null;
+      currentTeamDisplay = null;
+    }
   };
 }
 
-function handleStateUpdate() {
-  if (!currentTeamName) return;
-  const active = getActiveBump(currentTeamName);
-  if (active) {
-    showSpeedBumpOverlay({
-      by: active.by,
-      challenge: active.challenge,
-      countdownMs: active.countdownMs,
-      proofSent: Boolean(active.proofSentAt),
-      onProof: () => markProofSent(currentTeamName),
-      onRelease: () => releaseSpeedBumpFromPlayer(currentTeamName, currentTeamName),
-      onChirp: (value) => sendSpeedBumpChirp({
-        fromTeam: currentTeamName,
-        toTeam: active.by,
-        message: value
-      })
-    });
-  } else {
-    hideSpeedBumpOverlay();
-  }
-}
+export async function sendSpeedBumpFromPlayer(fromTeam, targetTeam, type = 'slowdown') {
+  const attacker =
+    typeof fromTeam === 'string' && fromTeam.trim() ? fromTeam.trim().toLowerCase() : null;
+  const defender =
+    typeof targetTeam === 'string' && targetTeam.trim() ? targetTeam.trim().toLowerCase() : null;
 
-export async function sendSpeedBumpFromPlayer(fromTeam, targetTeam) {
-  if (!fromTeam || !targetTeam || fromTeam === targetTeam) return;
-  const cooldownMs = getCooldownRemaining(fromTeam, 'bump');
-  if (cooldownMs > 0) {
-    alert(`🚧 Speed Bump cooldown active (${Math.ceil(cooldownMs / 1000)} seconds remaining).`);
+  if (!attacker || !defender || attacker === defender) {
     return;
   }
 
-  const defaultPrompt = getRandomSpeedBumpPrompt();
-  const challenge = window.prompt('Enter a Speed Bump photo challenge:', defaultPrompt);
-  if (!challenge) return;
-
-  const result = await sendSpeedBump(fromTeam, targetTeam, challenge, { override: false });
-  if (!result.ok) {
-    const seconds = result.reason || Math.ceil(getCooldownRemaining(fromTeam, 'bump') / 1000);
-    alert(`🚧 Speed Bump cooldown active (${seconds} seconds remaining).`);
-  } else {
-    alert(`🚧 Speed Bump sent to ${targetTeam}! Wait for their photo proof before releasing them.`);
-  }
-}
-
-export async function releaseSpeedBumpFromPlayer(targetTeam, releasingTeam) {
-  const active = getActiveBump(targetTeam);
-  if (!active) {
-    alert('ℹ️ No active Speed Bump to release.');
-    return;
-  }
-  const isOwner = active.by === releasingTeam;
-  const isSelfRelease = targetTeam === releasingTeam && (!active.countdownMs || active.countdownMs <= 0);
-  if (!isOwner && !isSelfRelease) {
-    alert('ℹ️ You can only release this team after the proof timer finishes.');
-    return;
-  }
-  await releaseSpeedBump(targetTeam, releasingTeam);
-}
-
-export function getPlayerSpeedBumpState(teamName) {
-  return getActiveBump(teamName);
+  await triggerSpeedBump(defender, type, {
+    teamName: typeof targetTeam === 'string' ? targetTeam.trim() : defender,
+    triggeredBy: typeof fromTeam === 'string' ? fromTeam.trim() : attacker,
+    origin: 'player'
+  });
 }

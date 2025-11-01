@@ -3,7 +3,7 @@
 // ============================================================================
 import { allTeams } from '../data.js';
 
-/**
+/*
  * Generates and opens Gmail compose links for teams with active racers.
  *
  * @param {string} rulesText - The editable rules text from Control.

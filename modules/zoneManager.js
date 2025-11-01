@@ -15,7 +15,7 @@ function normalizeZoneId(zoneId) {
   return zoneId.trim();
 }
 
-/**
+/*
  * Resolve a zone identifier to its human-friendly display name.
  * Falls back to the raw identifier if the zone cannot be found.
  */

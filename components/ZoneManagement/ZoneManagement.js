@@ -31,7 +31,7 @@ import {
 
 export { ZoneManagementComponent };
 
-/**
+/*
  * Initialize Zone Management logic for the Control dashboard.
  * @param {boolean} googleMapsApiLoaded - Whether Google Maps API is ready
  */

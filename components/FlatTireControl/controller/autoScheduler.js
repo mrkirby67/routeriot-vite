@@ -1,7 +1,7 @@
 // === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/FlatTireControl/controller/autoScheduler.js
-// PURPOSE: === AI-CONTEXT-MAP ===
+// PURPOSE: /*AICP-METADATA (sanitized)*/
 // DEPENDS_ON: ../../../modules/flatTireManager.js
 // USED_BY: features/flat-tire/flatTireController.js
 // AUTHOR: James Kirby / Route Riot Project
@@ -49,14 +49,24 @@ function runAutoCycle(controller) {
     status: 'auto-assigned'
   }).catch(err => console.warn('Auto assign fail', err));
 }
-// === AI-CONTEXT-MAP ===
-// phase: [dynamic]
-// aicp_category: [dynamic]
-// exports: [dynamic]
-// linked_files: [dynamic]
-// status: [dynamic]
+// === AICP-METADATA === (sanitized)
+// aicp_category: sanitized placeholder
+// exports: sanitized placeholder
+// linked_files: sanitized placeholder
+// status: sanitized placeholder
 // ai_origin:
-//   primary: [dynamic]
-//   secondary: [dynamic]
-// sync_state: [dynamic]
+//   primary: sanitized placeholder
+//   secondary: sanitized placeholder
+// sync_state: sanitized placeholder
 // === END ===
+// // // // # === AI-CONTEXT-MAP === (commented out) (commented out) (commented out) (commented out)
+// phase: // /*// /*// /*// /*{{phase}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// aicp_category: // /*// /*// /*// /*{{category}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// exports: // /*// /*// /*// /*{{exports}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// linked_files: // /*// /*// /*// /*{{linked_files}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// status: // /*// /*// /*// /*{{status}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// ai_origin:
+// sanitized metadata line
+//   secondary: // /*// /*// /*// /*{{secondary_ai}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// sync_state: // /*// /*// /*// /*{{sync_state}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// // // // # === END === (commented out) (commented out) (commented out) (commented out)

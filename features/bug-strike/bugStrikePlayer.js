@@ -10,12 +10,12 @@
 // ============================================================================
 // === END AICP FEATURE HEADER ===
 
-/**
+/*
  * @file Handles the player-side logic for Bug Strikes.
  * This will replace the logic in modules/playerBugStrike.js
  */
 
-/**
+/*
  * Initializes the bug strike feature for the player.
  */
 export function initializeBugStrikePlayer() {

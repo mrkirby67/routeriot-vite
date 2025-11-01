@@ -1,92 +1,250 @@
 // === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/SpeedBumpControl.js
-// PURPOSE: === AI-CONTEXT-MAP ===
-// DEPENDS_ON: components/SpeedBumpControl/speedBumpControlController.js
-// USED_BY: none
-// AUTHOR: James Kirby / Route Riot Project
+// PURPOSE: Control panel UI for firing Speed Bump events.
+// DEPENDS_ON: ../../services/teamService.js, ../../services/speed-bump/speedBumpService.js
+// USED_BY: control.js
+// AUTHOR: Route Riot – Speed Bump Refresh
 // CREATED: 2025-10-30
-// AICP_VERSION: 3.0
+// AICP_VERSION: 3.1
 // ============================================================================
 // === END AICP COMPONENT HEADER ===
 
-import styles from './SpeedBumpControl.module.css';
-import { createSpeedBumpControlController } from './speedBumpControlController.js';
+import { getAllTeams } from '../../services/teamService.js';
+import {
+  triggerSpeedBump,
+  subscribeToSpeedBumpStatuses
+} from '../../services/speed-bump/speedBumpService.js';
+import { showFlashMessage } from '../../ui/gameNotifications.js';
 
-let controllerInstance = null;
+const teardownCallbacks = [];
+const statusCells = new Map();
+
+function normalizeTeamId(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.toLowerCase() : null;
+}
+
+function registerTeardown(fn) {
+  if (typeof fn === 'function') teardownCallbacks.push(fn);
+}
+
+function runTeardown(reason = 'manual') {
+  while (teardownCallbacks.length) {
+    const handler = teardownCallbacks.pop();
+    try {
+      handler?.(reason);
+    } catch (err) {
+      console.error('[SpeedBumpControl] teardown handler failed:', err);
+    }
+  }
+  statusCells.clear();
+}
+
+function formatStatus({ active, type } = {}) {
+  if (!active) return 'Idle';
+  const label = type === 'flat-tire' ? 'Flat Tire' : 'Slowdown';
+  return `Active – ${label}`;
+}
+
+function setStatus(teamId, payload) {
+  const normalized = normalizeTeamId(teamId);
+  const meta = normalized ? statusCells.get(normalized) : null;
+  if (!meta) return;
+  const { cell } = meta;
+  cell.textContent = formatStatus(payload);
+  cell.dataset.state = payload?.active ? 'active' : 'idle';
+  if (payload?.type) {
+    cell.dataset.type = payload.type;
+  } else {
+    delete cell.dataset.type;
+  }
+}
+
+function createActionButton(teamId, teamName, type, label) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'speedbump-control__btn';
+  button.dataset.team = teamId;
+  button.dataset.teamName = teamName;
+  button.dataset.speedbump = type;
+  button.textContent = label;
+  return button;
+}
+
+function buildRow(team) {
+  const nameFromData = typeof team.name === 'string' && team.name.trim() ? team.name.trim() : '';
+  const rawId = typeof team.id === 'string' && team.id.trim() ? team.id.trim() : '';
+  const preferredId = rawId || nameFromData;
+  const normalizedId = normalizeTeamId(preferredId);
+  if (!normalizedId) return null;
+
+  const teamName = nameFromData || preferredId || 'Unknown Team';
+
+  const row = document.createElement('tr');
+  row.dataset.teamId = normalizedId;
+
+  const nameCell = document.createElement('td');
+  nameCell.textContent = teamName;
+
+  const statusCell = document.createElement('td');
+  statusCell.dataset.role = 'status';
+  statusCell.textContent = 'Idle';
+
+  const actionsCell = document.createElement('td');
+  actionsCell.className = 'speedbump-control__actions';
+  actionsCell.appendChild(createActionButton(normalizedId, teamName, 'flat-tire', 'Flat Tire'));
+  actionsCell.appendChild(createActionButton(normalizedId, teamName, 'slowdown', 'Slowdown'));
+
+  row.append(nameCell, statusCell, actionsCell);
+  statusCells.set(normalizedId, { cell: statusCell, name: teamName });
+  return row;
+}
+
+function bindButtons(root) {
+  const buttons = root.querySelectorAll('[data-speedbump]');
+  buttons.forEach((button) => {
+    const handleClick = async (event) => {
+      const current = event.currentTarget;
+      const teamId = current.dataset.team;
+      const teamName = current.dataset.teamName || teamId;
+      const type = current.dataset.speedbump;
+
+      if (!teamId || !type) return;
+
+      const normalizedId = normalizeTeamId(teamId);
+      const statusMeta = normalizedId ? statusCells.get(normalizedId) : null;
+      if (statusMeta) {
+        statusMeta.cell.textContent = 'Sending…';
+        statusMeta.cell.dataset.state = 'pending';
+      }
+
+      current.disabled = true;
+      current.classList.add('is-pending');
+
+      try {
+        await triggerSpeedBump(teamId, type, { teamName });
+        console.info(`🚧 Speed Bump sent to ${teamName} (${type})`);
+        showFlashMessage('Speed Bump Sent!', 2500);
+      } catch (err) {
+        console.error(`⚠️ Failed to trigger speed bump for ${teamName}:`, err);
+        if (statusMeta) {
+          statusMeta.cell.textContent = 'Failed';
+          statusMeta.cell.dataset.state = 'error';
+        }
+      }
+
+      setTimeout(() => {
+        current.disabled = false;
+        current.classList.remove('is-pending');
+      }, 5_000);
+    };
+
+    button.addEventListener('click', handleClick);
+    registerTeardown(() => button.removeEventListener('click', handleClick));
+  });
+}
+
+function subscribeToStatuses() {
+  const unsubscribe = subscribeToSpeedBumpStatuses((map) => {
+    if (!(map instanceof Map)) return;
+    statusCells.forEach((_, teamId) => {
+      const payload = map.get(teamId);
+      setStatus(teamId, payload);
+    });
+  });
+
+  registerTeardown(() => unsubscribe?.());
+}
 
 export function SpeedBumpControlComponent() {
   return `
-    <div class="${styles.controlSection}">
-      <div class="${styles.headerRow}">
-        <div>
-          <h2>Speed Bump – Photo Challenge</h2>
-          <p class="${styles.subhead}">Manage and release speed bump challenges.</p>
-        </div>
-        <label class="${styles.overrideToggle}">
-          <input type="checkbox" id="speedbump-admin-override" checked>
-          <span>Admin override enabled</span>
-        </label>
-      </div>
-
-      <div class="${styles.promptLegend}">
-        <div class="${styles.legendControls}">
-          <button type="button" id="speedbump-shuffle-all" class="${styles.secondaryBtn}">🔁 Shuffle</button>
-          <button type="button" id="speedbump-save-prompts" class="${styles.secondaryBtn}">💾 Save Team Prompts</button>
-        </div>
-        <span class="${styles.legendNote}">⚠️ Release when you are sent a photo of the Speed Bump Photo Fix.</span>
-      </div>
-
-      <table class="${styles.dataTable}" id="speedbump-table">
+    <section class="speedbump-control">
+      <header class="speedbump-control__header">
+        <h2>🚧 Speed Bump Control</h2>
+        <p>Trigger quick challenges to slow teams down.</p>
+      </header>
+      <table id="speedbump-table" class="speedbump-control__table">
         <thead>
           <tr>
-            <th>Team</th>
-            <th>Challenge Prompt</th>
-            <th>Send / Release</th>
-            <th>Status</th>
+            <th scope="col">Team</th>
+            <th scope="col">Status</th>
+            <th scope="col">Actions</th>
           </tr>
         </thead>
         <tbody id="speedbump-table-body">
           <tr>
-            <td colspan="4" class="${styles.loading}">Loading teams…</td>
+            <td colspan="3">Loading teams…</td>
           </tr>
         </tbody>
       </table>
-
-      <div class="${styles.challengeBankSection}">
-        <div class="${styles.bankHeader}">
-          <h3>📸 Speed Bump Challenge Bank</h3>
-          <p class="${styles.bankHint}">Edit the live challenge bank below. Shuffles pull from this list.</p>
-        </div>
-        <div id="speedbump-bank-list" class="${styles.challengeList}">
-          <div class="${styles.loading}">Loading challenge bank…</div>
-        </div>
-        <div class="${styles.bankControls}">
-          <button type="button" id="speedbump-bank-add" class="${styles.secondaryBtn}">➕ Add New Challenge</button>
-          <button type="button" id="speedbump-save-bank" class="${styles.primaryBtn}">💾 Save Speed Bump Bank</button>
-        </div>
-        <div id="speedbump-bank-status" class="${styles.bankStatus}" role="status" aria-live="polite"></div>
-      </div>
-    </div>
+    </section>
   `;
 }
 
 export async function initializeSpeedBumpControl() {
-  controllerInstance?.destroy('reinitialize');
-  controllerInstance = createSpeedBumpControlController();
-  return controllerInstance.initialize();
+  runTeardown('reinitialize');
+
+  const tableBody = document.getElementById('speedbump-table-body');
+  if (!tableBody) {
+    console.warn('⚠️ [SpeedBumpControl] Missing #speedbump-table-body');
+    return () => {};
+  }
+
+  tableBody.innerHTML = `
+    <tr>
+      <td colspan="3">Loading teams…</td>
+    </tr>
+  `;
+
+  let teams = [];
+  try {
+    teams = await getAllTeams();
+  } catch (err) {
+    console.error('⚠️ [SpeedBumpControl] Failed to load teams:', err);
+  }
+
+  if (!Array.isArray(teams) || !teams.length) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="3">No teams available.</td>
+      </tr>
+    `;
+    return (reason = 'manual') => runTeardown(reason);
+  }
+
+  statusCells.clear();
+  tableBody.innerHTML = '';
+  teams
+    .map((team) => buildRow(team))
+    .filter(Boolean)
+    .forEach((row) => tableBody.appendChild(row));
+
+  if (!tableBody.children.length) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="3">No teams available.</td>
+      </tr>
+    `;
+    return (reason = 'manual') => runTeardown(reason);
+  }
+
+  bindButtons(tableBody);
+  subscribeToStatuses();
+
+  return (reason = 'manual') => runTeardown(reason);
 }
 
 export function teardownSpeedBumpControl(reason = 'manual') {
-  controllerInstance?.destroy(reason);
-  controllerInstance = null;
+  runTeardown(reason);
 }
 
 // === AICP COMPONENT FOOTER ===
 // ai_origin: components/SpeedBumpControl/SpeedBumpControl.js
 // ai_role: UI Layer
 // aicp_category: component
-// aicp_version: 3.0
+// aicp_version: 3.1
 // codex_phase: tier3_components_injection
 // export_bridge: services/*
 // exports: SpeedBumpControlComponent, initializeSpeedBumpControl, teardownSpeedBumpControl
@@ -96,5 +254,4 @@ export function teardownSpeedBumpControl(reason = 'manual') {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
 // === END AICP COMPONENT FOOTER ===

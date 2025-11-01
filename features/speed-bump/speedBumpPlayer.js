@@ -10,12 +10,12 @@
 // ============================================================================
 // === END AICP FEATURE HEADER ===
 
-/**
+/*
  * @file Handles the player-side logic for Speed Bumps.
  * This will replace the logic in modules/speedBumpPlayer.js
  */
 
-/**
+/*
  * Initializes the speed bump feature for the player.
  */
 export function initializeSpeedBumpPlayer() {

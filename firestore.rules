@@ -3,6 +3,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    match /speedBumps/{teamId} {
+      allow read, write: if true;
+    }
+
+    match /conversations/{messageId} {
+      allow read, write: if true;
+    }
+
     // --- WIDE OPEN DEVELOPMENT RULE ---
     // This single wildcard rule makes the entire database publicly readable and writable.
     // It matches every document in every collection and subcollection.
