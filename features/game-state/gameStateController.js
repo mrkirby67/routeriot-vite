@@ -42,14 +42,14 @@ export function listenToGameStateUpdates(callback) {
 //   secondary: sanitized placeholder
 // sync_state: sanitized placeholder
 // === END ===
-// // // // // # === AI-CONTEXT-MAP === (commented out) (commented out) (commented out) (commented out) (commented out)
-// phase: // /*// /*// /*// /*// /*{{phase}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// aicp_category: // /*// /*// /*// /*// /*{{category}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// exports: // /*// /*// /*// /*// /*{{exports}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// linked_files: // /*// /*// /*// /*// /*{{linked_files}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// status: // /*// /*// /*// /*// /*{{status}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// // // // // // # === AI-CONTEXT-MAP === (commented out) (commented out) (commented out) (commented out) (commented out) (commented out)
+// phase: // /*// /*// /*// /*// /*// /*{{phase}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// aicp_category: // /*// /*// /*// /*// /*// /*{{category}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// exports: // /*// /*// /*// /*// /*// /*{{exports}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// linked_files: // /*// /*// /*// /*// /*// /*{{linked_files}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// status: // /*// /*// /*// /*// /*// /*{{status}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
 // ai_origin:
 // sanitized metadata line
-//   secondary: // /*// /*// /*// /*// /*{{secondary_ai}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// sync_state: // /*// /*// /*// /*// /*{{sync_state}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// // // // // # === END === (commented out) (commented out) (commented out) (commented out) (commented out)
+//   secondary: // /*// /*// /*// /*// /*// /*{{secondary_ai}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// sync_state: // /*// /*// /*// /*// /*// /*{{sync_state}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
+// // // // // // # === END === (commented out) (commented out) (commented out) (commented out) (commented out) (commented out)
