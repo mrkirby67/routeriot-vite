@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-11-02T13:47:36.394Z
+# AICP File Health Report — 2025-11-02T13:57:18.793Z
 Files scanned: 125
 
 | File | Lines | Size (KB) | Complexity | Comment % |
@@ -16,11 +16,11 @@ Files scanned: 125
 | features/flat-tire/flatTireEvents.js | 282 | 9.2 | 71 | 10% |
 | modules/controlStatus.js | 265 | 9.2 | 37 | 14% |
 | modules/flatTireUI.js | 265 | 8.4 | 39 | 2% |
+| modules/chatManager/messageService.js | 263 | 9.9 | 45 | 9% |
 | modules/playerBugStrikeUI.js | 259 | 8.5 | 42 | 17% |
 | components/Scoreboard/Scoreboard.js | 258 | 9.3 | 33 | 18% |
 | components/SpeedBumpControl/SpeedBumpControl.js | 258 | 7.6 | 42 | 10% |
 | modules/zones.js | 256 | 8.8 | 34 | 3% |
-| modules/chatManager/messageService.js | 254 | 9.7 | 42 | 9% |
 | modules/zonesChallenge.js | 250 | 9.2 | 37 | 10% |
 | modules/speedBump/index.js | 249 | 7.8 | 34 | 3% |
 | components/ZoneManagement/zoneRender.js | 243 | 9.6 | 17 | 14% |

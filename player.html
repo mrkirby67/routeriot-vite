@@ -107,6 +107,19 @@
     }
     .status-taken { opacity: 0.6; border: 2px solid #c62828; }
     .status-available { border: 2px solid #2e7d32; }
+    .team-chat-input {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .team-chat-input input {
+      flex: 1;
+      padding: 0.45rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      background: #161b22;
+      color: #e6edf3;
+    }
 
     /* 🌟 Flash animation for location updates */
     #player-location.flash {
@@ -224,6 +237,10 @@
       <h2>Team Chat</h2>
       <div id="team-chat-log" class="log-box">
         <p>Your team’s messages will appear here…</p>
+      </div>
+      <div class="team-chat-input">
+        <input id="chat-input" type="text" placeholder="Type your message..." />
+        <button id="send-chat-button">Send</button>
       </div>
     </div>
 

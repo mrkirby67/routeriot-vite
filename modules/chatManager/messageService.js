@@ -13,7 +13,7 @@ import {
   where,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { clearRegistry, registerListener } from './registry.js';
+import { clearRegistry } from './registry.js';
 import { GAME_MASTER_NAME, resolveSenderName, safeHTML, shouldRenderRaw } from './utils.js';
 
 // ✅ NEW DATA-LAYER IMPORT (bridge to refactored service)
@@ -41,7 +41,8 @@ export function listenForMyMessages(teamName, callback) {
   } catch (err) {
     console.error('Chat listener bridge error:', err);
   }
-  return legacyListenForMyMessages(teamName, callback);
+  console.warn('legacyListenForMyMessages has been disabled; falling back to no-op.');
+  return () => {};
 }
 
 // ----------------------------------------------------------------------------
@@ -104,6 +105,13 @@ export async function broadcastChirp(fromTeam, message) {
 // ----------------------------------------------------------------------------
 // 🧠 Legacy Player Feed (kept for now – still used by Control dashboard)
 // ----------------------------------------------------------------------------
+export function legacyListenForMyMessages() {
+  console.warn('legacyListenForMyMessages is deprecated after the chat schema update.');
+  clearRegistry('playerMessages');
+  return () => {};
+}
+
+/*
 export function legacyListenForMyMessages(myTeamName, logBox) {
   clearRegistry('playerMessages');
 
@@ -195,6 +203,7 @@ export function legacyListenForMyMessages(myTeamName, logBox) {
 
   return () => clearRegistry('playerMessages');
 }
+*/
 
 // ----------------------------------------------------------------------------
 // 🕊️ Chirp Cooldown + UI Helper
