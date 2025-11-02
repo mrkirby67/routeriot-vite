@@ -30,9 +30,12 @@ export async function applyToAllTeams(selectedType, newCount = 0) {
     return;
   }
 
-  const snap = await getDocs(collection(db, 'teamSurprises'));
-  if (snap.empty) {
-    alert('⚠️ No teams found in Firestore.');
+  // First, get the canonical list of active teams.
+  const activeTeamsSnap = await getDoc(doc(db, 'game', 'activeTeams'));
+  const activeTeams = activeTeamsSnap.exists() ? activeTeamsSnap.data().list || [] : [];
+
+  if (activeTeams.length === 0) {
+    alert('⚠️ No active teams found in the game. Start a game and assign teams first.');
     return;
   }
 
@@ -42,13 +45,14 @@ export async function applyToAllTeams(selectedType, newCount = 0) {
       ? TYPE_CONFIG.map(cfg => cfg.key)
       : [selectedType];
 
-  snap.docs.forEach((docSnap) => {
-    const data = docSnap.data() || {};
-    const counts = { ...(data.counts || {}) };
+  // Iterate through the correct list of teams.
+  activeTeams.forEach((teamName) => {
+    const teamDocRef = doc(db, 'teamSurprises', teamName);
+    const newCounts = {};
     typesToUpdate.forEach(type => {
-      counts[type] = newCount;
+      newCounts[type] = newCount;
     });
-    batch.set(doc(db, 'teamSurprises', docSnap.id), { counts }, { merge: true });
+    batch.set(teamDocRef, { counts: newCounts }, { merge: true });
   });
 
   await batch.commit();

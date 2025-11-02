@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-11-02T13:40:53.317Z
+# AICP File Health Report — 2025-11-02T13:45:58.288Z
 Files scanned: 125
 
 | File | Lines | Size (KB) | Complexity | Comment % |
@@ -8,7 +8,7 @@ Files scanned: 125
 | modules/speedBump/interactions.js | 399 | 13.6 | 77 | 7% |
 | components/BugStrikeControl/BugStrikeControl.js | 394 | 11.9 | 45 | 9% |
 | services/team-surprise/teamSurpriseService.js | 361 | 12.0 | 76 | 7% |
-| components/SurpriseSelector/SurpriseSelector.js | 354 | 11.9 | 60 | 8% |
+| components/SurpriseSelector/SurpriseSelector.js | 358 | 12.1 | 60 | 9% |
 | modules/gameRulesManager.js | 327 | 11.0 | 53 | 7% |
 | components/ZoneManagement/zoneHandlers.js | 301 | 10.2 | 45 | 14% |
 | components/ZoneQuestions/ZoneQuestionsEditor.js | 286 | 9.4 | 39 | 16% |
@@ -135,7 +135,7 @@ Files scanned: 125
 - modules/speedBump/interactions.js — 399 lines, 13.6 KB (Complexity: 77)
 - components/BugStrikeControl/BugStrikeControl.js — 394 lines, 11.9 KB (Complexity: 45)
 - services/team-surprise/teamSurpriseService.js — 361 lines, 12.0 KB (Complexity: 76)
-- components/SurpriseSelector/SurpriseSelector.js — 354 lines, 11.9 KB (Complexity: 60)
+- components/SurpriseSelector/SurpriseSelector.js — 358 lines, 12.1 KB (Complexity: 60)
 - modules/gameRulesManager.js — 327 lines, 11.0 KB (Complexity: 53)
 - components/ZoneManagement/zoneHandlers.js — 301 lines, 10.2 KB (Complexity: 45)
 - components/ZoneQuestions/ZoneQuestionsEditor.js — 286 lines, 9.4 KB (Complexity: 39)
