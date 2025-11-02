@@ -20,7 +20,7 @@ import {
   subscribeAllCooldowns, // New
 } from '../../features/team-surprise/teamSurpriseController.js';
 import { escapeHtml } from '../../modules/utils.js';
-import { getDocs, collection, writeBatch, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getDocs, collection, writeBatch, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../../modules/config.js';
 
 /* Apply the selected wild-card values to every team in Firestore. */
