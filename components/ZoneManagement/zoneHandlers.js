@@ -22,18 +22,70 @@ import {
 
 import { updateControlledZones } from '../../modules/scoreboardManager.js';
 import { allTeams } from '../../data.js';
+import { allowedQuestionTypes, questionTypeLabels } from '../ZoneQuestions/ZoneQuestionsTypes.js';
 
-/* ---------------------------------------------------------------------------
- * 🔍 MANAGE BUTTON (toggle zone details)
- * ------------------------------------------------------------------------ */
-async function onManageClick(zoneId) {
+// ---------------------------------------------------------------------------
+// 💾 SAVE QUESTIONS (for a specific zone)
+// ---------------------------------------------------------------------------
+async function saveZoneQuestions(zoneId) {
+  if (!zoneId) return;
+
   const detailsRow = document.getElementById(`details-${zoneId}`);
   if (!detailsRow) return;
-  const isVisible = detailsRow.style.display === 'table-row';
-  detailsRow.style.display = isVisible ? 'none' : 'table-row';
 
-  const btn = document.querySelector(`.manage-zone-btn[data-zone-id="${zoneId}"]`);
-  if (btn) btn.textContent = isVisible ? 'Manage' : 'Close';
+  const questionRows = detailsRow.querySelectorAll('tbody tr[data-question-id]');
+  let savedCount = 0;
+
+  for (const row of questionRows) {
+    const questionId = row.dataset.questionId;
+    const questionText = row.querySelector('[data-col="question"]')?.textContent.trim();
+    const answerText = row.querySelector('[data-col="answer"]')?.textContent.trim();
+    const type = row.querySelector('.question-type-select')?.value;
+
+    // Skip blank new rows
+    if (questionId.startsWith('new-') && !questionText && !answerText) {
+      continue;
+    }
+
+    const finalQuestionId = questionId.startsWith('new-') ? doc(collection(db, 'zones', zoneId, 'questions')).id : questionId;
+
+    const questionData = {
+      question: questionText,
+      answer: answerText,
+      type: type,
+      updatedAt: serverTimestamp(),
+    };
+
+    await setDoc(doc(db, 'zones', zoneId, 'questions', finalQuestionId), questionData, { merge: true });
+    savedCount++;
+  }
+
+  console.log(`💾 Saved ${savedCount} questions for zone ${zoneId}.`);
+}
+
+
+/* ---------------------------------------------------------------------------
+ * 🔍 MANAGE BUTTON (toggle zone details and SAVE ON CLOSE)
+ * ------------------------------------------------------------------------ */
+async function onManageClick(zoneId, renderZones, tableBody, googleMapsApiLoaded) {
+  const detailsRow = document.getElementById(`details-${zoneId}`);
+  if (!detailsRow) return;
+
+  const isVisible = detailsRow.style.display === 'table-row';
+
+  // If we are about to close the view, save the questions first.
+  if (isVisible) {
+    await saveZoneQuestions(zoneId);
+    await renderZones({ tableBody, googleMapsApiLoaded }); // Re-render to show fresh data
+  }
+
+  // Toggle visibility AFTER saving and re-rendering
+  const newDetailsRow = document.getElementById(`details-${zoneId}`);
+  if(newDetailsRow) {
+    newDetailsRow.style.display = isVisible ? 'none' : 'table-row';
+    const btn = document.querySelector(`.manage-zone-btn[data-zone-id="${zoneId}"]`);
+    if (btn) btn.textContent = isVisible ? 'Manage' : '💾 Close';
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -109,46 +161,23 @@ async function onForceCapture(zoneId, renderZones, tableBody, googleMapsApiLoade
 }
 
 /* ---------------------------------------------------------------------------
- * ✏️ EDITABLE CELL SAVE (zone fields + questions)
+ * ✏️ EDITABLE CELL SAVE (zone fields ONLY)
  * ------------------------------------------------------------------------ */
 async function onEditableBlur(e) {
   const cell = e.target;
   if (!cell.isContentEditable) return;
 
-  const zoneRow = cell.closest('tr');
+  const zoneRow = cell.closest('tr[data-zone-id]');
   const zoneId = zoneRow?.dataset?.zoneId;
   if (!zoneId) return;
 
-  // --- Zone Main Fields ---
+  // This function now ONLY handles the main zone fields (name, gps, diameter)
   const field = cell.dataset.field;
   if (field) {
     const value = cell.textContent.trim();
     await setDoc(
       doc(db, 'zones', zoneId),
       { [field]: value, updatedAt: serverTimestamp() },
-      { merge: true }
-    );
-
-    cell.style.background = '#1b5e20';
-    setTimeout(() => (cell.style.background = ''), 400);
-    return;
-  }
-
-  // --- Question Table Fields ---
-  const qTable = cell.closest('.questions-table');
-  if (qTable) {
-    const row = cell.closest('tr');
-    const questionId = row?.dataset?.questionId;
-    const zone = qTable.dataset.zoneId;
-    if (!questionId || !zone) return;
-
-    const columns = ['question', 'answer', 'type'];
-    const colName = columns[cell.cellIndex] || 'question';
-    const value = cell.textContent.trim();
-
-    await setDoc(
-      doc(db, 'zones', zone, 'questions', questionId),
-      { [colName]: value, updatedAt: serverTimestamp() },
       { merge: true }
     );
 
@@ -186,6 +215,33 @@ async function onAddZone(renderZones, tableBody, googleMapsApiLoaded) {
 }
 
 /* ---------------------------------------------------------------------------
+ * ➕ ADD QUESTION BUTTON
+ * ------------------------------------------------------------------------ */
+function onAddQuestionClick(e) {
+    const zoneId = e.target.dataset.zoneId;
+    if (!zoneId) return;
+
+    const tableBody = document.querySelector(`.questions-table[data-zone-id="${zoneId}"] tbody`);
+    if (!tableBody) return;
+
+    const newId = `new-${Date.now()}`;
+    const newRow = document.createElement('tr');
+    newRow.dataset.questionId = newId;
+    newRow.innerHTML = `
+        <td contenteditable="true" data-col="question"></td>
+        <td contenteditable="true" data-col="answer"></td>
+        <td data-col="type">
+            <select class="question-type-select">
+                ${allowedQuestionTypes
+                    .map(t => `<option value="${t}">${questionTypeLabels[t] || t}</option>`)
+                    .join('')}
+            </select>
+        </td>
+    `;
+    tableBody.appendChild(newRow);
+}
+
+/* ---------------------------------------------------------------------------
  * 📡 ATTACH ALL HANDLERS
  * ------------------------------------------------------------------------ */
 export function attachZoneHandlers({ tableBody, renderZones, googleMapsApiLoaded }) {
@@ -197,7 +253,7 @@ export function attachZoneHandlers({ tableBody, renderZones, googleMapsApiLoaded
     const zoneId = target?.dataset?.zoneId;
 
     if (target.classList.contains('manage-zone-btn')) {
-      await onManageClick(zoneId);
+      await onManageClick(zoneId, renderZones, tableBody, googleMapsApiLoaded);
       return;
     }
     if (target.classList.contains('reset-zone-btn')) {
@@ -208,9 +264,13 @@ export function attachZoneHandlers({ tableBody, renderZones, googleMapsApiLoaded
       await onForceCapture(zoneId, renderZones, tableBody, googleMapsApiLoaded);
       return;
     }
+    if (target.classList.contains('add-question-btn')) {
+        onAddQuestionClick(e);
+        return;
+    }
   });
 
-  // Editable cell save (zone fields + questions)
+  // Editable cell save (zone fields only)
   tableBody.addEventListener('blur', onEditableBlur, true);
 
   // Add Zone button

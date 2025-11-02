@@ -49,24 +49,6 @@ function runAutoCycle(controller) {
     status: 'auto-assigned'
   }).catch(err => console.warn('Auto assign fail', err));
 }
-// === AICP-METADATA === (sanitized)
-// aicp_category: sanitized placeholder
-// exports: sanitized placeholder
-// linked_files: sanitized placeholder
-// status: sanitized placeholder
-// ai_origin:
-//   primary: sanitized placeholder
-//   secondary: sanitized placeholder
-// sync_state: sanitized placeholder
-// === END ===
-// // // // // // # === AI-CONTEXT-MAP === (commented out) (commented out) (commented out) (commented out) (commented out) (commented out)
-// phase: // /*// /*// /*// /*// /*// /*{{phase}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// aicp_category: // /*// /*// /*// /*// /*// /*{{category}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// exports: // /*// /*// /*// /*// /*// /*{{exports}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// linked_files: // /*// /*// /*// /*// /*// /*{{linked_files}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// status: // /*// /*// /*// /*// /*// /*{{status}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// ai_origin:
-// sanitized metadata line
-//   secondary: // /*// /*// /*// /*// /*// /*{{secondary_ai}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// sync_state: // /*// /*// /*// /*// /*// /*{{sync_state}}*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)*/ (commented out)
-// // // // // // # === END === (commented out) (commented out) (commented out) (commented out) (commented out) (commented out)
+// === AICP METADATA ===
+// AICP phase tag validated
+// phase: validated

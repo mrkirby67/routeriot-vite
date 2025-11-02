@@ -3,6 +3,7 @@
  * AICP Validation & Auto-Repair Script
  * -----------------------------------
  * Validates all JS files for AICP v3 headers/footers and optionally fixes issues.
+ * Now includes AICP Layer Graph Bootstrap for automatic layer awareness.
  * Usage:
  *   npm run aicp-validate          → validate only
  *   npm run aicp-validate -- --fix → validate + repair missing metadata
@@ -10,8 +11,57 @@
 
 import fs from "fs";
 import path from "path";
+import yaml from "js-yaml";
 
+// ---------------------------------------------------------------------------
+// 🧩 AICP Layer Graph Bootstrap
+// ---------------------------------------------------------------------------
 const ROOT = process.cwd();
+const INDEX_PATH = path.join(ROOT, ".aicp", "aicp_index.yaml");
+const LAYER_GRAPH_REPORT = path.join(ROOT, "docs/aicp_layergraph_status.md");
+
+let layerGraph = {};
+
+function loadLayerGraph() {
+  try {
+    const yamlData = fs.readFileSync(INDEX_PATH, "utf8");
+    layerGraph = yaml.load(yamlData);
+    console.log("✅ AICP Layer Graph loaded:", layerGraph.layers || {});
+  } catch (err) {
+    console.warn("⚠️ Could not load AICP layer graph:", err.message);
+    layerGraph = { layers: {} };
+  }
+}
+
+function writeLayerGraphReport() {
+  try {
+    const timestamp = new Date().toISOString();
+    const lines = [
+      `# 🧭 AICP Layer Graph Status — ${timestamp}`,
+      "",
+      "| Layer | Count |",
+      "|--------|-------|",
+      ...Object.entries(layerGraph.layers || {}).map(
+        ([name, count]) => `| ${name} | ${count} |`
+      ),
+      "",
+      "Graph source: `.aicp/aicp_index.yaml`",
+    ];
+    fs.mkdirSync(path.dirname(LAYER_GRAPH_REPORT), { recursive: true });
+    fs.writeFileSync(LAYER_GRAPH_REPORT, lines.join("\n"), "utf8");
+    console.log(`📘 Layer graph snapshot written → ${LAYER_GRAPH_REPORT}`);
+  } catch (err) {
+    console.error("❌ Failed to write AICP Layer Graph report:", err.message);
+  }
+}
+
+// Load the graph before validation
+loadLayerGraph();
+writeLayerGraphReport();
+
+// ---------------------------------------------------------------------------
+// 🧪 AICP Validation Logic
+// ---------------------------------------------------------------------------
 const OUT_PATH = path.join(ROOT, "docs/aicp_validation_report.md");
 const TEMPLATE_HEADER = path.join(ROOT, ".aicp/templates/aicp_header.txt");
 const TEMPLATE_FOOTER = path.join(ROOT, ".aicp/templates/aicp_footer.yaml");

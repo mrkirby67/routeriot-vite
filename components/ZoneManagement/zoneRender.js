@@ -86,8 +86,9 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
     const zoneData = zoneDoc.data();
 
     // 🔢 Load questions for this zone
-    const questionsSnap = await getDocs(collection(db, 'zones', zoneId, 'questions'));
-    const questionsCount = questionsSnap.size;
+    const questionsCol = collection(db, 'zones', zoneId, 'questions');
+    const questionsSnap = await getDocs(questionsCol);
+    const questions = questionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     // 🧭 Normalize controlling team
     const controllingTeam =
@@ -181,33 +182,36 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
     const detailsRow = document.createElement('tr');
     detailsRow.id = `details-${zoneId}`;
     detailsRow.style.display = 'none';
+    
+    const questionRowsHtml = questions.map(q => {
+        return `
+          <tr data-question-id="${q.id}">
+            <td contenteditable="true" data-col="question">${q.question || ''}</td>
+            <td contenteditable="true" data-col="answer">${q.answer || ''}</td>
+            <td data-col="type">
+              <select class="question-type-select">
+                ${allowedQuestionTypes
+                  .map(t => `<option value="${t}" ${q.type === t ? 'selected' : ''}>${questionTypeLabels[t] || t}</option>`)
+                  .join('')}
+              </select>
+            </td>
+          </tr>`;
+      }).join('');
+
     detailsRow.innerHTML = `
       <td colspan="6" style="background:#2c2c2c;padding:20px;">
         <div class="map-container">${miniMapHtml(zoneData, googleMapsApiLoaded)}</div>
         <div class="zone-questions-container" style="margin-top:20px;">
-          <h4>Zone Questions (${questionsCount})</h4>
+          <h4>Zone Questions (${questions.length})</h4>
           <table class="data-table questions-table" data-zone-id="${zoneId}">
             <thead>
               <tr><th>Question</th><th>Answer</th><th>Type</th></tr>
             </thead>
             <tbody>
-              ${Array.from({ length: 7 }, (_, i) => {
-                const qNum = i + 1;
-                return `
-                  <tr data-question-id="unique${qNum}">
-                    <td contenteditable="true" data-col="question"></td>
-                    <td contenteditable="true" data-col="answer"></td>
-                    <td data-col="type">
-                      <select class="question-type-select" data-zone-id="${zoneId}" data-question-id="unique${qNum}">
-                        ${allowedQuestionTypes
-                          .map(t => `<option value="${t}">${questionTypeLabels[t] || t}</option>`)
-                          .join('')}
-                      </select>
-                    </td>
-                  </tr>`;
-              }).join('')}
+              ${questionRowsHtml}
             </tbody>
           </table>
+          <button class="add-question-btn" data-zone-id="${zoneId}" style="margin-top:10px;">➕ Add Question</button>
         </div>
       </td>
     `;
@@ -215,21 +219,6 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
     // 🧩 Insert into table
     tableBody.appendChild(dataRow);
     tableBody.appendChild(detailsRow);
-
-    // 🧠 Hydrate questions if present
-    questionsSnap.forEach(qDoc => {
-      const qId = qDoc.id;
-      const q = qDoc.data();
-      const tr = detailsRow.querySelector(`tr[data-question-id="${qId}"]`);
-      if (tr) {
-        tr.querySelector('[data-col="question"]').textContent = q.question || '';
-        tr.querySelector('[data-col="answer"]').textContent = q.answer || '';
-        const select = tr.querySelector('select.question-type-select');
-        if (select && allowedQuestionTypes.includes(q.type)) {
-          select.value = q.type;
-        }
-      }
-    });
   }
 
   console.log(`✅ Rendered ${zoneDocs.size} zones.`);

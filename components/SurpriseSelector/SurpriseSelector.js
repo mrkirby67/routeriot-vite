@@ -37,16 +37,23 @@ export async function applyToAllTeams(selectedType, newCount = 0) {
   }
 
   const batch = writeBatch(db);
+  const typesToUpdate =
+    selectedType === 'ALL'
+      ? TYPE_CONFIG.map(cfg => cfg.key)
+      : [selectedType];
+
   snap.docs.forEach((docSnap) => {
     const data = docSnap.data() || {};
     const counts = { ...(data.counts || {}) };
-    counts[selectedType] = newCount;
+    typesToUpdate.forEach(type => {
+      counts[type] = newCount;
+    });
     batch.set(doc(db, 'teamSurprises', docSnap.id), { counts }, { merge: true });
   });
 
   await batch.commit();
-  const config = TYPE_CONFIG.find((cfg) => cfg.key === selectedType);
-  const label = config?.label || selectedType;
+
+  const label = selectedType === 'ALL' ? 'All wildcards' : (TYPE_CONFIG.find(cfg => cfg.key === selectedType)?.label || selectedType);
   console.log(`✅ Applied ${label}:${newCount} to all teams.`);
   alert(`✅ ${label} updated for every team!`);
 }
@@ -74,6 +81,7 @@ export function SurpriseSelectorComponent() {
         <div>
           <label for="wildcard-dashboard-type">Apply To All Teams:</label>
           <select id="wildcard-dashboard-type">
+            <option value="ALL">All of Them</option>
             <option value="${SurpriseTypes.FLAT_TIRE}">Flat Tire</option>
             <option value="${SurpriseTypes.BUG_SPLAT}">Bug Splat</option>
             <option value="${SurpriseTypes.SPEED_BUMP}">Speed Bump</option>
