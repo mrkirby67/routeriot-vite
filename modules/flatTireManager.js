@@ -222,8 +222,13 @@ export async function updateFlatTireAssignment(teamName, patch = {}) {
 }
 
 export async function releaseFlatTireTeam(teamName) {
-  if (!teamName) return;
+  console.log(`[flatTireManager] Attempting to release flat tire for team: ${teamName}`);
+  if (!teamName) {
+    console.warn('[flatTireManager] releaseFlatTireTeam called with empty teamName. Aborting.');
+    return;
+  }
   const docRef = doc(ASSIGNMENTS_COLLECTION, encodeTeamId(teamName));
+  console.log(`[flatTireManager] Deleting document for team: ${teamName}, docRef path: ${docRef.path}`);
   await deleteDoc(docRef);
 }
 

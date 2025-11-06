@@ -56,6 +56,7 @@ export function initializeBroadcastLogic() {
   const taskStore = new Map();
   const responseStore = new Map();
   const seenIds = new Set();
+  let isGameActive = false;
 
   let unsubscribeGameState = null;
   let unsubscribeBroadcasts = null;
@@ -230,16 +231,34 @@ export function initializeBroadcastLogic() {
   }
   broadcastBtn.dataset.chatInitialized = 'true';
 
+  const focusComposer = () => {
+    if (broadcastInput) {
+      broadcastInput.focus();
+      broadcastInput.select?.();
+    }
+  };
+  const handleLogFocus = () => focusComposer();
+  const handleInputKeydown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      broadcastBtn.click();
+    }
+  };
+  broadcastInput.addEventListener('keydown', handleInputKeydown);
+  logBox?.addEventListener('click', handleLogFocus);
+  setTimeout(focusComposer, 0);
+
   const gameStateRef = doc(db, 'game', 'gameState');
   unsubscribeGameState = onSnapshot(gameStateRef, (docSnap) => {
     const gameState = docSnap.data();
-    if (gameState && gameState.status === 'active') {
-      broadcastBtn.disabled = false;
-      broadcastInput.placeholder = 'E.g., Meet at City Hall for lunch...';
-    } else {
-      broadcastBtn.disabled = true;
-      broadcastInput.placeholder = 'Game must be running to send broadcasts.';
-    }
+    isGameActive = gameState?.status === 'active';
+    broadcastBtn.disabled = false;
+    broadcastBtn.title = isGameActive
+      ? 'Send broadcast to all teams'
+      : 'Game inactive — still broadcasts to all teams.';
+    broadcastInput.placeholder = isGameActive
+      ? 'E.g., Meet at City Hall for lunch...'
+      : 'Game inactive — broadcast will still send.';
   });
 
   broadcastBtn.addEventListener('click', async () => {
@@ -252,6 +271,12 @@ export function initializeBroadcastLogic() {
       console.warn('Broadcast blocked: only Control may send ALL-team messages.');
       alert('Only Control can send broadcasts to all teams.');
       return;
+    }
+    if (!isGameActive) {
+      const confirmed = typeof window !== 'undefined' && typeof window.confirm === 'function'
+        ? window.confirm('Game is not marked as ACTIVE. Send this broadcast anyway?')
+        : true;
+      if (!confirmed) return;
     }
 
     broadcastBtn.disabled = true;
@@ -343,6 +368,8 @@ export function initializeBroadcastLogic() {
 
   return (reason = 'broadcast-teardown') => {
     delete broadcastBtn.dataset.chatInitialized;
+    broadcastInput.removeEventListener('keydown', handleInputKeydown);
+    logBox?.removeEventListener('click', handleLogFocus);
     unsubscribeGameState?.(reason);
     if (typeof unsubscribeBroadcasts === 'function') {
       unsubscribeBroadcasts(reason);
