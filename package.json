@@ -17,7 +17,7 @@
     "aicp-integrity": "node tools/aicp_integrity_check.js",
     "codex-repair": "node tools/codex_repair_pass_v3.js",
     "aicp-docs": "node tools/aicp_doc_exporter.js",
-    "aicp-export": "node tools/aicp_doc_export.js",
+    "aicp-export": "node tools/aicp_doc_exporter.js",
     "aicp-summary": "node tools/aicp_summary_dashboard.js",
     "aicp-metadata-normalize": "node tools/aicp_metadata_normalize.js",
     "aicp-integrity-ro": "node tools/aicp_integrity_ro.js",
