@@ -1,0 +1,7 @@
+{
+  "layer": "features",
+  "name": "teamSurprise.bridge",
+  "depends_on": [],
+  "description": "Breaks circular dependencies between surprise events, controller, and UI.",
+  "phase": "active"
+}

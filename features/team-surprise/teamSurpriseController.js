@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: features/team-surprise/teamSurpriseController.js
 // PURPOSE: Orchestrates Team Surprise actions across UI, events, and services.
-// DEPENDS_ON: ./teamSurpriseTypes.js, ./teamSurpriseEvents.js, ../../services/team-surprise/teamSurpriseService.js, ../../ui/team-surprise/teamSurpriseUI.js
+// DEPENDS_ON: ./teamSurpriseState.js, ./teamSurprise.bridge.js, ../../services/team-surprise/teamSurpriseService.js, ../../ui/team-surprise/teamSurpriseUI.js
 // USED_BY: features/team-surprise/teamSurpriseController.js, components/TeamSurpriseManager/TeamSurpriseManager.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -23,15 +23,15 @@ import {
   readShieldDurationMinutes,
   getShieldDurationMs,
   activateShield,
-  isShieldActive as eventIsShieldActive,
-  deactivateShield as eventDeactivateShield,
+  isShieldActive as stateIsShieldActive,
+  deactivateShield as stateDeactivateShield,
   getShieldTimeRemaining,
   isUnderWildCard,
   startWildCard,
   clearWildCard,
   startCooldown,
   resetSurpriseCaches
-} from './teamSurpriseEvents.js';
+} from './teamSurpriseState.js';
 import {
   normalizeSurpriseKey,
   subscribeTeamSurprises,
@@ -52,9 +52,18 @@ import {
   subscribeAllCooldowns,
   subscribeAllTeamInventories
 } from '../../services/team-surprise/teamSurpriseService.js';
-import { checkShieldBeforeAttack } from '../../ui/team-surprise/teamSurpriseUI.js';
+import ChatServiceV2 from '../../services/ChatServiceV2.js';
+import { registerSurpriseTriggerHandler } from './teamSurprise.bridge.js';
 
-// === BEGIN RECOVERED BLOCK ===
+let uiModulePromise = null;
+
+function loadUiModule() {
+  if (!uiModulePromise) {
+    uiModulePromise = import('../../ui/team-surprise/teamSurpriseUI.js');
+  }
+  return uiModulePromise;
+}
+
 export async function clearAllTeamSurprises() {
   resetSurpriseCaches();
   await deleteAllTeamSurpriseDocs();
@@ -62,7 +71,7 @@ export async function clearAllTeamSurprises() {
 
 export async function isTeamAttackable(teamName) {
   if (!teamName) return false;
-  if (eventIsShieldActive(teamName)) return false;
+  if (stateIsShieldActive(teamName)) return false;
   if (isUnderWildCard(teamName)) return false;
   return true;
 }
@@ -87,16 +96,18 @@ export async function attemptSurpriseAttack({
   const attackable = await isTeamAttackable(toTeam);
   if (!attackable) {
     try {
-      if (typeof window !== 'undefined' && window?.chatManager?.sendPrivateSystemMessage) {
-        window.chatManager.sendPrivateSystemMessage(
-          fromTeam,
-          `🚫 ${toTeam} was protected by a Shield / Wax. Your ${label} was blocked.`
-        );
-        window.chatManager.sendPrivateSystemMessage(
-          toTeam,
-          `✨ Your shiny wax protected you from a ${label} from ${fromTeam}.`
-        );
-      }
+      ChatServiceV2.send({
+        fromTeam: 'System',
+        toTeam: fromTeam,
+        text: `🚫 ${toTeam} was protected by a Shield / Wax. Your ${label} was blocked.`,
+        kind: 'system'
+      });
+      ChatServiceV2.send({
+        fromTeam: 'System',
+        toTeam: toTeam,
+        text: `✨ Your shiny wax protected you from a ${label} from ${fromTeam}.`,
+        kind: 'system'
+      });
     } catch (err) {
       console.debug('💬 shield-block notify failed:', err?.message || err);
     }
@@ -108,23 +119,54 @@ export async function attemptSurpriseAttack({
   }
 
   try {
-    if (typeof window !== 'undefined' && window?.chatManager?.sendPrivateSystemMessage) {
-      window.chatManager.sendPrivateSystemMessage(
-        fromTeam,
-        `✅ ${toTeam} was successfully hit with ${label}.`
-      );
-      window.chatManager.sendPrivateSystemMessage(
-        toTeam,
-        `💥 You were hit by ${label} from ${fromTeam}!`
-      );
-    }
+    ChatServiceV2.send({
+      fromTeam: 'System',
+      toTeam: fromTeam,
+      text: `✅ ${toTeam} was successfully hit with ${label}.`,
+      kind: 'system'
+    });
+    ChatServiceV2.send({
+      fromTeam: 'System',
+      toTeam: toTeam,
+      text: `💥 You were hit by ${label} from ${fromTeam}!`,
+      kind: 'system'
+    });
   } catch (err) {
     console.debug('💬 success notify failed:', err?.message || err);
   }
 
   return { ok: true };
 }
-// === END RECOVERED BLOCK ===
+
+export function checkShieldBeforeAttack(teamName, onProceed) {
+  return loadUiModule().then((mod) =>
+    mod.checkShieldBeforeAttack(teamName, onProceed)
+  );
+}
+
+export function isShieldActive(teamState) {
+  if (typeof teamState === 'string') {
+    return stateIsShieldActive(teamState);
+  }
+  return teamState?.shield?.active === true;
+}
+
+export function deactivateShield(teamState) {
+  if (typeof teamState === 'string') {
+    stateDeactivateShield(teamState);
+    return teamState;
+  }
+  if (teamState?.shield) {
+    teamState.shield.active = false;
+    teamState.shield.deactivatedAt = Date.now();
+  }
+  return teamState;
+}
+
+registerSurpriseTriggerHandler((detail) => {
+  if (!detail || typeof detail !== 'object') return undefined;
+  return attemptSurpriseAttack(detail);
+});
 
 export {
   SurpriseTypes,
@@ -169,31 +211,7 @@ export {
   subscribeAllTeamInventories
 };
 
-export { checkShieldBeforeAttack };
-
 export const isTeamOnCooldown = isOnCooldown;
-
-// ---------------------------------------------------------------------------
-// 🛡️ Shield State Helpers
-// ---------------------------------------------------------------------------
-export function isShieldActive(teamState) {
-  if (typeof teamState === 'string') {
-    return eventIsShieldActive(teamState);
-  }
-  return teamState?.shield?.active === true;
-}
-
-export function deactivateShield(teamState) {
-  if (typeof teamState === 'string') {
-    eventDeactivateShield(teamState);
-    return teamState;
-  }
-  if (teamState?.shield) {
-    teamState.shield.active = false;
-    teamState.shield.deactivatedAt = Date.now();
-  }
-  return teamState;
-}
 
 // === AICP FEATURE FOOTER ===
 // aicp_category: feature
@@ -203,7 +221,7 @@ export function deactivateShield(teamState) {
 // export_bridge: components/*
 // exports: clearAllTeamSurprises, isTeamAttackable, attemptSurpriseAttack, SurpriseTypes, SHIELD_DURATION_STORAGE_KEY, DEFAULT_SHIELD_MINUTES, DEFAULT_COOLDOWN_MINUTES, activeShields, activeWildCards, activeCooldowns, readShieldDurationMinutes, getShieldDurationMs, activateShield, isShieldActive, deactivateShield, getShieldTimeRemaining, isUnderWildCard, startWildCard, clearWildCard, startCooldown, resetSurpriseCaches, normalizeSurpriseKey, subscribeTeamSurprises, incrementSurprise, decrementSurprise, resetSurpriseCounter, getTeamSurpriseCounts, increment, decrement, subscribeSurprisesForTeam, defaultSurpriseLabel, consumeSurprise, sendSurpriseToTeam, auditUse, deleteAllTeamSurpriseDocs, isOnCooldown, getCooldownTimeRemaining, subscribeAllCooldowns, subscribeAllTeamInventories, checkShieldBeforeAttack
 // linked_files: []
-// owner: RouteRiot-AICP
+// owner: Route Riot-AICP
 // phase: tier2_features_injection
 // review_status: complete
 // status: stable

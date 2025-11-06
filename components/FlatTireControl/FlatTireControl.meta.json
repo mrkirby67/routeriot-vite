@@ -1,0 +1,9 @@
+{
+  "layer": "components",
+  "name": "FlatTireControl",
+  "depends_on": [
+    "flatTireControlController"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

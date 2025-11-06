@@ -63,7 +63,7 @@ export function showSpeedBumpOverlay(type, context = {}) {
 // aicp_category: ui
 // aicp_version: 3.1
 // codex_phase: tier4_ui_injection
-// export_bridge: modules/*
+// export_bridge: modules
 // exports: showSpeedBumpOverlay
 // linked_files: []
 // owner: RouteRiot-AICP

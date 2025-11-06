@@ -1,0 +1,9 @@
+{
+  "layer": "services",
+  "name": "teamSurpriseService",
+  "depends_on": [
+    "teamSurpriseTypes"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

@@ -1,14 +1,15 @@
 #!/usr/bin/env node
-/**
- * Route Riot — Codex Refresh (Safe Metadata Injector + Pre-Cleaner)
- * ------------------------------------------------------------------
- * Purpose:
- *  - Sync AICP v3 metadata across layers.
- *  - Sanitize files before and after injection.
- *  - Comment out stray '#' or '{{}}' syntax safely.
- *  - Prevent nested block-comment collisions caused by metadata markers.
- *  - Automatically trigger validation and doc regeneration if requested.
- */
+// =============================================================
+// AICP Tools Stabilizer v2 — codex_refresh header as //
+// =============================================================
+// Route Riot — Codex Refresh (Safe Metadata Injector + Pre-Cleaner)
+// ------------------------------------------------------------------
+// Purpose:
+//  - Sync AICP v3 metadata across layers.
+//  - Sanitize files before and after injection.
+//  - Comment out stray '#' or '{{}}' syntax safely.
+//  - Prevent nested block-comment collisions caused by metadata markers.
+//  - Automatically trigger validation and doc regeneration if requested.
 
 import fs from "fs";
 import path from "path";
@@ -455,3 +456,5 @@ function writeAutoHealReport(entries, buildPassed) {
 
   log("✅ Codex Refresh complete. Metadata sanitized and synchronized.");
 })();
+
+// [AICP Tools Stabilizer v2] — applied

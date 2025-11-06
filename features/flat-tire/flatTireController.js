@@ -208,8 +208,8 @@ function escapeSelector(value) {
 // aicp_category: feature
 // aicp_version: 3.0
 // codex_phase: tier2_features_injection
-// depends_on: services/*
-// export_bridge: components/*
+// depends_on: services
+// export_bridge: components
 // exports: createFlatTireControlController, FlatTireControlController
 // linked_files: []
 // owner: RouteRiot-AICP

@@ -1,0 +1,10 @@
+{
+  "layer": "ui",
+  "name": "teamSurpriseUI",
+  "depends_on": [
+    "teamSurprise.bridge",
+    "teamSurpriseState"
+  ],
+  "description": "Player UI for surprise actions; delegates attach to the bridge.",
+  "phase": "active"
+}

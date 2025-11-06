@@ -1,0 +1,10 @@
+{
+  "layer": "features",
+  "name": "teamSurpriseEvents",
+  "depends_on": [
+    "teamSurprise.bridge",
+    "teamSurpriseState"
+  ],
+  "description": "DOM wiring for surprise UI. Delegates attack logic via the bridge.",
+  "phase": "active"
+}

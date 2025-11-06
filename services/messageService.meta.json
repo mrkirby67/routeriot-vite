@@ -1,0 +1,9 @@
+{
+  "layer": "services",
+  "name": "messageService",
+  "depends_on": [
+    "ChatServiceV2"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

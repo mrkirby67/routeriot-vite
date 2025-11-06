@@ -20,12 +20,14 @@ import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
 import { initializeSpeedBumpPlayer } from './modules/speedBumpPlayer.js';
 import { initializeFlatTireUI } from './modules/flatTireUI.js';
+import { initializeChirpResponder } from './modules/chirpResponder.js';
 
 let gameStatusUnsub = null;
 let chatCleanup = null;
 let zonesCleanup = null;
 let speedBumpCleanup = null;
 let flatTireCleanup = null;
+let chirpCleanup = null;
 let unloadHandler = null;
 
 function teardownPlayerListeners(reason = 'manual') {
@@ -40,6 +42,9 @@ function teardownPlayerListeners(reason = 'manual') {
 
   flatTireCleanup?.(reason);
   flatTireCleanup = null;
+
+  chirpCleanup?.(reason);
+  chirpCleanup = null;
 
   gameStatusUnsub?.(reason);
   gameStatusUnsub = null;
@@ -93,6 +98,7 @@ export async function initializePlayerPage() {
     initializePlayerScoreboard();
     speedBumpCleanup = initializeSpeedBumpPlayer(currentTeamName);
     flatTireCleanup = initializeFlatTireUI(currentTeamName);
+    chirpCleanup = initializeChirpResponder(currentTeamName);
   } catch (err) {
     console.error('🔥 Error initializing player modules:', err);
     alert('Error initializing player. Check console.');

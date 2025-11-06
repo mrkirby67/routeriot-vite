@@ -1,0 +1,13 @@
+{
+  "layer": "features",
+  "name": "flatTireController",
+  "depends_on": [
+    "autoScheduler",
+    "firestoreSync",
+    "flatTireEvents",
+    "flatTireService",
+    "flatTireUI"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

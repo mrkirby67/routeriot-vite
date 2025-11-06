@@ -19,6 +19,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './config.js';
 import { broadcastTopThree, resetScores } from './scoreboardManager.js';
+import ChatServiceV2 from '../services/ChatServiceV2.js';
 
 let liveStatusUnsub = null;
 let teamStatusUnsub = null;
@@ -168,7 +169,18 @@ export async function clearAllChatAndScores() {
     // 4️⃣ Reset all zones to Available
     await clearAllZones();
 
-    // 5️⃣ Notify everyone
+    // 5️⃣ Reset game state
+    await setDoc(doc(db, 'game', 'gameState'), {
+        status: 'waiting',
+        zonesReleased: false,
+        startTime: null,
+        endTime: null,
+        durationMinutes: null,
+        remainingMs: null,
+        updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    // 6️⃣ Notify everyone
     await addSystemNotice('\n'.repeat(10) + '🧹 ALL CHAT, SCORES, TEAM STATUSES & ZONES CLEARED 🧹');
     showFlashMessage('🧼 All data fully cleared.', '#1565c0', 3000);
 
@@ -233,14 +245,12 @@ export async function clearAllZones() {
 // ---------------------------------------------------------------------------
 async function addSystemNotice(message) {
   try {
-    const { addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-    await addDoc(collection(db, 'communications'), {
-      teamName: 'Game Master',
-      sender: 'Game Master',
-      senderDisplay: 'Game Master',
-      message,
-      isBroadcast: true,
-      timestamp: serverTimestamp()
+    await ChatServiceV2.send({
+      fromTeam: 'Game Master',
+      toTeam: 'ALL',
+      text: message,
+      kind: 'system',
+      meta: { source: 'controlStatus:notice' }
     });
   } catch (err) {
     console.error('⚠️ Failed to broadcast system notice:', err);

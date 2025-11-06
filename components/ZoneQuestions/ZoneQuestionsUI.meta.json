@@ -1,0 +1,10 @@
+{
+  "layer": "components",
+  "name": "ZoneQuestionsUI",
+  "depends_on": [
+    "ZoneQuestionsEditor",
+    "ZoneQuestionsLogic"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

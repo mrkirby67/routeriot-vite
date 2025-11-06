@@ -1,7 +1,7 @@
 // === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/controller/teamPrompts.js
-// PURPOSE: === AI-CONTEXT-MAP ===
+// PURPOSE: Generates and persists Speed Bump prompts for control operators.
 // DEPENDS_ON: ../../../modules/speedBumpChallenges.js
 // USED_BY: components/SpeedBumpControl/speedBumpControlController.js
 // AUTHOR: James Kirby / Route Riot Project
@@ -52,7 +52,7 @@ export function reconcileWithBank(controller) {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: loadPrompts, savePrompts, ensurePrompt, shufflePrompt, reconcileWithBank
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -60,5 +60,5 @@ export function reconcileWithBank(controller) {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

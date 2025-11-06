@@ -1,0 +1,7 @@
+{
+  "layer": "features",
+  "name": "playerChat.bridge",
+  "depends_on": [],
+  "description": "Provides deferred send and attach delegation to break the circular dependency between events and state.",
+  "phase": "active"
+}

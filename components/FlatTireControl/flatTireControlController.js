@@ -18,7 +18,7 @@ export { createFlatTireControlController } from '../../features/flat-tire/flatTi
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: createFlatTireControlController
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -26,5 +26,5 @@ export { createFlatTireControlController } from '../../features/flat-tire/flatTi
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

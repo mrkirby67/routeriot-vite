@@ -16,8 +16,8 @@ import {
   writeBatch,
   serverTimestamp,
   onSnapshot,
-  addDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import ChatServiceV2 from '../services/ChatServiceV2.js';
 
 /* ---------------------------------------------------------------------------
  * 🧮 ADD POINTS TO TEAM (Transaction Safe + Standardized)
@@ -187,13 +187,12 @@ export async function broadcastTopThree() {
     });
     message += `\n🎉 Congratulations to all teams! 🎉`;
 
-    await addDoc(collection(db, 'communications'), {
-      teamName: 'Game Master',
-      sender: 'Game Master',
-      senderDisplay: 'Game Master',
-      message,
-      isBroadcast: true,
-      timestamp: serverTimestamp()
+    await ChatServiceV2.send({
+      fromTeam: 'Game Master',
+      toTeam: 'ALL',
+      text: message,
+      kind: 'system',
+      meta: { source: 'scoreboard:broadcastTopThree' }
     });
 
     console.log('✅ Top 3 broadcast sent successfully.');

@@ -1,12 +1,14 @@
+// === AICP SERVICE HEADER ===
 // ============================================================================
-// FILE: /*file_path*/
-// PURPOSE: /*short_description*/
-// DEPENDS_ON: /*dependencies*/
-// USED_BY: /*consumers*/
+// FILE: services/gameRulesManager.js
+// PURPOSE: Persists game rule settings to Firestore and reloads them for control clients.
+// DEPENDS_ON: ../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// USED_BY: components/GameControls/GameControls.js
 // AUTHOR: James Kirby / Route Riot Project
-// CREATED: /*date*/
-// AICP_VERSION: 1.0
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP SERVICE HEADER ===
 
 // ============================================================================
 // PATCH: gameRulesManager.js — Persistent Game Rules
@@ -40,6 +42,3 @@ export async function loadRules() {
     return {};
   }
 }
-// === AICP METADATA ===
-// AICP phase tag validated
-// phase: validated

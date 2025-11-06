@@ -18,6 +18,7 @@
 /*
  * Initializes the speed bump feature for the player.
  */
+
 export function initializeSpeedBumpPlayer() {
   console.log("Initializing speed bump player logic...");
   // Listener for speed bump events, etc.
@@ -29,8 +30,8 @@ export function initializeSpeedBumpPlayer() {
 // aicp_category: feature
 // aicp_version: 3.0
 // codex_phase: tier2_features_injection
-// depends_on: services/*
-// export_bridge: components/*
+// depends_on: services
+// export_bridge: components
 // exports: initializeSpeedBumpPlayer
 // linked_files: []
 // owner: RouteRiot-AICP

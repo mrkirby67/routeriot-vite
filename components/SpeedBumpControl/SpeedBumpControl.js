@@ -246,7 +246,7 @@ export function teardownSpeedBumpControl(reason = 'manual') {
 // aicp_category: component
 // aicp_version: 3.1
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: SpeedBumpControlComponent, initializeSpeedBumpControl, teardownSpeedBumpControl
 // linked_files: []
 // owner: RouteRiot-AICP

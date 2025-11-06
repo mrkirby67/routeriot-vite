@@ -1,8 +1,9 @@
-# AICP Summary Index — 2025-11-02T14:13:35.460Z
+# AICP Summary Index — 2025-11-05T23:29:04.332Z
 
 
 
-## SERVICES (8)
+## SERVICES (9)
+- [services/ChatServiceV2.js](./services/ChatServiceV2.js.md)
 - [services/firestoreRefs.js](./services/firestoreRefs.js.md)
 - [services/flat-tire/flatTireService.js](./services/flat-tire/flatTireService.js.md)
 - [services/gameRulesManager.js](./services/gameRulesManager.js.md)

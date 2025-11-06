@@ -1,7 +1,7 @@
 // === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/controller/promptBank.js
-// PURPOSE: === AI-CONTEXT-MAP ===
+// PURPOSE: Manages the Speed Bump prompt bank across Firestore and local storage.
 // DEPENDS_ON: ../../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../../modules/speedBumpChallenges.js
 // USED_BY: components/SpeedBumpControl/speedBumpControlController.js
 // AUTHOR: James Kirby / Route Riot Project
@@ -48,7 +48,7 @@ export function saveBankLocal(bank) {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: loadBank, saveBankToFirestore, saveBankLocal
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -56,5 +56,5 @@ export function saveBankLocal(bank) {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

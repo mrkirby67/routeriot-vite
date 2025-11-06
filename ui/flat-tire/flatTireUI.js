@@ -186,7 +186,7 @@ export function generateZoneSignature(zones = {}) {
 // aicp_category: ui
 // aicp_version: 3.0
 // codex_phase: tier4_ui_injection
-// export_bridge: components/*
+// export_bridge: components
 // exports: setupDomRefs, renderRows, updateZonePreview, generateZoneSignature
 // linked_files: []
 // owner: RouteRiot-AICP

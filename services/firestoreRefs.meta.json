@@ -1,0 +1,7 @@
+{
+  "layer": "services",
+  "name": "firestoreRefs",
+  "depends_on": [],
+  "description": "TODO",
+  "phase": "draft"
+}

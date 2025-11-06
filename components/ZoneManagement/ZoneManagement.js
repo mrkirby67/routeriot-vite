@@ -35,6 +35,7 @@ export { ZoneManagementComponent };
  * Initialize Zone Management logic for the Control dashboard.
  * @param {boolean} googleMapsApiLoaded - Whether Google Maps API is ready
  */
+
 export async function initializeZoneManagementLogic(googleMapsApiLoaded) {
   const tableBody = document.getElementById('zones-table-body');
   const banner = document.getElementById('zone-status-banner');
@@ -270,7 +271,7 @@ export async function initializeZoneManagementLogic(googleMapsApiLoaded) {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: initializeZoneManagementLogic, ZoneManagementComponent
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -278,5 +279,5 @@ export async function initializeZoneManagementLogic(googleMapsApiLoaded) {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

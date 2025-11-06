@@ -1,0 +1,9 @@
+{
+  "layer": "components",
+  "name": "OpponentList",
+  "depends_on": [
+    "teamService"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

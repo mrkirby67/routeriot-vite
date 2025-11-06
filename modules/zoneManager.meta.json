@@ -1,0 +1,7 @@
+{
+  "layer": "modules",
+  "name": "zoneManager",
+  "depends_on": [],
+  "description": "TODO",
+  "phase": "draft"
+}

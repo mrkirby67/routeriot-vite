@@ -28,7 +28,7 @@ export const DEFAULT_COOLDOWN_MINUTES = 2;
 // ai_origin: features/team-surprise/teamSurpriseTypes.js
 // ai_role: Logic Layer
 // codex_phase: tier2_features_injection
-// export_bridge: components/*
+// export_bridge: components
 // exports: SurpriseTypes, SHIELD_DURATION_STORAGE_KEY, DEFAULT_SHIELD_MINUTES, DEFAULT_COOLDOWN_MINUTES
 // linked_files: []
 // owner: RouteRiot-AICP

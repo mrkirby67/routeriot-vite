@@ -32,7 +32,7 @@ export {
 // aicp_category: service
 // aicp_version: 3.0
 // codex_phase: tier1_services_injection
-// export_bridge: features/*
+// export_bridge: features
 // exports: loadFlatTireConfig, subscribeFlatTireAssignments, subscribeFlatTireConfig, assignFlatTireTeam, releaseFlatTireTeam
 // linked_files: []
 // owner: RouteRiot-AICP

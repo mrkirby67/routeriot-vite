@@ -224,6 +224,57 @@ input[type="number"]:focus {
   background-color: #222;
 }
 
+/* === CHIRP Panel === */
+.chirpPanel {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(187, 134, 252, 0.25);
+}
+
+.chirpFeed {
+  max-height: 260px;
+  overflow-y: auto;
+  background: rgba(8, 8, 8, 0.45);
+  border: 1px solid #2b2b2b;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chirpFeedItem {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #c9d1d9;
+  border-bottom: 1px solid rgba(96, 125, 139, 0.25);
+  padding-bottom: 6px;
+}
+
+.chirpFeedItem:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.chirpFeedTask {
+  color: #8ab4f8;
+  font-weight: 600;
+}
+
+.chirpFeedMeta {
+  display: block;
+  font-size: 0.75rem;
+  color: #9aa5b1;
+  margin-bottom: 4px;
+}
+
+.chirpEmpty {
+  color: #9aa5b1;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 12px 0;
+}
+
 /* === Modal === */
 .modal-backdrop {
   position: fixed;

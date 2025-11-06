@@ -18,8 +18,8 @@ export const CAPTURE_RADIUS_METERS = 50;
 // aicp_category: feature
 // aicp_version: 3.0
 // codex_phase: tier2_features_injection
-// depends_on: services/*
-// export_bridge: components/*
+// depends_on: services
+// export_bridge: components
 // exports: CAPTURE_RADIUS_METERS
 // linked_files: []
 // owner: RouteRiot-AICP

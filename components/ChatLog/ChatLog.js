@@ -21,6 +21,7 @@
  * Renders a list of messages to the chat log container.
  * @param {Array<Object>} messages - The messages to render.
  */
+
 export function renderMessages(messages = []) {
   const chatLogContainer =
     document.getElementById("chat-log") ||
@@ -41,7 +42,13 @@ export function renderMessages(messages = []) {
   chatLogContainer.innerHTML = "";
 
   items.forEach((msg) => {
-    const sender = msg.sender || msg.fromTeam || msg.teamId || 'Unknown';
+    const sender =
+      msg.senderDisplay ||
+      msg.sender ||
+      msg.fromTeam ||
+      msg.teamName ||
+      msg.teamId ||
+      'Unknown';
     const recipient = msg.recipient && msg.recipient.toUpperCase() !== 'ALL'
       ? ` → ${msg.recipient}`
       : '';
@@ -69,7 +76,7 @@ export function renderMessages(messages = []) {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: renderMessages
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -77,5 +84,5 @@ export function renderMessages(messages = []) {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

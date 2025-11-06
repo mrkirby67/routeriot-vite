@@ -1,0 +1,11 @@
+{
+  "layer": "components",
+  "name": "ZoneManagement",
+  "depends_on": [
+    "zoneHandlers",
+    "zoneRender",
+    "zoneUI"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

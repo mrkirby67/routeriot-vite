@@ -262,20 +262,5 @@ function escapeSelector(value) {
   return String(value).replace(/[\"]/g, '\\{new_string}');
 }
 
-// === AI-CONTEXT-MAP ===
-// aicp_category: feature
-// ai_origin:
-//   primary: Gemini
-// ai_role: Feature Logic
-// codex_phase: tier3_refactoring
-// export_bridge: none
-// exports: handleTableClick, handleBulkSendClick, handleRefreshZonesClick, handleZoneSelectChange, handleRandomizeClick
-// linked_files: []
-// owner: RouteRiot-AICP
-// phase: tier3_refactoring
-// review_status: pending_review
-// status: stable
-// sync_state: aligned
-// ui_dependency: none
-// === END ===
-
+// AI-CONTEXT: aicp_category=feature; ai_origin=Gemini; ai_role=Feature Logic; codex_phase=tier3_refactoring; export_bridge=none
+// AI-CONTEXT: exports=handleTableClick|handleBulkSendClick|handleRefreshZonesClick|handleZoneSelectChange|handleRandomizeClick; owner=RouteRiot-AICP; phase=tier3_refactoring; review_status=pending_review; status=stable; sync_state=aligned; ui_dependency=none

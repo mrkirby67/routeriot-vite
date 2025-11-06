@@ -15,6 +15,7 @@ import {
   getDocs,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import ChatServiceV2 from '../services/ChatServiceV2.js';
 
 // ---------------------------------------------------------------------------
 // 🧮 Firestore References
@@ -145,16 +146,13 @@ export async function useBugStrike(fromTeam, targetTeam) {
     });
 
     // Send communication message
-    await addDoc(collection(db, 'communications'), {
-      teamName: fromTeam,
-      sender: fromTeam,
-      senderDisplay: fromTeam,
-      message: `🪰 ${fromTeam} launched a BUG STRIKE on ${targetTeam}! SPLAT!`,
-      type: 'bugStrike',
-      from: fromTeam,
-      to: targetTeam,
-      isBroadcast: true,
-      timestamp: serverTimestamp(),
+    await ChatServiceV2.send({
+      fromTeam,
+      toTeam: 'ALL',
+      text: `🪰 ${fromTeam} launched a BUG STRIKE on ${targetTeam}! SPLAT!`,
+      kind: 'system',
+      meta: { action: 'use', targetTeam, surpriseType: 'bugStrike' },
+      extra: { type: 'bugStrike', from: fromTeam, to: targetTeam }
     });
 
     console.log(`💥 Bug Strike launched by ${fromTeam} on ${targetTeam}.`);

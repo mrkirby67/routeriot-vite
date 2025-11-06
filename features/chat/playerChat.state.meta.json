@@ -1,0 +1,11 @@
+{
+  "layer": "features",
+  "name": "playerChat.state",
+  "depends_on": [
+    "ChatLog",
+    "ChatServiceV2",
+    "playerChat.bridge"
+  ],
+  "description": "Manages player chat state, message list rendering, and message dispatch through the chat bridge.",
+  "phase": "active"
+}

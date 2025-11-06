@@ -35,7 +35,7 @@ export function initializeMessageListener(onMessageReceived) {
   }
 
   const conversationsRef = collection(db, 'conversations');
-  const q = query(conversationsRef, orderBy('timestamp', 'asc'));
+  const q = query(conversationsRef, orderBy('createdAt', 'asc'));
 
   return onSnapshot(q, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
@@ -44,7 +44,7 @@ export function initializeMessageListener(onMessageReceived) {
       const message = {
         id: change.doc.id,
         ...data,
-        timestampMs: toMillis(data.timestamp)
+        timestampMs: toMillis(data.createdAt)
       };
       console.info('📩 Message received:', message);
       try {

@@ -1,0 +1,9 @@
+{
+  "layer": "components",
+  "name": "BugStrikeControl",
+  "depends_on": [
+    "teamSurpriseController"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

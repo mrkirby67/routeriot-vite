@@ -1,7 +1,13 @@
-// ============================================================================ 
-// MODULE 1: gameRulesManager.js
-// Purpose: Handles loading, editing, and saving Route Riot game rules.
-// ============================================================================ 
+// ============================================================================
+// DEPRECATED MODULE 1: gameRulesManager.js
+//
+// The loadRules, saveRules, and toggleRules functions that were previously
+// in this file have been removed to resolve a conflict with the dedicated
+// service at services/gameRulesManager.js.
+//
+// That service is now the single source of truth for managing game rules.
+// This monolithic file is being phased out.
+// ============================================================================
 import { app, db, firebaseConfig } from './config.js';
 import {
   doc,
@@ -11,33 +17,14 @@ import {
   getDocs,
   deleteDoc,
   writeBatch,
-  addDoc,
   Timestamp,
   serverTimestamp,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { clearAllTeamSurprises } from './teamSurpriseManager.js';
+import ChatServiceV2 from '../services/ChatServiceV2.js';
+import { safelyEndGameAndResetZones } from './controlActions.js';
 
-export async function loadRules(rulesTextArea) {
-  const rulesDocRef = doc(db, 'settings', 'rules');
-  const snap = await getDoc(rulesDocRef);
-  rulesTextArea.value = snap.exists() 
-    ? (snap.data().content || '') 
-    : 'Enter your Route Riot rules here...';
-}
-
-export async function saveRules(rulesTextArea) {
-  const rulesDocRef = doc(db, 'settings', 'rules');
-  await setDoc(rulesDocRef, { content: rulesTextArea.value.trim() }, { merge: true });
-  // Replace blocking alert with inline UI feedback if preferred
-  alert('✅ Rules saved!');
-}
-
-export function toggleRules(rulesSection, toggleButton) {
-  const open = rulesSection.style.display !== 'none';
-  rulesSection.style.display = open ? 'none' : 'block';
-  toggleButton.textContent = open ? '📜 Edit Rules' : '❌ Close Rules';
-}
 
 // ============================================================================
 // MODULE 2: gameTimer.js
@@ -59,6 +46,7 @@ export function initializeGameTimer(timerDisplay) {
         if (remaining <= 0) {
           timerDisplay.textContent = '00:00:00';
           clearInterval(gameTimerInterval);
+          safelyEndGameAndResetZones();
         } else {
           const h = Math.floor((remaining / 3_600_000) % 24);
           const m = Math.floor((remaining / 60_000) % 60);
@@ -169,12 +157,12 @@ export async function startGame(gameDuration = 120) {
     dataVersion: Date.now()
   }, { merge: true });
 
-  await addDoc(collection(db, 'communications'), {
-    teamName: 'Game Master',
-    sender: 'Game Master',
-    senderDisplay: 'Game Master',
-    message: '🏁 The race has begun! Zones are now active — good luck racers!',
-    timestamp: serverTimestamp()
+  await ChatServiceV2.send({
+    fromTeam: 'Game Master',
+    toTeam: 'ALL',
+    text: '🏁 The race has begun! Zones are now active — good luck racers!',
+    kind: 'system',
+    meta: { source: 'gameRules:startGame' }
   });
 
   alert(`🏁 Game Started — Zones Released!
@@ -197,12 +185,12 @@ export async function endGame() {
       .sort((a, b) => b.score - a.score);
 
     if (scores.length === 0) {
-      await addDoc(collection(db, 'communications'), {
-        teamName: 'Game Master',
-        sender: 'Game Master',
-        senderDisplay: 'Game Master',
-        message: '🏁 Game Ended — No scores found.',
-        timestamp: serverTimestamp()
+      await ChatServiceV2.send({
+        fromTeam: 'Game Master',
+        toTeam: 'ALL',
+        text: '🏁 Game Ended — No scores found.',
+        kind: 'system',
+        meta: { source: 'gameRules:endGame', scoresRecorded: false }
       });
       alert('Game Ended — no scores recorded.');
       return;
@@ -211,12 +199,12 @@ export async function endGame() {
     const medals = ['🥇 1st Place', '🥈 2nd Place', '🥉 3rd Place'];
     const lines = scores.slice(0, 3).map((s, i) => `${medals[i]} — ${s.team} (${s.score} pts)`);
 
-    await addDoc(collection(db, 'communications'), {
-      teamName: 'Game Master',
-      sender: 'Game Master',
-      senderDisplay: 'Game Master',
-      message: `🏁 FINAL STANDINGS 🏁\n\n${lines.join('\n')}\n\n— Route Riot Control`,
-      timestamp: serverTimestamp()
+    await ChatServiceV2.send({
+      fromTeam: 'Game Master',
+      toTeam: 'ALL',
+      text: `🏁 FINAL STANDINGS 🏁\n\n${lines.join('\n')}\n\n— Route Riot Control`,
+      kind: 'system',
+      meta: { source: 'gameRules:endGame', scoresRecorded: true }
     });
 
     alert('🏁 Game Ended — Winners broadcasted!');

@@ -1,28 +1,29 @@
 #!/usr/bin/env node
-/**
- * CODEX REPAIR PASS v3
- * -------------------------------------------------------
- * Purpose:
- *   Automatically detect and repair missing exports,
- *   invalid re-exports, and orphaned import references.
- *
- * Scans:
- *   modules/, services/, features/, components/, ui/
- *
- * Features:
- *   - Cross-checks every "import {X}" against exports across repo
- *   - Restores missing exports if definition exists
- *   - Rewrites re-export stubs (modules/*.js)
- *   - Logs all findings and actions to docs/codex_repair_report.md
- *
- * Constraints:
- *   - Never deletes code
- *   - Adds exports only when definition or function is found
- *   - Read/Write to repo; safe for re-run
- *
- * Author: James Kirby / Route Riot AICP
- * Version: 3.1.0
- */
+// =============================================================
+// AICP Tools Stabilizer v2 — repair pass header as //
+// =============================================================
+// CODEX REPAIR PASS v3
+// -------------------------------------------------------
+// Purpose:
+//   Automatically detect and repair missing exports,
+//   invalid re-exports, and orphaned import references.
+//
+// Scans:
+//   modules/, services/, features/, components/, ui/
+//
+// Features:
+//   - Cross-checks every "import {X}" against exports across repo
+//   - Restores missing exports if definition exists
+//   - Rewrites re-export stubs (modules/*.js)
+//   - Logs all findings and actions to docs/codex_repair_report.md
+//
+// Constraints:
+//   - Never deletes code
+//   - Adds exports only when definition or function is found
+//   - Read/Write to repo; safe for re-run
+//
+// Author: James Kirby / Route Riot AICP
+// Version: 3.1.0
 
 import fs from "fs";
 import path from "path";
@@ -200,3 +201,5 @@ const md = [
 
 fs.writeFileSync(OUTPUT_PATH, md, "utf8");
 console.log(`✅ CODEX Repair Pass Complete → ${OUTPUT_PATH}`);
+
+// [AICP Tools Stabilizer v2] — applied

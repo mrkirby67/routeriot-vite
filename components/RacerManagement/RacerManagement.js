@@ -1,7 +1,7 @@
 // === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/RacerManagement/RacerManagement.js
-// PURPOSE: === AI-CONTEXT-MAP ===
+// PURPOSE: Provides Racer Management UI and Firestore synchronization for roster data.
 // DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
@@ -72,7 +72,7 @@ export function initializeRacerManagementLogic() {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: RacerManagementComponent, initializeRacerManagementLogic
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -80,5 +80,5 @@ export function initializeRacerManagementLogic() {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

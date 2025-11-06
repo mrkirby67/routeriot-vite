@@ -16,15 +16,17 @@
  */
 
 import { doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { gameStateRef } from "./firestoreRefs.js";
+import { refs } from "./firestoreRefs.js";
 
 /*
  * Pauses the game.
  * This function will be moved from modules/gameStateManager.js
  */
+
 export async function pauseGame() {
   console.log("Pausing game...");
-  // Logic to update game state to "paused" in Firestore.
+  await updateDoc(refs.gameState(), { status: 'paused' });
+}
 
 // === AICP SERVICE FOOTER ===
 // ai_origin: services/gameStateService.js
@@ -32,7 +34,7 @@ export async function pauseGame() {
 // aicp_category: service
 // aicp_version: 3.0
 // codex_phase: tier1_services_injection
-// export_bridge: features/*
+// export_bridge: features
 // exports: pauseGame
 // linked_files: []
 // owner: RouteRiot-AICP

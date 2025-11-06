@@ -1,0 +1,7 @@
+{
+  "phase": "validated",
+  "layer": "components",
+  "name": "autoScheduler",
+  "depends_on": [],
+  "description": "TODO"
+}

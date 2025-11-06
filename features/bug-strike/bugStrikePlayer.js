@@ -18,6 +18,7 @@
 /*
  * Initializes the bug strike feature for the player.
  */
+
 export function initializeBugStrikePlayer() {
   console.log("Initializing bug strike player logic...");
   // Listener for bug strike events, etc.
@@ -29,8 +30,8 @@ export function initializeBugStrikePlayer() {
 // aicp_category: feature
 // aicp_version: 3.0
 // codex_phase: tier2_features_injection
-// depends_on: services/*
-// export_bridge: components/*
+// depends_on: services
+// export_bridge: components
 // exports: initializeBugStrikePlayer
 // linked_files: []
 // owner: RouteRiot-AICP

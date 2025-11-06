@@ -19,6 +19,7 @@
 /**
  * Shows the flat tire overlay.
  */
+
 export function showFlatTireOverlay() {
   const overlay = document.getElementById("flat-tire-overlay"); // Assuming this exists
   if (overlay) {
@@ -29,6 +30,7 @@ export function showFlatTireOverlay() {
 /**
  * Hides the flat tire overlay.
  */
+
 export function hideFlatTireOverlay() {
   const overlay = document.getElementById("flat-tire-overlay"); // Assuming this exists
   if (overlay) {
@@ -42,7 +44,7 @@ export function hideFlatTireOverlay() {
 // aicp_category: ui
 // aicp_version: 3.0
 // codex_phase: tier4_ui_injection
-// export_bridge: components/*
+// export_bridge: components
 // exports: showFlatTireOverlay, hideFlatTireOverlay
 // linked_files: []
 // owner: RouteRiot-AICP

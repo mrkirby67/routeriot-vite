@@ -10,12 +10,6 @@
 // ============================================================================
 // === END AICP SERVICE HEADER ===
 
-/*
- * @file Centralizes all Firestore database references for the application.
- * This module provides a single source of truth for database paths, making it easier
- * to manage and update references.
- */
-
 import { doc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "../modules/config.js";
 
@@ -41,6 +35,7 @@ export const teamsCollectionRef = collection(db, "teams");
  * @param {string} teamId - The ID of the team.
  * @returns {import("firebase/firestore").DocumentReference}
  */
+
 export const getTeamRef = (teamId) => doc(db, "teams", teamId);
 
 /* Reference to the 'zones' collection. */
@@ -52,7 +47,7 @@ export const zonesCollectionRef = collection(db, "zones");
 // aicp_category: service
 // aicp_version: 3.0
 // codex_phase: tier1_services_injection
-// export_bridge: features/*
+// export_bridge: features
 // exports: refs, gameStateRef, teamsCollectionRef, getTeamRef, zonesCollectionRef
 // linked_files: []
 // owner: RouteRiot-AICP

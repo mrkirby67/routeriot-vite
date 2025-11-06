@@ -1,0 +1,10 @@
+{
+  "layer": "features",
+  "name": "playerPageController",
+  "depends_on": [
+    "OpponentList",
+    "playerChat.state"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

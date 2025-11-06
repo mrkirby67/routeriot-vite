@@ -1,0 +1,11 @@
+{
+  "layer": "components",
+  "name": "SpeedBumpControl",
+  "depends_on": [
+    "gameNotifications",
+    "speedBumpService",
+    "teamService"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

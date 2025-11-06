@@ -41,7 +41,7 @@ export class SpeedBumpControlController {
 // aicp_category: component
 // aicp_version: 3.1
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: createSpeedBumpControlController, SpeedBumpControlController
 // linked_files: []
 // owner: RouteRiot-AICP

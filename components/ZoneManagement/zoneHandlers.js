@@ -16,13 +16,13 @@ import {
   getDocs,
   doc,
   setDoc,
-  addDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { updateControlledZones } from '../../modules/scoreboardManager.js';
 import { allTeams } from '../../data.js';
 import { allowedQuestionTypes, questionTypeLabels } from '../ZoneQuestions/ZoneQuestionsTypes.js';
+import ChatServiceV2 from '../../services/ChatServiceV2.js';
 
 // ---------------------------------------------------------------------------
 // 💾 SAVE QUESTIONS (for a specific zone)
@@ -141,12 +141,12 @@ async function onForceCapture(zoneId, renderZones, tableBody, googleMapsApiLoade
   await updateControlledZones(cleanName, zoneId);
 
   // Notify communications log
-  await addDoc(collection(db, 'communications'), {
-    teamName: 'Game Master',
-    sender: 'Game Master',
-    senderDisplay: 'Game Master',
-    message: `⚡ Admin forced ${cleanName} to capture ${zoneId}.`,
-    timestamp: serverTimestamp(),
+  await ChatServiceV2.send({
+    fromTeam: 'Game Master',
+    toTeam: 'ALL',
+    text: `⚡ Admin forced ${cleanName} to capture ${zoneId}.`,
+    kind: 'system',
+    meta: { action: 'force-capture', zoneId, targetTeam: cleanName }
   });
 
   console.log(`⚡️ ${cleanName} manually captured ${zoneId}`);
@@ -288,7 +288,7 @@ export function attachZoneHandlers({ tableBody, renderZones, googleMapsApiLoaded
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: default
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -296,5 +296,5 @@ export function attachZoneHandlers({ tableBody, renderZones, googleMapsApiLoaded
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

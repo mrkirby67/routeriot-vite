@@ -1,7 +1,7 @@
 // === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/ZoneManagement/zoneUI.js
-// PURPOSE: === AI-CONTEXT-MAP ===
+// PURPOSE: Renders the Zone Management control panel layout and styling hooks.
 // DEPENDS_ON: none
 // USED_BY: components/ZoneManagement/ZoneManagement.js
 // AUTHOR: James Kirby / Route Riot Project
@@ -91,7 +91,7 @@ export function ZoneManagementComponent() {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: ZoneManagementComponent
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -99,5 +99,5 @@ export function ZoneManagementComponent() {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

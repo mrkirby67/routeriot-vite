@@ -3,8 +3,6 @@
 // PURPOSE: Handles surprise usage (Flat Tire, Bug Splat, Shield Wax)
 // ============================================================================
 
-import { db } from '../config.js';
-import { addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { assignFlatTireTeam } from '../flatTireManager.js';
 import {
   SurpriseTypes,
@@ -19,8 +17,7 @@ import {
   sendSurpriseToTeam
 } from '../teamSurpriseManager.js';
 import { sendPrivateSystemMessage } from './messageService.js';
-
-const COMMUNICATIONS_REF = collection(db, 'communications');
+import ChatServiceV2 from '../../services/ChatServiceV2.js';
 
 const SURPRISE_LABELS = {
   [SurpriseTypes.FLAT_TIRE]: 'Flat Tire',
@@ -43,15 +40,33 @@ function normalizeSurpriseType(type = '') {
 
 async function broadcast(messagePayload = {}) {
   try {
-    await addDoc(COMMUNICATIONS_REF, {
-      teamName: messagePayload.teamName || 'Game Master',
-      sender: messagePayload.sender || messagePayload.teamName || 'Game Master',
-      senderDisplay: messagePayload.senderDisplay || messagePayload.sender || 'Game Master',
-      message: messagePayload.message || '',
-      isBroadcast: messagePayload.isBroadcast ?? true,
-      timestamp: serverTimestamp(),
-      type: messagePayload.type || 'teamSurprise',
-      toTeam: messagePayload.toTeam || null
+    const senderName =
+      messagePayload.sender ||
+      messagePayload.teamName ||
+      'Game Master';
+    const targetTeam =
+      typeof messagePayload.toTeam === 'string' && messagePayload.toTeam.trim()
+        ? messagePayload.toTeam.trim()
+        : 'ALL';
+    const isBroadcast = messagePayload.isBroadcast !== false;
+    const text = messagePayload.message || '';
+
+    await ChatServiceV2.send({
+      fromTeam: senderName,
+      toTeam: isBroadcast ? 'ALL' : targetTeam,
+      text,
+      kind: 'system',
+      meta: {
+        surpriseType: messagePayload.type || 'teamSurprise',
+        targetTeam,
+        origin: 'playerChat.surprises'
+      },
+      extra: {
+        type: messagePayload.type || 'teamSurprise',
+        from: senderName,
+        to: targetTeam,
+        senderDisplay: messagePayload.senderDisplay || senderName
+      }
     });
   } catch (err) {
     console.warn('⚠️ Unable to broadcast surprise message:', err);

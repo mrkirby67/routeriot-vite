@@ -1,23 +1,24 @@
-# AICP Validation Report — 2025-11-02T14:13:35.333Z
-Files scanned: 57
-✅ OK: 47
+# AICP Validation Report — 2025-11-05T23:29:03.602Z
+Files scanned: 58
+✅ OK: 43
 ⚠️ Warnings: 0
 ❌ Errors: 0
-🛠️ Fixed: 10
+🛠️ Fixed: 15
 
 | File | Status | Note |
 |------|---------|------|
+| services/ChatServiceV2.js | 🛠️ Fixed | Footer missing key: ai_role (auto-repaired) |
 | services/firestoreRefs.js | ✅ OK |  |
 | services/flat-tire/flatTireService.js | ✅ OK |  |
 | services/gameRulesManager.js | 🛠️ Fixed | Footer missing key: ai_role (auto-repaired) |
 | services/gameStateService.js | ✅ OK |  |
-| services/messageService.js | ✅ OK |  |
+| services/messageService.js | 🛠️ Fixed | Footer missing key: ai_role (auto-repaired) |
 | services/speed-bump/speedBumpService.js | ✅ OK |  |
 | services/team-surprise/teamSurpriseService.js | 🛠️ Fixed | Footer missing key: aicp_version (auto-repaired) |
 | services/teamService.js | ✅ OK |  |
 | features/bug-strike/bugStrikePlayer.js | ✅ OK |  |
-| features/chat/playerChat.events.js | ✅ OK |  |
-| features/chat/playerChat.state.js | ✅ OK |  |
+| features/chat/playerChat.events.js | 🛠️ Fixed | Footer missing key: ai_role (auto-repaired) |
+| features/chat/playerChat.state.js | 🛠️ Fixed | Footer missing key: ai_role (auto-repaired) |
 | features/flat-tire/flatTireController.js | ✅ OK |  |
 | features/flat-tire/flatTireEvents.js | 🛠️ Fixed | Footer missing key: aicp_version (auto-repaired) |
 | features/flat-tire/flatTireTypes.js | ✅ OK |  |
@@ -27,7 +28,7 @@ Files scanned: 57
 | features/team-surprise/teamSurpriseController.js | 🛠️ Fixed | Footer missing key: aicp_version (auto-repaired) |
 | features/team-surprise/teamSurpriseEvents.js | 🛠️ Fixed | Footer missing key: aicp_version (auto-repaired) |
 | features/team-surprise/teamSurpriseTypes.js | 🛠️ Fixed | Footer missing key: aicp_version (auto-repaired) |
-| components/Broadcast/Broadcast.js | ✅ OK |  |
+| components/Broadcast/Broadcast.js | 🛠️ Fixed | Footer missing key: ai_role (auto-repaired) |
 | components/BugStrikeControl/BugStrikeControl.js | ✅ OK |  |
 | components/ChatLog/ChatLog.js | ✅ OK |  |
 | components/FlatTireControl/FlatTireControl.js | ✅ OK |  |
@@ -65,5 +66,12 @@ Files scanned: 57
 | ui/overlays/speedBumpOverlay.js | ✅ OK |  |
 | ui/team-surprise/teamSurpriseUI.js | 🛠️ Fixed | Footer missing key: aicp_version (auto-repaired) |
 
+## 🧩 Comment Health Summary
+| File | Issue |
+|------|--------|
+| ✅ All comment blocks properly closed | ✅ |
+
 Template header hash: 361 chars
 Template footer hash: 249 chars
+
+[AICP Tools Stabilizer v3.5] — applied

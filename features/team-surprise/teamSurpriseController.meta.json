@@ -1,0 +1,12 @@
+{
+  "layer": "features",
+  "name": "teamSurpriseController",
+  "depends_on": [
+    "teamSurpriseState",
+    "teamSurpriseService",
+    "ChatServiceV2",
+    "teamSurprise.bridge"
+  ],
+  "description": "Coordinates surprise attack logic and dispatches outcomes through ChatServiceV2.",
+  "phase": "active"
+}

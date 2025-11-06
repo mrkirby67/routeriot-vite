@@ -1,0 +1,7 @@
+{
+  "phase": "validated",
+  "layer": "services",
+  "name": "gameRulesManager",
+  "depends_on": [],
+  "description": "TODO"
+}

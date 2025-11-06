@@ -12,13 +12,13 @@
 
 import styles from './SurpriseSelector.module.css';
 import { allTeams } from '../../data.js';
+import { SurpriseTypes } from '../../features/team-surprise/teamSurpriseTypes.js';
 import {
   subscribeTeamSurprises,
   increment,
   decrement,
-  SurpriseTypes,
-  subscribeAllCooldowns, // New
-} from '../../features/team-surprise/teamSurpriseController.js';
+  subscribeAllCooldowns,
+} from '../../services/team-surprise/teamSurpriseService.js';
 import { escapeHtml } from '../../modules/utils.js';
 import { getDocs, collection, writeBatch, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../../modules/config.js';
@@ -345,7 +345,7 @@ function normalizeCount(value) {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: applyToAllTeams, SurpriseSelectorComponent, initializeSurpriseSelector, teardownSurpriseSelector
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -353,5 +353,5 @@ function normalizeCount(value) {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

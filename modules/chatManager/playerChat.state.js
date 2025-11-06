@@ -6,7 +6,8 @@
 import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../config.js';
 import { clearRegistry, registerListener } from './registry.js';
-import { listenForMyMessages } from './messageService.js';
+import { listenForMyMessages, sendPrivateMessage } from './messageService.js';
+import ChatServiceV2 from '../../services/ChatServiceV2.js';
 import {
   subscribeAllTeamInventories,
   subscribeSurprisesForTeam,
@@ -15,6 +16,185 @@ import {
 import { subscribeSpeedBumpsForAttacker } from '../speedBump/index.js';
 import { updateSpeedBumpOverlay } from '../playerUI/overlays/speedBumpOverlay.js';
 import { initializePlayerBugStrike } from '../playerBugStrike.js';
+
+function toMillis(timestamp) {
+  if (!timestamp) return Date.now();
+  if (typeof timestamp === 'number') return timestamp;
+  if (typeof timestamp.toMillis === 'function') return timestamp.toMillis();
+  if (typeof timestamp.seconds === 'number') {
+    const base = timestamp.seconds * 1000;
+    const nanos = Math.floor((timestamp.nanoseconds || 0) / 1e6);
+    return base + nanos;
+  }
+  return Date.now();
+}
+
+function normalizeMessage(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const alreadyNormalized =
+    typeof raw.sender === 'string' &&
+    typeof raw.recipient === 'string' &&
+    Object.prototype.hasOwnProperty.call(raw, 'timestampMs');
+  if (alreadyNormalized) return raw;
+
+  try {
+    const docLike = {
+      id: raw.id || `local-${Date.now()}`,
+      data: () => raw
+    };
+    return ChatServiceV2.normalizeDoc(docLike);
+  } catch (err) {
+    console.warn('[playerChat.state] Failed to normalize message payload:', err);
+    return null;
+  }
+}
+
+function createChatLogAppender(logElement, teamName) {
+  if (!logElement) return () => {};
+  logElement.innerHTML = '';
+
+  const renderedIds = new Set();
+  const normalizedTeam = typeof teamName === 'string' ? teamName.trim().toLowerCase() : '';
+
+  return (payload = {}) => {
+    const items = Array.isArray(payload) ? payload : [payload];
+    items.forEach((raw) => {
+      const message = normalizeMessage(raw);
+      if (!message) return;
+
+      const messageId = message.id || message.messageId;
+      if (!messageId || renderedIds.has(messageId)) return;
+      renderedIds.add(messageId);
+
+      const entry = document.createElement('p');
+      const createdAtMs = toMillis(message.timestamp || message.createdAt || message.timestampMs);
+      const timestampLabel = new Date(createdAtMs).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const senderRaw =
+        message.senderDisplay ||
+        message.fromTeam ||
+        message.sender ||
+        'Unknown';
+      const recipientRaw =
+        message.toTeam ||
+        message.recipient ||
+        '';
+
+      const sender = senderRaw.trim();
+      const recipient = recipientRaw.trim();
+      const senderKey = sender.toLowerCase();
+      const recipientKey = recipient.toLowerCase();
+
+      const isBroadcast =
+        (recipient && recipient.toUpperCase() === 'ALL') || message.kind === 'broadcast';
+      const isMine = normalizedTeam && senderKey === normalizedTeam;
+      const isForMe = normalizedTeam && recipientKey === normalizedTeam;
+
+      let prefix;
+      if (isBroadcast) {
+        prefix = `📣 ${sender || 'Broadcast'}`;
+      } else if (isMine) {
+        prefix = `You → ${recipient || 'Unknown'}`;
+      } else if (isForMe) {
+        prefix = `${sender || 'Unknown'} → You`;
+      } else {
+        prefix = `${sender || 'Unknown'} → ${recipient || 'Unknown'}`;
+      }
+
+      entry.textContent = `[${timestampLabel}] ${prefix}: ${message.text || ''}`;
+      logElement.appendChild(entry);
+      logElement.scrollTop = logElement.scrollHeight;
+    });
+  };
+}
+
+function attachTeamChatInputHandlers(teamName) {
+  const chatInput = document.getElementById('chat-input');
+  const sendButton = document.getElementById('send-chat-button');
+  const recipientInput = document.getElementById('chat-recipient');
+
+  if (!chatInput) return null;
+
+  const normalizedTeam =
+    typeof teamName === 'string' && teamName.trim()
+      ? teamName.trim()
+      : '';
+
+  if (!normalizedTeam) {
+    console.warn('[playerChat.state] Missing team name for chat send handler.');
+    return null;
+  }
+
+  let isSending = false;
+
+  const resolveRecipient = () => {
+    const raw = typeof recipientInput?.value === 'string' ? recipientInput.value.trim() : '';
+    return raw || 'ALL';
+  };
+
+  const restoreButtonState = (originalLabel) => {
+    if (!sendButton) return;
+    setTimeout(() => {
+      sendButton.textContent = originalLabel;
+      sendButton.disabled = false;
+      delete sendButton.dataset.loading;
+      delete sendButton.dataset.error;
+      sendButton.blur?.();
+    }, sendButton.dataset.error === 'true' ? 1200 : 160);
+  };
+
+  const dispatchMessage = async () => {
+    if (isSending) return;
+    const text = chatInput.value?.trim();
+    if (!text) return;
+
+    isSending = true;
+    const originalLabel = sendButton?.textContent || 'Send';
+
+    if (sendButton) {
+      sendButton.disabled = true;
+      sendButton.dataset.loading = 'true';
+      sendButton.textContent = 'Sending…';
+    }
+
+    try {
+      await sendPrivateMessage(normalizedTeam, resolveRecipient(), text);
+      chatInput.value = '';
+    } catch (err) {
+      console.error('❌ Failed to send team chat message:', err);
+      if (sendButton) {
+        sendButton.dataset.error = 'true';
+        sendButton.textContent = 'Failed';
+      }
+    } finally {
+      restoreButtonState(originalLabel);
+      isSending = false;
+    }
+  };
+
+  const handleButtonClick = (event) => {
+    event.preventDefault();
+    dispatchMessage();
+  };
+
+  const handleInputKeydown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      dispatchMessage();
+    }
+  };
+
+  sendButton?.addEventListener('click', handleButtonClick);
+  chatInput.addEventListener('keydown', handleInputKeydown);
+
+  return () => {
+    sendButton?.removeEventListener('click', handleButtonClick);
+    chatInput.removeEventListener('keydown', handleInputKeydown);
+  };
+}
 
 const defaultCounts = Object.freeze({
   flatTire: 0,
@@ -127,7 +307,8 @@ export function setupPlayerChat(teamName, options = {}) {
 
   const logEl = document.getElementById('team-chat-log');
   if (logEl) {
-    const stopMessages = listenForMyMessages(normalizedTeamName, logEl);
+    const appendMessage = createChatLogAppender(logEl, normalizedTeamName);
+    const stopMessages = listenForMyMessages(normalizedTeamName, appendMessage);
     if (typeof stopMessages === 'function') {
       teardownCallbacks.push(() => {
         try { stopMessages?.(); } catch (err) {
@@ -135,6 +316,15 @@ export function setupPlayerChat(teamName, options = {}) {
         }
       });
     }
+  }
+
+  const detachChatInputHandlers = attachTeamChatInputHandlers(normalizedTeamName);
+  if (typeof detachChatInputHandlers === 'function') {
+    teardownCallbacks.push(() => {
+      try { detachChatInputHandlers(); } catch (err) {
+        console.debug('⚠️ Failed to detach chat input handlers:', err);
+      }
+    });
   }
 
   const teardown = (reason = 'manual') => {

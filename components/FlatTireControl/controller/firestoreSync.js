@@ -1,7 +1,7 @@
 // === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/FlatTireControl/controller/firestoreSync.js
-// PURPOSE: === AI-CONTEXT-MAP ===
+// PURPOSE: Syncs Flat Tire control state with Firestore racer data and feature config.
 // DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../../modules/config.js
 // USED_BY: features/flat-tire/flatTireController.js
 // AUTHOR: James Kirby / Route Riot Project
@@ -54,7 +54,7 @@ export function applyConfig(controller, config) {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: subscribeToRacers, applyConfig
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -62,5 +62,5 @@ export function applyConfig(controller, config) {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

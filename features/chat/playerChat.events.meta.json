@@ -1,0 +1,9 @@
+{
+  "layer": "features",
+  "name": "playerChat.events",
+  "depends_on": [
+    "playerChat.bridge"
+  ],
+  "description": "Attaches DOM chat event listeners and forwards sends to the chat bridge.",
+  "phase": "active"
+}

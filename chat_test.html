@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Pipeline Test</title>
+</head>
+<body>
+    <h1>Chat Pipeline Test</h1>
+    <p>Open the developer console to see test results.</p>
+
+    <script type="module">
+        // Import necessary modules
+        import * as ChatServiceV2 from '/services/ChatServiceV2.js';
+
+        // --- STEP 1: Inject Test Helper ---
+        window.ChatDebug = {
+            listeners: () => ChatServiceV2?.activeListeners?.(),
+            game: () => ChatServiceV2?.cachedGameId?.(),
+            send: (txt, team = 'ALL') =>
+                ChatServiceV2.send({
+                    fromTeam: 'TEST_TEAM',
+                    toTeam: team,
+                    text: txt,
+                    kind: team === 'ALL' ? 'broadcast' : 'chat'
+                })
+        };
+        console.log("ChatDebug helper injected.");
+
+        // --- CONFIRMATION REQUIREMENTS ---
+        setTimeout(() => {
+            try {
+                console.log("ChatDebug.listeners():", window.ChatDebug.listeners());
+                console.log("ChatDebug.game():", window.ChatDebug.game());
+
+                // --- STEP 2: Verify Message Broadcast Path ---
+                console.log("\n--- Verifying Broadcast Message ---");
+                window.ChatDebug.send("Hello from TEST_TEAM");
+                console.log("Broadcast message sent. Check Control and Player UIs.");
+
+                // --- STEP 3: Verify Direct Team Message ---
+                console.log("\n--- Verifying Direct Message ---");
+                window.ChatDebug.send("Private hello", "RED");
+                console.log("Direct message sent to RED team. Check RED team UI and Control UI.");
+
+                // --- STEP 4: Verify CHIRP Task Flow ---
+                console.log("\n--- CHIRP Task Flow ---");
+                console.log("Please manually create a CHIRP task in the Control UI and respond from a player UI to test this flow.");
+
+                // --- STEP 5: Listener Registry Stability Check ---
+                console.log("\n--- Listener Registry Stability Check ---");
+                console.log("Please refresh the browser window and then execute 'ChatDebug.listeners()' in the console to check for listener count stability.");
+
+            } catch (e) {
+                console.error("Error during automated test execution:", e);
+            }
+        }, 2000); // Wait for services to initialize
+    </script>
+</body>
+</html>

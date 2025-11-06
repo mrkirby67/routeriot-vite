@@ -1,0 +1,9 @@
+{
+  "layer": "components",
+  "name": "ZoneQuestionsLogic",
+  "depends_on": [
+    "ZoneQuestionsTypes"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

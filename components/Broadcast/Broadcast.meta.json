@@ -1,0 +1,9 @@
+{
+  "layer": "components",
+  "name": "Broadcast",
+  "depends_on": [
+    "ChatServiceV2"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

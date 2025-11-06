@@ -1,6 +1,6 @@
-# AICP Codex Auto-Heal Report — 2025-11-02T14:13:35.205Z
+# AICP Codex Auto-Heal Report — 2025-11-05T23:24:11.207Z
 
-Build Status: ✅ PASS
+Build Status: ⚠️ FAIL
 
 No metadata repairs were required.
 

@@ -1,0 +1,7 @@
+{
+  "phase": "validated",
+  "layer": "features",
+  "name": "gameStateController",
+  "depends_on": [],
+  "description": "TODO"
+}

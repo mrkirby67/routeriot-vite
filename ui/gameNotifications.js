@@ -3,26 +3,22 @@
 // FILE: ui/gameNotifications.js
 // PURPOSE: Displays UI notifications and alerts to the user.
 // DEPENDS_ON: none
-// USED_BY: features/game-state/gameStateController.js
+// USED_BY: features/game-state/gameStateController.js, components/GameControls/GameControls.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
-// AICP_VERSION: 3.0
+// AICP_VERSION: 3.1
 // ============================================================================
 // === END AICP UI HEADER ===
 
-// ui/gameNotifications.js
-
-/**
- * @file Displays UI notifications and alerts to the user.
- * Provides functions for flashing banners, countdown timers,
- * and success/error/info alerts.
- */
-
+// ----------------------------------------------------------------------------
+// ⚡ Flash Banner
+// ----------------------------------------------------------------------------
 /**
  * Displays a quick flash-style banner for transient messages.
  * @param {string} message - Text to display.
  * @param {number} [timeout=3000] - Time in ms before disappearing.
  */
+
 export function showFlashMessage(message = '', timeout = 3000) {
   const div = document.createElement('div');
   div.className = 'flash-banner';
@@ -39,16 +35,27 @@ export function showFlashMessage(message = '', timeout = 3000) {
     zIndex: '9999',
     fontFamily: 'sans-serif',
     boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+    opacity: '0',
+    transition: 'opacity 0.3s ease-in-out',
   });
   document.body.appendChild(div);
-  setTimeout(() => div.remove(), timeout);
+  // fade in
+  requestAnimationFrame(() => (div.style.opacity = '1'));
+  setTimeout(() => {
+    div.style.opacity = '0';
+    setTimeout(() => div.remove(), 300);
+  }, timeout);
 }
 
+// ----------------------------------------------------------------------------
+// ⏳ Countdown Banner
+// ----------------------------------------------------------------------------
 /**
  * Displays a countdown banner (e.g., for cooldowns or pauses).
  * @param {string} label - The label to display before the countdown.
  * @param {number} seconds - Countdown duration in seconds.
  */
+
 export function showCountdownBanner(label, seconds) {
   const banner = document.createElement('div');
   banner.className = 'countdown-banner';
@@ -77,48 +84,51 @@ export function showCountdownBanner(label, seconds) {
   tick();
 }
 
+// ----------------------------------------------------------------------------
+// ✅ Success / ❌ Error / ℹ️ Info
+// ----------------------------------------------------------------------------
 /**
- * Shows a success notification (green banner + alert).
+ * Shows a success notification (green banner + log).
  * @param {string} message - The message to display.
  */
+
 export function showSuccess(message) {
   showFlashMessage(`✅ ${message}`, 3000);
   console.log(`SUCCESS: ${message}`);
-  alert(`SUCCESS: ${message}`);
 }
 
 /**
- * Shows an error notification (red banner + alert).
+ * Shows an error notification (red banner + log).
  * @param {string} message - The message to display.
  */
+
 export function showError(message) {
   showFlashMessage(`❌ ${message}`, 4000);
   console.error(`ERROR: ${message}`);
-  alert(`ERROR: ${message}`);
 }
 
 /**
- * Shows an informational notification (blue banner + alert).
+ * Shows an informational notification (blue banner + log).
  * @param {string} message - The message to display.
  */
+
 export function showInfo(message) {
   showFlashMessage(`ℹ️ ${message}`, 3000);
   console.log(`INFO: ${message}`);
-  alert(`INFO: ${message}`);
 }
 
 // === AICP UI FOOTER ===
 // ai_origin: ui/gameNotifications.js
 // ai_role: Presentation Layer
 // aicp_category: ui
-// aicp_version: 3.0
+// aicp_version: 3.1
 // codex_phase: tier4_ui_injection
-// export_bridge: components/*
+// export_bridge: components
 // exports: showFlashMessage, showCountdownBanner, showSuccess, showError, showInfo
 // linked_files: []
 // owner: RouteRiot-AICP
 // phase: tier4_ui_injection
-// review_status: pending_alignment
+// review_status: aligned
 // status: stable
 // sync_state: aligned
 // === END AICP UI FOOTER ===

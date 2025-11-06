@@ -1,177 +1,186 @@
+#!/usr/bin/env node
 /**
- * ============================================================================
- * TOOL: aicp_integrity_check.js (v3.1)
- * PURPOSE:
- *   Verify existence and consistency of critical AICP exports/imports,
- *   detect undefined symbols, and generate an AICP Layer Graph summary.
- * OUTPUT:
- *   docs/aicp_integrity_report.md
- * ============================================================================
+ * Route Riot Metadata Manager
+ * ---------------------------
+ * This tool manages the metadata for the Route Riot project, using .meta.json
+ * files as the single source of truth. It replaces the previous mixed metadata
+ * and inline comment system.
+ *
+ * PHASES:
+ * 1) CHECK: Scan all modules and locate matching *.meta.json files.
+ * 2) CONFIRM + REVIEW: Generate a browsable HTML dashboard in /docs
+ *    showing layer, name, depends_on, description, and phase status.
  */
 
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
 
 const ROOT = process.cwd();
-const TARGET_DIRS = ["modules", "services", "features", "components", "ui"];
-const OUT_FILE = path.join(ROOT, "docs/aicp_integrity_report.md");
+const TARGET_DIRS = ['components', 'features', 'services', 'ui'];
+const HEALTH_REPORT_PATH = path.join(ROOT, 'docs', 'aicp_file_health_report.md');
+const HTML_DASHBOARD_PATH = path.join(ROOT, 'docs', 'metadata_dashboard.html');
 
-// ---------------------------------------------------------------------------
-// 🧠 Expected Exports Registry (Critical Routes for Route Riot)
-// ---------------------------------------------------------------------------
-const CRITICAL_EXPORTS = {
-  "services/messageService.js": ["listenForMyMessages", "sendMessage"],
-  "features/team-surprise/teamSurpriseController.js": [
-    "isTeamOnCooldown",
-    "isShieldActive",
-    "deactivateShield",
-  ],
-  "components/GameControls/GameControls.js": ["initializeGameControlsLogic"],
-};
-
-// ---------------------------------------------------------------------------
-// 🧩 Utility helpers
-// ---------------------------------------------------------------------------
-function readFileSafe(filePath) {
-  try {
-    return fs.readFileSync(filePath, "utf8");
-  } catch {
-    return "";
-  }
-}
-
-function listJsFiles(dir) {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  return entries.flatMap((e) => {
-    const res = path.resolve(dir, e.name);
-    if (e.isDirectory()) return listJsFiles(res);
-    return e.name.endsWith(".js") ? [res] : [];
-  });
-}
-
-// ---------------------------------------------------------------------------
-// 🔍 Scan for missing exports (now includes trailing export syntax)
-// ---------------------------------------------------------------------------
-function checkExports() {
-  const results = [];
-  for (const [rel, expectedFns] of Object.entries(CRITICAL_EXPORTS)) {
-    const abs = path.join(ROOT, rel);
-    const code = readFileSafe(abs);
-
-    // Match both inline and trailing exports
-    const inlineExports = [
-      ...code.matchAll(/export\s+(?:async\s+)?(?:function|const|let|var)\s+([a-zA-Z0-9_]+)/g),
-    ].map((m) => m[1]);
-
-    const trailingExports = [
-      ...code.matchAll(/export\s*{\s*([^}]+)\s*};/g),
-    ]
-      .flatMap((m) => m[1].split(","))
-      .map((name) => name.trim())
-      .filter(Boolean);
-
-    const foundFns = new Set([...inlineExports, ...trailingExports]);
-
-    expectedFns.forEach((fn) => {
-      if (!foundFns.has(fn)) {
-        results.push({
-          file: rel,
-          missing: fn,
-          issue: "Missing expected export",
-        });
-      }
+function findJsFiles(dir) {
+    if (!fs.existsSync(dir)) return [];
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    return entries.flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) return findJsFiles(full);
+        if (entry.isFile() && full.endsWith('.js')) return full;
+        return [];
     });
-  }
-  return results;
 }
 
-// ---------------------------------------------------------------------------
-// 🧬 Check for undefined symbols used (phase-style errors)
-// Ignores commented lines
-// ---------------------------------------------------------------------------
-function checkUndefinedUsage() {
-  const results = [];
-  const phaseRegex = /(?<![\/]{2,}\s*)\bphase\b(?!\s*:)/g; // ignores // phase: ...
-  for (const dir of TARGET_DIRS) {
-    const base = path.join(ROOT, dir);
-    if (!fs.existsSync(base)) continue;
-    const files = listJsFiles(base);
-    for (const file of files) {
-      const text = readFileSafe(file);
-      const matches = [...text.matchAll(phaseRegex)];
-      if (matches.length > 0) {
-        results.push({
-          file: path.relative(ROOT, file),
-          symbol: "phase",
-          count: matches.length,
-          issue: "Possible undefined variable",
-        });
-      }
+function getLayer(filePath) {
+    const relPath = path.relative(ROOT, filePath);
+    const parts = relPath.split(path.sep);
+    if (TARGET_DIRS.includes(parts[0])) {
+        return parts[0];
     }
-  }
-  return results;
+    return 'unknown';
 }
 
-// ---------------------------------------------------------------------------
-// 🗺️ Generate a Layer Graph Summary
-// ---------------------------------------------------------------------------
-function generateLayerGraph() {
-  const summary = {};
-  for (const dir of TARGET_DIRS) {
-    const full = path.join(ROOT, dir);
-    if (!fs.existsSync(full)) continue;
-    const files = listJsFiles(full);
-    summary[dir] = files.length;
-  }
-  return summary;
+function run() {
+    console.log('Running Route Riot Metadata Manager...');
+
+    const allJsFiles = TARGET_DIRS.flatMap(dir => findJsFiles(path.join(ROOT, dir)));
+    const metadataReport = [];
+    const allMetadata = [];
+
+    for (const jsFile of allJsFiles) {
+        const metaFile = jsFile.replace(/\.js$/, '.meta.json');
+        const name = path.basename(jsFile, '.js');
+        const layer = getLayer(jsFile);
+
+        if (!fs.existsSync(metaFile)) {
+            const placeholder = {
+                layer: layer !== 'unknown' ? layer : 'TODO',
+                name: name,
+                depends_on: [],
+                description: 'TODO',
+                phase: 'draft'
+            };
+            fs.writeFileSync(metaFile, JSON.stringify(placeholder, null, 2));
+            metadataReport.push({
+                file: path.relative(ROOT, jsFile),
+                status: '❌ Missing',
+                details: 'Created placeholder .meta.json file.'
+            });
+            allMetadata.push(placeholder);
+        } else {
+            const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+            let updated = false;
+
+            const layerFromFile = getLayer(jsFile);
+            if (meta.layer === 'TODO' || !meta.layer) {
+                if (layerFromFile !== 'unknown') {
+                    meta.layer = layerFromFile;
+                    updated = true;
+                }
+            }
+            if (!meta.name) { meta.name = name; updated = true; }
+            if (!meta.depends_on) { meta.depends_on = []; updated = true; }
+            if (!meta.description) { meta.description = 'TODO'; updated = true; }
+            if (!meta.phase) { meta.phase = 'draft'; updated = true; }
+
+            if (updated) {
+                fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2));
+            }
+
+            allMetadata.push(meta);
+            let issues = [];
+            if (meta.layer === 'TODO') issues.push('layer is TODO');
+            if (meta.description === 'TODO') issues.push('description is TODO');
+            if (issues.length > 0) {
+                metadataReport.push({
+                    file: path.relative(ROOT, jsFile),
+                    status: '⚠️ Incomplete',
+                    details: issues.join(', ')
+                });
+            }
+        }
+    }
+
+    // Generate health report
+    let healthReport = `# AICP File Health Report — ${new Date().toISOString()}\n\n`;
+    if (metadataReport.length > 0) {
+        healthReport += '| File | Status | Details |\n';
+        healthReport += '|------|--------|---------|\n';
+        metadataReport.forEach(report => {
+            healthReport += `| ${report.file} | ${report.status} | ${report.details} |\n`;
+        });
+    } else {
+        healthReport += '✅ All .meta.json files are present and complete.\n';
+    }
+    fs.writeFileSync(HEALTH_REPORT_PATH, healthReport);
+    console.log(`✅ Health report written to ${HEALTH_REPORT_PATH}`);
+
+    // Generate HTML dashboard
+    const phaseColors = {
+        draft: '#f0ad4e',
+        active: '#5cb85c',
+        validated: '#337ab7',
+        deprecated: '#d9534f'
+    };
+
+    let html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Route Riot Metadata Dashboard</title>
+            <style>
+                body { font-family: sans-serif; margin: 2em; }
+                h1 { text-align: center; }
+                .layer { margin-bottom: 2em; border: 1px solid #ddd; border-radius: 5px; padding: 1em; }
+                .module { border: 1px solid #ccc; border-radius: 5px; padding: 1em; margin-bottom: 1em; background-color: #f9f9f9; }
+                .module-header { display: flex; justify-content: space-between; align-items: center; }
+                .phase { padding: 0.5em; color: white; border-radius: 5px; }
+            </style>
+        </head>
+        <body>
+            <h1>Route Riot Metadata Dashboard</h1>
+    `;
+
+    const modulesByLayer = allMetadata.reduce((acc, meta) => {
+        const layer = meta.layer || 'unknown';
+        if (!acc[layer]) acc[layer] = [];
+        acc[layer].push(meta);
+        return acc;
+    }, {});
+
+    for (const layer in modulesByLayer) {
+        html += `<div class="layer"><h2>${layer}</h2>`;
+        modulesByLayer[layer].forEach(meta => {
+            const jsFilePath = allJsFiles.find(f => f.endsWith(`${meta.name}.js`));
+            const metaFilePath = jsFilePath ? jsFilePath.replace(/\.js$/, '.meta.json') : '';
+
+            const relJsPath = jsFilePath ? path.relative(path.dirname(HTML_DASHBOARD_PATH), jsFilePath) : '#';
+            const relMetaPath = metaFilePath ? path.relative(path.dirname(HTML_DASHBOARD_PATH), metaFilePath) : '#';
+
+            html += `
+                <div class="module">
+                    <div class="module-header">
+                        <h3>${meta.name}</h3>
+                        <span class="phase" style="background-color: ${phaseColors[meta.phase] || '#777'}">${meta.phase}</span>
+                    </div>
+                    <p><strong>Description:</strong> ${meta.description}</p>
+                    <p><strong>Dependencies:</strong> ${meta.depends_on.join(', ') || 'None'}</p>
+                    <p>
+                        <a href="${relJsPath}">Code</a> | <a href="${relMetaPath}">Metadata</a>
+                    </p>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+
+    html += `
+        </body>
+        </html>
+    `;
+
+    fs.writeFileSync(HTML_DASHBOARD_PATH, html);
+    console.log(`✅ HTML dashboard written to ${HTML_DASHBOARD_PATH}`);
 }
 
-// ---------------------------------------------------------------------------
-// 📄 Write Report
-// ---------------------------------------------------------------------------
-function writeReport(exportIssues, undefinedIssues, layerSummary) {
-  let out = `# AICP Integrity Report — ${new Date().toISOString()}\n\n`;
-  out += `Scanned directories: ${TARGET_DIRS.join(", ")}\n`;
-
-  // Missing Exports
-  out += `\n## Missing Exports (${exportIssues.length})\n`;
-  if (exportIssues.length === 0) out += "✅ None\n";
-  else {
-    out += "| File | Function | Issue |\n|------|-----------|--------|\n";
-    exportIssues.forEach((e) => {
-      out += `| ${e.file} | ${e.missing} | ${e.issue} |\n`;
-    });
-  }
-
-  // Undefined Vars
-  out += `\n## Possible Undefined Variables (${undefinedIssues.length})\n`;
-  if (undefinedIssues.length === 0) out += "✅ None\n";
-  else {
-    out += "| File | Symbol | Count | Issue |\n|------|---------|--------|--------|\n";
-    undefinedIssues.forEach((u) => {
-      out += `| ${u.file} | ${u.symbol} | ${u.count} | ${u.issue} |\n`;
-    });
-  }
-
-  // Layer Graph Summary
-  out += `\n## AICP Layer Graph Summary\n`;
-  out += "| Layer | JS Files |\n|--------|-----------|\n";
-  for (const [layer, count] of Object.entries(layerSummary)) {
-    out += `| ${layer} | ${count} |\n`;
-  }
-
-  // Write to file
-  fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
-  fs.writeFileSync(OUT_FILE, out);
-  console.log(`✅ Integrity report written → ${OUT_FILE}`);
-}
-
-// ---------------------------------------------------------------------------
-// 🚀 Run Checks
-// ---------------------------------------------------------------------------
-const exportIssues = checkExports();
-const undefinedIssues = checkUndefinedUsage();
-const layerSummary = generateLayerGraph();
-writeReport(exportIssues, undefinedIssues, layerSummary);
-
-console.log("🧩 Integrity scan complete — Regex expanded, comments ignored, layer map generated.");
+run();

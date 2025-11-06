@@ -63,7 +63,7 @@ export function initializeTeamLinksLogic() {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: TeamLinksComponent, initializeTeamLinksLogic
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -71,5 +71,5 @@ export function initializeTeamLinksLogic() {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

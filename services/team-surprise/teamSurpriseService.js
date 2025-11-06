@@ -209,17 +209,23 @@ export async function sendSurpriseToTeam(fromTeam, toTeam, type, options = {}) {
   }
 
   const message = options.message || defaultCommunicationMessage(normalizedType, sender, target);
+  const finalTarget = typeof target === 'string' && target.trim() ? target.trim() : 'ALL';
+  const isBroadcast = options.isBroadcast ?? true;
   const commPayload = {
     type: normalizedType,
     from: sender,
-    to: target,
+    to: finalTarget,
     message,
+    text: message,
+    fromTeam: sender,
+    recipient: isBroadcast ? 'ALL' : finalTarget,
     timestamp: serverTimestamp(),
     teamName: sender,
     sender,
     senderDisplay: sender,
-    toTeam: target,
-    isBroadcast: options.isBroadcast ?? true
+    toTeam: isBroadcast ? 'ALL' : finalTarget,
+    isBroadcast,
+    kind: 'system'
   };
 
   if (options.extraFields && typeof options.extraFields === 'object') {
@@ -349,7 +355,7 @@ export function subscribeAllTeamInventories(callback) {
 // ai_origin: services/team-surprise/teamSurpriseService.js
 // ai_role: Data Layer
 // codex_phase: tier1_services_injection
-// export_bridge: features/*
+// export_bridge: features
 // exports: normalizeSurpriseKey, subscribeTeamSurprises, incrementSurprise, decrementSurprise, resetSurpriseCounter, getTeamSurpriseCounts, increment, decrement, subscribeSurprisesForTeam, defaultSurpriseLabel, consumeSurprise, sendSurpriseToTeam, auditUse, deleteAllTeamSurpriseDocs, isOnCooldown, getCooldownTimeRemaining, subscribeAllCooldowns, subscribeAllTeamInventories
 // linked_files: []
 // owner: RouteRiot-AICP

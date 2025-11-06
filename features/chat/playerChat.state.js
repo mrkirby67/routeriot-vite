@@ -1,24 +1,16 @@
-// === AICP FEATURE HEADER ===
 // ============================================================================
-// FILE: features/chat/playerChat.state.js
-// PURPOSE: Main controller for the player chat feature.
-// DEPENDS_ON: services/messageService.js, components/ChatLog/ChatLog.js, features/chat/playerChat.events.js
-// USED_BY: features/chat/playerChat.events.js, features/player-page/playerPageController.js
+// sanitized metadata line
+// sanitized metadata line
+// sanitized metadata line
+// sanitized metadata line
 // AUTHOR: James Kirby / Route Riot Project
-// CREATED: 2025-10-30
-// AICP_VERSION: 3.0
+// sanitized metadata line
+// AICP_VERSION: 1.0
 // ============================================================================
-// === END AICP FEATURE HEADER ===
 
-/*
- * @file Main controller for the player chat feature.
- * It manages state, listens for new messages, and updates the UI.
- */
-
-import * as messageService from "../../services/messageService.js";
+import ChatServiceV2, { normalizeDoc } from "../../services/ChatServiceV2.js";
 import { renderMessages } from "../../components/ChatLog/ChatLog.js";
-import { attachChatEventListeners } from "./playerChat.events.js";
-import { initializeMessageListener } from "../../modules/messageListener.js";
+import { ensureChatEventListeners, registerChatSendHandler } from "./playerChat.bridge.js";
 
 let teamId = null;
 let unsubscribeMessages = null;
@@ -32,88 +24,106 @@ function normalizeKey(value) {
 
 function determineTeamId() {
   if (typeof window !== 'undefined') {
-    if (window.currentPlayerTeam && typeof window.currentPlayerTeam === 'string') {
-      return window.currentPlayerTeam.trim();
-    }
-    if (window.localStorage) {
-      const stored = window.localStorage.getItem('teamName');
-      if (stored) return stored.trim();
+    const candidate =
+      (typeof window.currentPlayerTeam === 'string' && window.currentPlayerTeam.trim()) ||
+      (window.localStorage && window.localStorage.getItem('teamName'));
+    if (candidate && typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
     }
   }
   return 'Unknown Team';
 }
 
-/*
- * Initializes the chat feature.
- */
+function ensureNormalizedMessage(message) {
+  if (!message || typeof message !== 'object') return null;
+
+  const hasNormalizedShape =
+    typeof message.sender === 'string' &&
+    typeof message.recipient === 'string' &&
+    Object.prototype.hasOwnProperty.call(message, 'timestampMs');
+  if (hasNormalizedShape) return message;
+
+  try {
+    const docLike = {
+      id: message.id || `local-${Date.now()}`,
+      data: () => message
+    };
+    return normalizeDoc(docLike);
+  } catch (err) {
+    console.warn('Failed to normalize chat payload:', err);
+    return null;
+  }
+}
+
 export function initializeChat() {
   teamId = determineTeamId();
 
-  attachChatEventListeners();
+  ensureChatEventListeners();
 
-  // Reset message buffer and UI
   messageBuffer.length = 0;
   messageIds.clear();
   renderMessages([]);
 
-  // Reinitialize listener
   unsubscribeMessages?.();
-  unsubscribeMessages = initializeMessageListener((message) => {
-    if (!message) return;
+  unsubscribeMessages = ChatServiceV2.listenForTeam(teamId, (incomingBatch) => {
+    const batch = Array.isArray(incomingBatch) ? incomingBatch : [incomingBatch];
+    let didAppend = false;
 
-    const senderKey = normalizeKey(message.sender || message.fromTeam);
-    const recipientKey = normalizeKey(message.recipient);
-    const targetKey = normalizeKey(teamId);
+    batch.forEach((incoming) => {
+      const normalized = ensureNormalizedMessage(incoming);
+      if (!normalized) return;
 
-    if (
-      targetKey &&
-      senderKey !== targetKey &&
-      recipientKey !== targetKey &&
-      recipientKey !== 'all'
-    ) {
-      return;
+      const teamKey = normalizeKey(teamId);
+      const senderKey = normalizeKey(normalized.sender || normalized.fromTeam);
+      const recipientKey = normalizeKey(normalized.recipient || normalized.toTeam);
+
+      const involved =
+        !teamKey ||
+        senderKey === teamKey ||
+        recipientKey === teamKey ||
+        recipientKey === 'all';
+
+      if (!involved) return;
+      if (normalized.id && messageIds.has(normalized.id)) return;
+      if (normalized.id) messageIds.add(normalized.id);
+
+      messageBuffer.push(normalized);
+      didAppend = true;
+    });
+
+    if (didAppend) {
+      renderMessages(messageBuffer);
     }
-
-    if (message.id && messageIds.has(message.id)) return;
-    if (message.id) messageIds.add(message.id);
-
-    messageBuffer.push(message);
-    renderMessages(messageBuffer);
   });
 }
 
-/*
- * Handles sending a message.
- * @param {string} text - The message to send.
- */
 export function handleSendMessage(text, recipient = 'ALL') {
   const cleanText = typeof text === 'string' ? text.trim() : '';
   if (!cleanText) return;
-  if (!teamId) {
-    console.warn('Cannot send message without an identified team.');
-    return;
-  }
 
   const cleanRecipient = typeof recipient === 'string' && recipient.trim()
     ? recipient.trim()
     : 'ALL';
 
-  messageService.sendMessage(teamId, cleanRecipient, cleanText);
+
+  if (!teamId) {
+    console.warn('Cannot send message without an identified team.');
+    return;
+  }
+
+  ChatServiceV2.send({
+    fromTeam: teamId,
+    toTeam: cleanRecipient,
+    text: cleanText,
+    kind: cleanRecipient.toUpperCase() === 'ALL' ? 'broadcast' : 'chat'
+  });
 }
 
-// === AICP FEATURE FOOTER ===
-// ai_origin: features/chat/playerChat.state.js
-// ai_role: Logic Layer
-// aicp_category: feature
-// aicp_version: 3.0
-// codex_phase: tier2_features_injection
-// depends_on: services/*
-// export_bridge: components/*
-// exports: initializeChat, handleSendMessage
-// linked_files: []
-// owner: RouteRiot-AICP
-// phase: tier2_features_injection
-// review_status: complete
-// status: stable
-// sync_state: aligned
-// === END AICP FEATURE FOOTER ===
+registerChatSendHandler(handleSendMessage);
+
+export function teardownChat(reason = 'manual') {
+  unsubscribeMessages?.(reason);
+  unsubscribeMessages = null;
+  messageBuffer.length = 0;
+  messageIds.clear();
+}

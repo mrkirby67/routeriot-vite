@@ -6,6 +6,7 @@
 import { subscribeSpeedBumpAssignments } from './interactions.js';
 import { isShieldActive } from '../teamSurpriseManager.js';
 import { escapeHtml } from '../utils.js';
+import ChatServiceV2 from '../../services/ChatServiceV2.js';
 
 let overlayEl = null;
 let countdownId = null;

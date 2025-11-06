@@ -1,0 +1,9 @@
+{
+  "layer": "components",
+  "name": "SurpriseSelector",
+  "depends_on": [
+    "teamSurpriseController"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

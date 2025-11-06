@@ -1,0 +1,7 @@
+{
+  "layer": "features",
+  "name": "teamSurpriseState",
+  "depends_on": [],
+  "description": "Holds surprise state (shields, cooldowns, wildcards) shared by controller, UI, and events.",
+  "phase": "active"
+}

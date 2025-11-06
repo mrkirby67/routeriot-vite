@@ -67,11 +67,11 @@ function run() {
     `# AICP File Health Report — ${new Date().toISOString()}`,
     `Files scanned: ${report.length}`,
     "",
-    "| File | Lines | Size (KB) | Complexity | Comment % |",
-    "|------|--------|-----------|-------------|------------|",
+    "| Status | File | Lines | Size (KB) | Complexity | Comment % |",
+    "|----|------|--------|-----------|-------------|------------|",
     ...report.map(
       (r) =>
-        `| ${r.file.replace(ROOT + "/", "")} | ${r.lines} | ${r.sizeKB} | ${r.complexity} | ${r.commentPct}% |`
+        `| ${r.lines > 600 ? "⚠️" : "✅"} | ${r.file.replace(ROOT + "/", "")} | ${r.lines} | ${r.sizeKB} | ${r.complexity} | ${r.commentPct}% |`
     ),
     "",
     "## Largest 10 Files",

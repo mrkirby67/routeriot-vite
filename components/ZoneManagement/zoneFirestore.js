@@ -32,6 +32,7 @@ import { allTeams } from '../../modules/data.js';
  * @param {string} message - Message content.
  * @param {boolean} [isBroadcast=true] - Whether this should appear globally.
  */
+
 export async function broadcastEvent(teamName, message, isBroadcast = true) {
   try {
     const cleanTeam =
@@ -74,6 +75,7 @@ export async function broadcastChallenge(teamName, zoneName) {
  * @param {string} teamName
  * @param {string} zoneName
  */
+
 export async function broadcastWin(teamName, zoneName) {
   try {
     const cleanTeam = allTeams.find(t => t.name === teamName)?.name || teamName;
@@ -88,6 +90,15 @@ export async function broadcastWin(teamName, zoneName) {
     await setDoc(
       doc(db, "zones", zoneName),
       {
+        controllingTeam: cleanTeam,
+        status: 'Controlled'
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error("❌ broadcastWin error:", err);
+  }
+}
 
 // === AICP COMPONENT FOOTER ===
 // ai_origin: components/ZoneManagement/zoneFirestore.js
@@ -95,7 +106,7 @@ export async function broadcastWin(teamName, zoneName) {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: broadcastEvent, broadcastChallenge, broadcastWin
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -103,5 +114,5 @@ export async function broadcastWin(teamName, zoneName) {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

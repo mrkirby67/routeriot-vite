@@ -1,0 +1,10 @@
+{
+  "layer": "components",
+  "name": "zoneHandlers",
+  "depends_on": [
+    "ChatServiceV2",
+    "ZoneQuestionsTypes"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

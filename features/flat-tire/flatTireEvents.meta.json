@@ -1,0 +1,9 @@
+{
+  "layer": "features",
+  "name": "flatTireEvents",
+  "depends_on": [
+    "flatTireService"
+  ],
+  "description": "TODO",
+  "phase": "draft"
+}

@@ -1,12 +1,14 @@
+// === AICP FEATURE HEADER ===
 // ============================================================================
-// FILE: /*file_path*/
-// PURPOSE: /*short_description*/
-// DEPENDS_ON: /*dependencies*/
-// USED_BY: /*consumers*/
+// FILE: features/game-state/gameStateController.js
+// PURPOSE: Provides helpers to read, write, and observe the Firestore game state.
+// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// USED_BY: components/GameControls/GameControls.js
 // AUTHOR: James Kirby / Route Riot Project
-// CREATED: /*date*/
-// AICP_VERSION: 1.0
+// CREATED: 2025-10-30
+// AICP_VERSION: 3.0
 // ============================================================================
+// === END AICP FEATURE HEADER ===
 
 // ============================================================================
 // PATCH: gameStateController.js — Game State Helpers
@@ -32,6 +34,3 @@ export function listenToGameStateUpdates(callback) {
     if (snap.exists()) callback(snap.data().status);
   });
 }
-// === AICP METADATA ===
-// AICP phase tag validated
-// phase: validated

@@ -230,7 +230,7 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
 // aicp_category: component
 // aicp_version: 3.0
 // codex_phase: tier3_components_injection
-// export_bridge: services/*
+// export_bridge: services
 // exports: renderZones
 // linked_files: []
 // owner: RouteRiot-AICP
@@ -238,5 +238,5 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features/*
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

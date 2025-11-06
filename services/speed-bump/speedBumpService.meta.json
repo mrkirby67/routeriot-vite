@@ -1,0 +1,7 @@
+{
+  "layer": "services",
+  "name": "speedBumpService",
+  "depends_on": [],
+  "description": "TODO",
+  "phase": "draft"
+}

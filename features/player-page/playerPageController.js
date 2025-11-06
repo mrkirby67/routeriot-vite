@@ -22,6 +22,7 @@ import { initializeChat } from "../chat/playerChat.state.js";
 /*
  * Initializes the player page.
  */
+
 export function initializePlayerPage() {
   console.log("Initializing player page...");
   initializeOpponentList();
@@ -35,8 +36,8 @@ export function initializePlayerPage() {
 // aicp_category: feature
 // aicp_version: 3.0
 // codex_phase: tier2_features_injection
-// depends_on: services/*
-// export_bridge: components/*
+// depends_on: services
+// export_bridge: components
 // exports: initializePlayerPage
 // linked_files: []
 // owner: RouteRiot-AICP

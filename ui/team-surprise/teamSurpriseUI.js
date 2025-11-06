@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: ui/team-surprise/teamSurpriseUI.js
 // PURPOSE: UI helpers for shield confirmation flows in Team Surprise actions.
-// DEPENDS_ON: ../../features/team-surprise/teamSurpriseEvents.js
+// DEPENDS_ON: ../../features/team-surprise/teamSurpriseState.js
 // USED_BY: features/team-surprise/teamSurpriseController.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -10,7 +10,13 @@
 // ============================================================================
 // === END AICP UI HEADER ===
 
-import { isShieldActive, deactivateShield } from '../../features/team-surprise/teamSurpriseEvents.js';
+import { ensureSurpriseEventListeners } from '../../features/team-surprise/teamSurprise.bridge.js';
+import {
+  isShieldActive,
+  deactivateShield
+} from '../../features/team-surprise/teamSurpriseState.js';
+
+ensureSurpriseEventListeners();
 
 // === BEGIN RECOVERED BLOCK ===
 export function checkShieldBeforeAttack(teamName, onProceed) {
@@ -78,7 +84,7 @@ export function checkShieldBeforeAttack(teamName, onProceed) {
 // ai_origin: ui/team-surprise/teamSurpriseUI.js
 // ai_role: Presentation Layer
 // codex_phase: tier4_ui_injection
-// export_bridge: components/*
+// export_bridge: components
 // exports: checkShieldBeforeAttack
 // linked_files: []
 // owner: RouteRiot-AICP

@@ -1,7 +1,7 @@
 // === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/FlatTireControl/controller/autoScheduler.js
-// PURPOSE: /*AICP-METADATA (sanitized)*/
+// PURPOSE: Runs automatic Flat Tire assignments and releases at configured intervals.
 // DEPENDS_ON: ../../../modules/flatTireManager.js
 // USED_BY: features/flat-tire/flatTireController.js
 // AUTHOR: James Kirby / Route Riot Project
@@ -49,6 +49,3 @@ function runAutoCycle(controller) {
     status: 'auto-assigned'
   }).catch(err => console.warn('Auto assign fail', err));
 }
-// === AICP METADATA ===
-// AICP phase tag validated
-// phase: validated

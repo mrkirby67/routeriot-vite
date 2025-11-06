@@ -7,6 +7,7 @@ import { db } from '../config.js';
 import { allTeams } from '../../data.js';
 import { getZoneDisplayName } from '../zoneManager.js';
 import { hidePausedOverlay, showResumeBanner } from './overlays.js';
+import ChatServiceV2 from '../../services/ChatServiceV2.js';
 import {
   collection,
   doc,
@@ -167,17 +168,14 @@ export function initializePlayerUI(teamInput) {
         console.log(`📨 [Message to ${teamTo}] ${msg}`);
         input.value = '';
 
-        try {
-          if (typeof window.sendTeamMessage === 'function') {
-            window.sendTeamMessage(teamTo, msg);
-          } else if (window.chatManager && typeof window.chatManager.sendTeamMessage === 'function') {
-            window.chatManager.sendTeamMessage(teamTo, msg);
-          } else {
-            console.warn('⚠️ No sendTeamMessage() available — message not sent.');
-          }
-        } catch (err) {
+        ChatServiceV2.send({
+          fromTeam: resolvedTeamName,
+          toTeam: teamTo,
+          text: msg,
+          kind: 'chat'
+        }).catch(err => {
           console.error('💥 Error sending message:', err);
-        }
+        });
       }
     });
   }
