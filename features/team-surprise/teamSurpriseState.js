@@ -86,7 +86,11 @@ export function clearWildCard(team) {
 }
 
 function getCooldownDurationMs() {
-  return DEFAULT_COOLDOWN_MINUTES * 60 * 1000;
+  if (typeof window === 'undefined' || !window?.localStorage) return DEFAULT_COOLDOWN_MINUTES * 60 * 1000;
+  const savedDuration = window.localStorage.getItem('cooldownDuration');
+  const parsed = Number.parseInt(savedDuration, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_COOLDOWN_MINUTES * 60 * 1000;
+  return parsed * 60 * 1000;
 }
 
 export function startCooldown(team) {
