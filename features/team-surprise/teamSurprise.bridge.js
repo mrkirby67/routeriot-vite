@@ -7,6 +7,8 @@
 let triggerHandler = null;
 let attachHandler = null;
 let attachRequested = false;
+let speedBumpOverlayModule = null;
+let overlayLoadPromise = null;
 
 export function registerSurpriseTriggerHandler(handler) {
   triggerHandler = typeof handler === 'function' ? handler : null;
@@ -40,4 +42,34 @@ export function ensureSurpriseEventListeners() {
     console.warn('Failed to load teamSurpriseEvents module:', err);
     attachRequested = false;
   });
+}
+
+async function loadSpeedBumpOverlayModule() {
+  if (speedBumpOverlayModule) return speedBumpOverlayModule;
+  if (overlayLoadPromise) {
+    return overlayLoadPromise;
+  }
+  overlayLoadPromise = import('../../ui/overlays/speedBumpOverlay.js')
+    .then((mod) => {
+      speedBumpOverlayModule = mod || {};
+      return speedBumpOverlayModule;
+    })
+    .catch((err) => {
+      console.warn('Failed to load speedBumpOverlay module:', err);
+      speedBumpOverlayModule = null;
+      return null;
+    })
+    .finally(() => {
+      overlayLoadPromise = null;
+    });
+  return overlayLoadPromise;
+}
+
+export async function ensureSpeedBumpOverlayListeners(options = {}) {
+  const moduleRef = await loadSpeedBumpOverlayModule();
+  const ensureFn = moduleRef?.ensureSpeedBumpOverlayListeners;
+  if (typeof ensureFn === 'function') {
+    return ensureFn(options);
+  }
+  return () => {};
 }

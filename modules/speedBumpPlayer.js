@@ -5,54 +5,11 @@
 
 import {
   triggerSpeedBump,
-  clearSpeedBump,
-  subscribeToSpeedBump
 } from '../services/speed-bump/speedBumpService.js';
-import { showSpeedBumpOverlay } from '../ui/overlays/speedBumpOverlay.js';
+import { ensureSpeedBumpOverlayListeners } from '../ui/overlays/speedBumpOverlay.js';
 
 let currentTeamId = null;
 let currentTeamDisplay = null;
-let unsubscribe = null;
-let clearTimer = null;
-
-function resetTimer() {
-  if (clearTimer) {
-    clearTimeout(clearTimer);
-    clearTimer = null;
-  }
-}
-
-async function scheduleAutoClear(teamId, delayMs = 4_200) {
-  resetTimer();
-  if (!teamId) return;
-  clearTimer = setTimeout(async () => {
-    try {
-      await clearSpeedBump(teamId);
-    } catch (err) {
-      console.warn('[speedBumpPlayer] failed to clear speed bump:', err);
-    } finally {
-      clearTimer = null;
-    }
-  }, delayMs);
-}
-
-function handleSpeedBumpUpdate(bump) {
-  if (!bump || !bump.active) {
-    resetTimer();
-    return;
-  }
-
-  const type = typeof bump.type === 'string' && bump.type.trim() ? bump.type.trim() : 'Speed Bump';
-  const teamLabel =
-    (typeof bump.teamName === 'string' && bump.teamName.trim()) ||
-    (typeof bump.team === 'string' && bump.team.trim()) ||
-    (typeof bump.id === 'string' && bump.id.trim()) ||
-    currentTeamDisplay ||
-    'unknown team';
-  console.info('🏎️ Speed Bump triggered:', { team: teamLabel, type });
-  showSpeedBumpOverlay(type, { team: teamLabel });
-  scheduleAutoClear(currentTeamId);
-}
 
 export function initializeSpeedBumpPlayer(teamName) {
   const normalizedTeam =
@@ -61,24 +18,15 @@ export function initializeSpeedBumpPlayer(teamName) {
   currentTeamId = normalizedTeam;
   currentTeamDisplay = displayTeam;
 
-  unsubscribe?.();
-  resetTimer();
-
   if (!normalizedTeam) {
     console.warn('[speedBumpPlayer] initialize called without a team name');
     return () => {};
   }
 
-  unsubscribe = subscribeToSpeedBump(
-    normalizedTeam,
-    handleSpeedBumpUpdate,
-    (error) => console.warn('[speedBumpPlayer] speed bump subscription error:', error)
-  );
+  const teardownOverlay = ensureSpeedBumpOverlayListeners({ teamName });
 
   return (reason = 'manual') => {
-    unsubscribe?.();
-    unsubscribe = null;
-    resetTimer();
+    teardownOverlay(reason);
     if (reason !== 'handover') {
       currentTeamId = null;
       currentTeamDisplay = null;

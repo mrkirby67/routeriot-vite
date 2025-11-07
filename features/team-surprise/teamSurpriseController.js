@@ -34,7 +34,9 @@ import {
   recordTeamAttackTimestamp,
   getLastTeamAttackTimestamp,
   setGlobalCooldownMs,
-  getGlobalCooldown
+  getGlobalCooldown,
+  setTeamActiveEffects,
+  clearTeamActiveEffects
 } from './teamSurpriseState.js';
 import {
   normalizeSurpriseKey,
@@ -55,7 +57,9 @@ import {
   getCooldownTimeRemaining,
   subscribeAllCooldowns,
   subscribeAllTeamInventories,
-  subscribeToGlobalCooldown
+  subscribeToGlobalCooldown,
+  subscribeSpeedBumpAssignments,
+  requestSpeedBumpRelease
 } from '../../services/team-surprise/teamSurpriseService.js';
 import ChatServiceV2 from '../../services/ChatServiceV2.js';
 import { registerSurpriseTriggerHandler } from './teamSurprise.bridge.js';
@@ -63,6 +67,8 @@ import { showSurpriseCooldownOverlay } from '../../playerUI/overlays/surpriseCoo
 
 let uiModulePromise = null;
 let unsubscribeGlobalCooldown = null;
+const speedBumpEffectSubscriptions = new Map();
+const activeSpeedBumpAttackers = new Map(); // attacker -> { victim }
 
 function loadUiModule() {
   if (!uiModulePromise) {
@@ -83,6 +89,12 @@ function initializeGlobalCooldownSubscription() {
 }
 
 initializeGlobalCooldownSubscription();
+
+function normalizeTeamName(value) {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  return trimmed;
+}
 
 function mapToOverlayType(rawType, normalizedType) {
   const candidate = normalizedType || (typeof rawType === 'string' ? rawType : '');
@@ -225,6 +237,130 @@ export function checkShieldBeforeAttack(teamName, onProceed) {
   return loadUiModule().then((mod) =>
     mod.checkShieldBeforeAttack(teamName, onProceed)
   );
+}
+
+function releaseAttackerLockForVictim(victimTeam) {
+  const normalizedVictim = normalizeTeamName(victimTeam);
+  if (!normalizedVictim) return;
+  for (const [attacker, meta] of activeSpeedBumpAttackers.entries()) {
+    if (meta?.victim === normalizedVictim) {
+      activeSpeedBumpAttackers.delete(attacker);
+      if (activeWildCards[attacker]?.type === 'speedBump') {
+        clearWildCard(attacker);
+      }
+      break;
+    }
+  }
+}
+
+function applyAttackerLock(effect) {
+  if (!effect) return;
+  const attacker = normalizeTeamName(effect.attackerTeam || effect.attacker);
+  if (!attacker) return;
+  const victim = normalizeTeamName(effect.victimTeam || '');
+  const deadline = Number(effect.releaseAvailableAt ?? effect.expiresAt ?? (effect.startedAt + effect.releaseDurationMs));
+  const remaining = Number.isFinite(deadline) ? Math.max(30_000, deadline - Date.now()) : 5 * 60 * 1000;
+  startWildCard(attacker, 'speedBump', remaining);
+  activeSpeedBumpAttackers.set(attacker, { victim });
+}
+
+function attachSpeedBumpWatcher(teamName) {
+  const normalized = normalizeTeamName(teamName);
+  if (!normalized) return () => {};
+  const existing = speedBumpEffectSubscriptions.get(normalized);
+  if (existing) {
+    existing.count += 1;
+    return (reason = 'speedbump') => {
+      existing.count -= 1;
+      if (existing.count <= 0) {
+        try {
+          existing.unsubscribe?.(reason);
+        } catch (err) {
+          console.debug('⚠️ Failed to cleanup speed bump watcher:', err);
+        }
+        speedBumpEffectSubscriptions.delete(normalized);
+        clearTeamActiveEffects(normalized);
+        releaseAttackerLockForVictim(normalized);
+      }
+    };
+  }
+
+  const unsubscribe = subscribeSpeedBumpAssignments(normalized, (effect) => {
+    if (!effect) {
+      clearTeamActiveEffects(normalized);
+      releaseAttackerLockForVictim(normalized);
+      return;
+    }
+    const enriched = { ...effect, victimTeam: normalized };
+    setTeamActiveEffects(normalized, [enriched]);
+    applyAttackerLock(enriched);
+  });
+
+  speedBumpEffectSubscriptions.set(normalized, { count: 1, unsubscribe });
+
+  return (reason = 'speedbump') => {
+    const entry = speedBumpEffectSubscriptions.get(normalized);
+    if (!entry) return;
+    entry.count -= 1;
+    if (entry.count <= 0) {
+      try {
+        entry.unsubscribe?.(reason);
+      } catch (err) {
+        console.debug('⚠️ Failed to cleanup speed bump watcher:', err);
+      }
+      speedBumpEffectSubscriptions.delete(normalized);
+      clearTeamActiveEffects(normalized);
+      releaseAttackerLockForVictim(normalized);
+    }
+  };
+}
+
+export function ensureSpeedBumpEffectSubscription(teamName) {
+  return attachSpeedBumpWatcher(teamName);
+}
+
+export async function markSpeedBumpChallengeComplete(teamName, options = {}) {
+  const normalized = normalizeTeamName(teamName);
+  if (!normalized) {
+    throw new Error('Unable to identify your team.');
+  }
+  const duration = Number(options.durationMs);
+  return requestSpeedBumpRelease(normalized, Number.isFinite(duration) ? duration : 5 * 60 * 1000);
+}
+
+export async function sendSpeedBumpChirp({ fromTeam, toTeam, text } = {}) {
+  const sender = normalizeTeamName(fromTeam);
+  const recipient = normalizeTeamName(toTeam);
+  const body = typeof text === 'string' ? text.trim() : '';
+
+  if (!sender) {
+    throw new Error('Missing sending team.');
+  }
+  if (!recipient) {
+    throw new Error('Choose a team to chirp.');
+  }
+  if (!body) {
+    throw new Error('Message cannot be empty.');
+  }
+
+  await ChatServiceV2.send({
+    fromTeam: sender,
+    toTeam: recipient,
+    text: body,
+    kind: 'private',
+    meta: {
+      effect: 'speedBump',
+      targetTeam: recipient,
+      origin: 'speedBumpOverlay'
+    },
+    extra: {
+      type: 'speedBump',
+      from: sender,
+      to: recipient
+    }
+  });
+
+  return { ok: true };
 }
 
 export function isShieldActive(teamState) {

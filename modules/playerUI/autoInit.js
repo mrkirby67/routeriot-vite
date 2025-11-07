@@ -4,18 +4,23 @@
 // ============================================================================
 
 import { getTeamNameFromUrl, initializePlayerUI } from './core.js';
-import { initializeSpeedBumpPlayer } from '../speedBumpPlayer.js';
+import { ensureSpeedBumpOverlayListeners } from '../../features/team-surprise/teamSurprise.bridge.js';
 
 let detachSpeedBumpWatcher = null;
 
-function watchSpeedBumps(teamName) {
+async function watchSpeedBumps(teamName) {
   if (!teamName) return;
   try {
     detachSpeedBumpWatcher?.('handover');
   } catch (err) {
     console.warn('[playerUI:autoInit] Failed to hand off previous speed bump watcher:', err);
   }
-  detachSpeedBumpWatcher = initializeSpeedBumpPlayer(teamName);
+  try {
+    detachSpeedBumpWatcher = await ensureSpeedBumpOverlayListeners({ teamName });
+  } catch (err) {
+    console.warn('[playerUI:autoInit] Failed to initialize Speed Bump overlay:', err);
+    detachSpeedBumpWatcher = null;
+  }
 }
 
 if (typeof document !== 'undefined') {

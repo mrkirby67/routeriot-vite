@@ -3,17 +3,13 @@
 // PURPOSE: Handles surprise usage (Flat Tire, Bug Splat, Shield Wax)
 // ============================================================================
 
-import { assignFlatTireTeam } from '../flatTireManager.js';
+import { assignFlatTireTeam, loadFlatTireConfig } from '../flatTireManager.js';
 import {
   SurpriseTypes,
   consumeSurprise,
   activateShield,
   getShieldDurationMs,
-  checkShieldBeforeAttack,
   auditUse,
-  startCooldown,
-  isTeamOnCooldown,
-  getCooldownTimeRemaining,
   sendSurpriseToTeam
 } from '../teamSurpriseManager.js';
 import { sendPrivateSystemMessage } from './messageService.js';
@@ -73,7 +69,7 @@ async function broadcast(messagePayload = {}) {
   }
 }
 
-async function handleFlatTireAttack(attacker, defender) {
+export async function dispatchFlatTireAttack(attacker, defender) {
   const fromTeam = normalizeTeamName(attacker);
   const targetTeam = normalizeTeamName(defender);
 
@@ -81,36 +77,31 @@ async function handleFlatTireAttack(attacker, defender) {
   if (!targetTeam || targetTeam === fromTeam) {
     throw new Error('Choose a different team to receive the Flat Tire.');
   }
-  if (await isTeamOnCooldown(fromTeam)) {
-    const remaining = await getCooldownTimeRemaining(fromTeam);
-    const seconds = Math.ceil(remaining / 1000);
-    throw new Error(`On cooldown! Try again in ${seconds}s.`);
+
+  const result = await sendSurpriseToTeam(fromTeam, targetTeam, SurpriseTypes.FLAT_TIRE);
+  if (result?.blocked) {
+    return;
+  }
+  if (!result?.ok) {
+    throw new Error(result?.message || 'No Flat Tire surprises remaining.');
   }
 
-  const result = await checkShieldBeforeAttack(fromTeam, async () => {
-    const sendResult = await sendSurpriseToTeam(fromTeam, targetTeam, SurpriseTypes.FLAT_TIRE, {
-      message: `🚗 ${fromTeam} sent a FLAT TIRE to ${targetTeam}!`
-    });
-    if (!sendResult?.ok) {
-      return { ok: false, message: sendResult?.message || 'No Flat Tire surprises remaining.' };
-    }
+  const flatTireConfig = await loadFlatTireConfig();
+  const zones = Object.values(flatTireConfig.zones).filter(z => z.gps);
+  if (!zones.length) {
+    throw new Error('No Flat Tire zones are configured by Game Control.');
+  }
+  const randomZone = zones[Math.floor(Math.random() * zones.length)];
 
-    await assignFlatTireTeam(targetTeam, { fromTeam });
-    await startCooldown(fromTeam);
-
-    await auditUse(fromTeam, SurpriseTypes.FLAT_TIRE, { targetTeam });
-
-    await sendPrivateSystemMessage(fromTeam, `🚗 Flat Tire dispatched to ${targetTeam}.`);
-    await sendPrivateSystemMessage(targetTeam, `🚗 ${fromTeam} just sent your team a Flat Tire!`);
-
-    return { ok: true, message: `Sent to ${targetTeam}!` };
+  await assignFlatTireTeam(targetTeam, { 
+    fromTeam,
+    gps: randomZone.gps,
+    zoneName: randomZone.name,
+    diameterMeters: randomZone.diameterMeters
   });
+  await auditUse(fromTeam, SurpriseTypes.FLAT_TIRE, { targetTeam });
 
-  if (result?.ok === false) {
-    throw new Error(result.message || 'Attack cancelled.');
-  }
-
-  return result;
+  return { ok: true, message: `Sent to ${targetTeam}!` };
 }
 
 async function handleBugSplatAttack(attacker, defender) {
@@ -121,42 +112,18 @@ async function handleBugSplatAttack(attacker, defender) {
   if (!targetTeam || targetTeam === fromTeam) {
     throw new Error('Choose a different team to splat.');
   }
-  if (await isTeamOnCooldown(fromTeam)) {
-    const remaining = await getCooldownTimeRemaining(fromTeam);
-    const seconds = Math.ceil(remaining / 1000);
-    throw new Error(`On cooldown! Try again in ${seconds}s.`);
+
+  const result = await sendSurpriseToTeam(fromTeam, targetTeam, SurpriseTypes.BUG_SPLAT);
+  if (result?.blocked) {
+    return;
+  }
+  if (!result?.ok) {
+    throw new Error(result?.message || 'No Bug Splat surprises remaining.');
   }
 
-  // New shield check logic
-  if (await isShieldActive(targetTeam)) {
-    console.log(`🛡️ Attack from ${fromTeam} blocked — ${targetTeam} is shielded.`);
-    await consumeSurprise(fromTeam, SurpriseTypes.BUG_SPLAT);
-    await sendPrivateSystemMessage(targetTeam, `✨ Shiny wax protected you from a Bug Splat from ${fromTeam}!`);
-    throw new Error(`${targetTeam} was protected by a shield! Your attack failed.`);
-  }
+  await auditUse(fromTeam, SurpriseTypes.BUG_SPLAT, { targetTeam });
 
-  const result = await checkShieldBeforeAttack(fromTeam, async () => {
-    const sendResult = await sendSurpriseToTeam(fromTeam, targetTeam, SurpriseTypes.BUG_SPLAT, {
-      message: `🐞 ${fromTeam} launched a BUG SPLAT on ${targetTeam}!`
-    });
-    if (!sendResult?.ok) {
-      return { ok: false, message: sendResult?.message || 'No Bug Splat surprises remaining.' };
-    }
-
-    await startCooldown(fromTeam);
-    await auditUse(fromTeam, SurpriseTypes.BUG_SPLAT, { targetTeam });
-
-    await sendPrivateSystemMessage(fromTeam, `🐞 Bug Splat launched at ${targetTeam}!`);
-    await sendPrivateSystemMessage(targetTeam, `🐞 ${fromTeam} just splatted your windshield!`);
-
-    return { ok: true, message: `Splatted ${targetTeam}!` };
-  });
-
-  if (result?.ok === false) {
-    throw new Error(result.message || 'Attack cancelled.');
-  }
-
-  return result;
+  return { ok: true, message: `Splatted ${targetTeam}!` };
 }
 async function handleShieldActivation(teamName) {
   const normalizedTeam = normalizeTeamName(teamName);
@@ -206,7 +173,7 @@ export async function handleUseSurprise({
 
   switch (normalizedType) {
     case SurpriseTypes.FLAT_TIRE:
-      return handleFlatTireAttack(normalizedTeam, targetTeam);
+      return dispatchFlatTireAttack(normalizedTeam, targetTeam);
     case SurpriseTypes.BUG_SPLAT:
       return handleBugSplatAttack(normalizedTeam, targetTeam);
     case SurpriseTypes.WILD_CARD:

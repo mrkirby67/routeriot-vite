@@ -9,6 +9,23 @@ import { getZoneDisplayName } from '../zoneManager.js';
 import { hidePausedOverlay, showResumeBanner } from './overlays.js';
 import ChatServiceV2 from '../../services/ChatServiceV2.js';
 import {
+  onShieldStateChange,
+  setShieldObserverTeam
+} from '../../features/team-surprise/teamSurpriseState.js';
+import {
+  attemptSurpriseAttack
+} from '../../features/team-surprise/teamSurpriseController.js';
+import { dispatchFlatTireAttack } from '../chatManager/playerChat.surprises.js';
+import {
+  sendSurpriseToTeam,
+  subscribeSurprisesForTeam
+} from '../../services/team-surprise/teamSurpriseService.js';
+import {
+  showShieldOverlay,
+  hideShieldOverlay,
+  renderShieldCountdown
+} from '../../ui/overlays/shieldOverlay.js';
+import {
   collection,
   doc,
   onSnapshot,
@@ -45,6 +62,18 @@ function formatCountdown(ms) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+if (typeof document !== 'undefined') {
+  onShieldStateChange(({ active, remainingMs }) => {
+    if (active) {
+      showShieldOverlay();
+      renderShieldCountdown(remainingMs);
+    } else {
+      hideShieldOverlay();
+      renderShieldCountdown(0);
+    }
+  });
+}
+
 export function updatePlayerTimer(text) {
   const el = document.getElementById('timer-display');
   if (el) el.textContent = text || '--:--:--';
@@ -62,6 +91,9 @@ export function initializePlayerUI(teamInput) {
     teamNameFromUrl ||
     (typeof teamInput === 'string' ? teamInput : (teamInput && teamInput.name) || 'Unknown Team');
 
+  if (resolvedTeamName) {
+    setShieldObserverTeam(resolvedTeamName);
+  }
   console.log('🎨 Initializing Player UI for:', resolvedTeamName);
 
   // Find team from allTeams to get slogan, but don't use it for opponent list
@@ -112,9 +144,15 @@ export function initializePlayerUI(teamInput) {
         tr.innerHTML = `
           <td>${oppName}</td>
           <td id="opp-loc-${safeName}">--</td>
-          <td>
-            <input id="msg-input-${safeName}" placeholder="Message ${oppName}..." style="width:90%; margin-right:4px;">
-            <button id="msg-send-${safeName}" class="send-btn" data-team="${oppName}">Send</button>
+          <td class="actions-cell">
+            <div class="message-controls">
+              <input id="msg-input-${safeName}" placeholder="Message ${oppName}..." style="width:90%; margin-right:4px;">
+              <button id="msg-send-${safeName}" class="send-btn" data-team="${oppName}">Send</button>
+            </div>
+            <div class="surprise-controls">
+              <button class="surprise-btn flat-tire-btn" data-team="${oppName}" data-type="flat-tire">Flat Tire</button>
+              <button class="surprise-btn bug-strike-btn" data-team="${oppName}" data-type="bug-strike">Bug Strike</button>
+            </div>
           </td>`;
         opponentsTbody.appendChild(tr);
 
@@ -156,6 +194,22 @@ export function initializePlayerUI(teamInput) {
       });
     });
 
+    // Subscribe to surprise inventory and update button states
+    subscribeSurprisesForTeam(resolvedTeamName, (inventory) => {
+      const flatTireCount = inventory.flatTire || 0;
+      const bugStrikeCount = inventory.bugSplat || 0;
+
+      document.querySelectorAll('.flat-tire-btn').forEach(btn => {
+        btn.disabled = flatTireCount === 0;
+        btn.textContent = `Flat Tire (${flatTireCount})${flatTireCount === 0 ? '' : ' 🎯'}`;
+      });
+
+      document.querySelectorAll('.bug-strike-btn').forEach(btn => {
+        btn.disabled = bugStrikeCount === 0;
+        btn.textContent = `Bug Strike (${bugStrikeCount})${bugStrikeCount === 0 ? '' : ' 🎯'}`;
+      });
+    });
+
     // Event delegation for send buttons
     opponentsTbody.addEventListener('click', (e) => {
       const target = e.target;
@@ -176,9 +230,54 @@ export function initializePlayerUI(teamInput) {
         }).catch(err => {
           console.error('💥 Error sending message:', err);
         });
+      } else if (target.classList.contains('surprise-btn')) {
+        const toTeam = target.dataset.team;
+        const type = target.dataset.type;
+        handleSurpriseAttack(resolvedTeamName, toTeam, type);
       }
     });
   }
+}
+
+async function handleSurpriseAttack(fromTeam, toTeam, type) {
+  console.log(`🎁 [Surprise Attack] From: ${fromTeam}, To: ${toTeam}, Type: ${type}`);
+
+  if (!fromTeam || !toTeam || fromTeam === toTeam) {
+    alert('Choose a different team before sending a surprise.');
+    return;
+  }
+
+  if (type === 'flat-tire') {
+    try {
+      const result = await dispatchFlatTireAttack(fromTeam, toTeam);
+      if (result?.message) {
+        console.log(result.message);
+      }
+    } catch (err) {
+      console.warn('⚠️ Flat Tire dispatch failed:', err);
+      alert(err?.message || 'Unable to send a Flat Tire right now.');
+    }
+    return;
+  }
+
+  const onSuccess = async () => {
+    if (type === 'bug-strike') {
+      await sendSurpriseToTeam(fromTeam, toTeam, 'bug-strike', {
+        isBroadcast: false,
+        extraFields: {
+          durationMs: 30000, // 30 seconds
+          bugs: 5,
+        }
+      });
+    }
+  };
+
+  await attemptSurpriseAttack({
+    fromTeam,
+    toTeam,
+    type,
+    onSuccess
+  });
 }
 
 function startLocalTimer() {

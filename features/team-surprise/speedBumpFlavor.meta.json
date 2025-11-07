@@ -1,0 +1,7 @@
+{
+  "layer": "features",
+  "name": "speedBumpFlavor",
+  "depends_on": [],
+  "description": "Short flavor strings for Speed Bump overlay banter.",
+  "phase": "active"
+}

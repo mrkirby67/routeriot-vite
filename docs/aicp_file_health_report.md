@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-11-07T01:15:44.673Z
+# AICP File Health Report — 2025-11-07T02:20:11.685Z
 
 | File | Status | Details |
 |------|--------|---------|
@@ -54,4 +54,3 @@
 | ui/flat-tire/flatTireUI.js | ⚠️ Incomplete | description is TODO |
 | ui/gameNotifications.js | ⚠️ Incomplete | description is TODO |
 | ui/overlays/FlatTireOverlay.js | ⚠️ Incomplete | description is TODO |
-| ui/overlays/speedBumpOverlay.js | ⚠️ Incomplete | description is TODO |

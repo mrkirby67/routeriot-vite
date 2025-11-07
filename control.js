@@ -268,18 +268,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const data = snap.exists() ? snap.data() : {};
     const status = data.status || 'waiting';
 
-    if (status === 'active') {
-      console.log('⚠️ Active game detected. Skipping cleanup.');
-      showFlashMessage(
-        '⚠️ Active game detected — skipping auto-clean to preserve data.',
-        '#ff9800',
-        4000
-      );
-    } else {
-      console.log('🧹 Performing initial cleanup before control panel loads...');
-      await clearAllChatAndScores();
-      showFlashMessage('🧼 Control panel cleaned. Fresh start ready!', '#2196f3', 3000);
-    }
+    // Removed automatic cleanup on load to preserve chat history for control panel viewing.
+    // Cleanup should be triggered manually or as part of a game reset action.
   } catch (err) {
     console.error('⚠️ Initial cleanup check failed:', err);
     showFlashMessage('⚠️ Cleanup check failed. Proceeding without wipe.', '#c62828', 3000);

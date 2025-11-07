@@ -1,0 +1,7 @@
+{
+  "layer": "ui",
+  "name": "shieldOverlay",
+  "depends_on": [],
+  "description": "Displays the shield border and countdown timer on the player UI.",
+  "phase": "active"
+}

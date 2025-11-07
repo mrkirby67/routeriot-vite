@@ -1,7 +1,11 @@
 {
   "layer": "ui",
   "name": "speedBumpOverlay",
-  "depends_on": [],
-  "description": "TODO",
-  "phase": "draft"
+  "depends_on": [
+    "teamSurpriseController",
+    "teamSurpriseState",
+    "baseOverlays"
+  ],
+  "description": "Player overlay for Speed Bump victims with live state, countdown, and chirp actions.",
+  "phase": "active"
 }

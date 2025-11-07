@@ -18,15 +18,15 @@ import {
 } from './modules/playerUI.js';
 import { initializePlayerScoreboard } from './modules/scoreboardManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
-import { initializeSpeedBumpPlayer } from './modules/speedBumpPlayer.js';
 import { initializeFlatTireUI } from './modules/flatTireUI.js';
 import { initializeChirpResponder } from './modules/chirpResponder.js';
 import { initializeBugStrikeController } from './features/bug-strike/bugStrikeController.js';
+import { ensureSpeedBumpOverlayListeners } from './features/team-surprise/teamSurprise.bridge.js';
 
 let gameStatusUnsub = null;
 let chatCleanup = null;
 let zonesCleanup = null;
-let speedBumpCleanup = null;
+let speedBumpOverlayCleanup = null;
 let flatTireCleanup = null;
 let chirpCleanup = null;
 let unloadHandler = null;
@@ -39,8 +39,8 @@ function teardownPlayerListeners(reason = 'manual') {
   zonesCleanup?.(reason);
   zonesCleanup = null;
 
-  speedBumpCleanup?.(reason);
-  speedBumpCleanup = null;
+  speedBumpOverlayCleanup?.(reason);
+  speedBumpOverlayCleanup = null;
 
   flatTireCleanup?.(reason);
   flatTireCleanup = null;
@@ -101,7 +101,7 @@ export async function initializePlayerPage() {
     chatCleanup = setupPlayerChat(currentTeamName);
     zonesCleanup = initializeZones(currentTeamName);
     initializePlayerScoreboard();
-    speedBumpCleanup = initializeSpeedBumpPlayer(currentTeamName);
+    speedBumpOverlayCleanup = await ensureSpeedBumpOverlayListeners({ teamName: currentTeamName });
     flatTireCleanup = initializeFlatTireUI(currentTeamName);
     chirpCleanup = initializeChirpResponder(currentTeamName);
     bugStrikeCleanup = await initializeBugStrikeController(currentTeamName);

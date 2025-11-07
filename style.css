@@ -903,3 +903,16 @@ body.shield-active {
   font-size: 1.1rem;
   text-align: center;
 }
+
+.rr-shield-active {
+  outline: 6px solid limegreen;
+  outline-offset: -6px;
+  transition: outline 0.2s ease-out;
+}
+
+#rr-shield-timer {
+  font-size: 1.1rem;
+  color: limegreen;
+  text-align: center;
+  margin-top: 4px;
+}

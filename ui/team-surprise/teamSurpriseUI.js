@@ -10,13 +10,17 @@
 // ============================================================================
 // === END AICP UI HEADER ===
 
-import { ensureSurpriseEventListeners } from '../../features/team-surprise/teamSurprise.bridge.js';
+import {
+  ensureSurpriseEventListeners,
+  ensureSpeedBumpOverlayListeners
+} from '../../features/team-surprise/teamSurprise.bridge.js';
 import {
   isShieldActive,
   deactivateShield
 } from '../../features/team-surprise/teamSurpriseState.js';
 
 ensureSurpriseEventListeners();
+ensureSpeedBumpOverlayListeners();
 
 // === BEGIN RECOVERED BLOCK ===
 export function checkShieldBeforeAttack(teamName, onProceed) {

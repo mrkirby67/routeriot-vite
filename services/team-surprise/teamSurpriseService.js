@@ -26,6 +26,7 @@ import {
 import { SurpriseTypes, DEFAULT_COOLDOWN_MINUTES } from '../../features/team-surprise/teamSurpriseTypes.js';
 
 const TEAM_SURPRISES_COLLECTION = collection(db, 'teamSurprises');
+const SPEEDBUMP_ASSIGNMENTS_COLLECTION = collection(db, 'speedBumpAssignments');
 const GLOBAL_COOLDOWN_DOC = doc(db, 'gameState', 'surpriseSettings');
 const GLOBAL_COOLDOWN_FIELD = 'globalCooldownMs';
 const DEFAULT_GLOBAL_COOLDOWN_MS = DEFAULT_COOLDOWN_MINUTES * 60 * 1000;
@@ -375,6 +376,135 @@ export function subscribeToGlobalCooldown(callback) {
       callback(DEFAULT_GLOBAL_COOLDOWN_MS);
     }
   );
+}
+
+function toMillis(value) {
+  if (!value) return null;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value.seconds === 'number') {
+    return value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1e6);
+  }
+  return null;
+}
+
+function parseContactInfo(data = {}) {
+  const raw = typeof data.contactInfo === 'string' ? data.contactInfo : '';
+  const email = (typeof data.contactEmail === 'string' && data.contactEmail.trim()) || '';
+  const phone = (typeof data.contactPhone === 'string' && data.contactPhone.trim()) || '';
+
+  let parsedEmail = email;
+  let parsedPhone = phone;
+
+  if (!parsedEmail && raw) {
+    const emailMatch = raw.match(/[\w.-]+@[\w.-]+/);
+    parsedEmail = emailMatch ? emailMatch[0] : '';
+  }
+
+  if (!parsedPhone && raw) {
+    const phoneMatch = raw.match(/\+?[0-9][0-9\-()\s]{5,}/);
+    parsedPhone = phoneMatch ? phoneMatch[0].trim() : '';
+  }
+
+  return {
+    email: parsedEmail,
+    phone: parsedPhone,
+    raw
+  };
+}
+
+function toSpeedBumpEffect(teamName, data = {}) {
+  const normalizedTeam = typeof teamName === 'string' ? teamName.trim() : '';
+  if (!normalizedTeam) return null;
+  const startedAt = Number(data.assignedAtMs) || toMillis(data.assignedAt) || toMillis(data.createdAt) || Date.now();
+  const expiresAt = Number(data.expiresAt) || toMillis(data.expiresAtTs) || null;
+  const releaseRequestedAt = Number(data.releaseRequestedAtMs) || toMillis(data.releaseRequestedAt) || null;
+  const releaseAvailableAt = Number(data.releaseAvailableAtMs) || (releaseRequestedAt && Number.isFinite(Number(data.releaseDurationMs))
+    ? releaseRequestedAt + Number(data.releaseDurationMs)
+    : null);
+  const contactInfo = parseContactInfo(data);
+  const attacker = typeof data.attacker === 'string' && data.attacker.trim()
+    ? data.attacker.trim()
+    : (typeof data.fromTeam === 'string' && data.fromTeam.trim())
+        ? data.fromTeam.trim()
+        : 'Unknown Team';
+
+  const status = (() => {
+    if (typeof data.status === 'string') return data.status;
+    if (data.active === false) return 'released';
+    return releaseRequestedAt ? 'pending_release' : 'active';
+  })();
+
+  return {
+    id: `speedBump:${normalizedTeam}`,
+    type: 'speedBump',
+    attacker,
+    attackerTeam: attacker,
+    contactInfo,
+    challenge:
+      (typeof data.task === 'string' && data.task.trim()) ||
+      (typeof data.challenge === 'string' && data.challenge.trim()) ||
+      'Complete your surprise challenge!',
+    startedAt,
+    expiresAt,
+    releaseRequestedAt,
+    releaseAvailableAt,
+    releaseDurationMs: Number(data.releaseDurationMs) || 5 * 60 * 1000,
+    status,
+    raw: { ...data }
+  };
+}
+
+export function subscribeSpeedBumpAssignments(teamName, callback) {
+  if (!teamName || typeof callback !== 'function') return () => {};
+  const trimmed = teamName.trim();
+  if (!trimmed) return () => {};
+  const ref = doc(SPEEDBUMP_ASSIGNMENTS_COLLECTION, trimmed);
+  return onSnapshot(
+    ref,
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        callback(null);
+        return;
+      }
+      callback(toSpeedBumpEffect(trimmed, snapshot.data() || {}));
+    },
+    (error) => {
+      console.warn('⚠️ Failed to subscribe to Speed Bump assignments:', error);
+      callback(null);
+    }
+  );
+}
+
+export async function requestSpeedBumpRelease(teamName, durationMs = 5 * 60 * 1000) {
+  const trimmed = typeof teamName === 'string' ? teamName.trim() : '';
+  if (!trimmed) {
+    throw new Error('Team name required to complete Speed Bump challenge.');
+  }
+
+  const ref = doc(SPEEDBUMP_ASSIGNMENTS_COLLECTION, trimmed);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    throw new Error('No active Speed Bump assignment found.');
+  }
+
+  const now = Date.now();
+  const safeDuration = Math.max(60_000, Number(durationMs) || 0);
+  const releaseAt = now + safeDuration;
+
+  await setDoc(ref, {
+    releaseRequestedAt: serverTimestamp(),
+    releaseRequestedAtMs: now,
+    releaseAvailableAtMs: releaseAt,
+    releaseDurationMs: safeDuration,
+    status: 'pending_release'
+  }, { merge: true });
+
+  return {
+    releaseRequestedAtMs: now,
+    releaseAvailableAtMs: releaseAt,
+    releaseDurationMs: safeDuration
+  };
 }
 // === END RECOVERED BLOCK ===
 
