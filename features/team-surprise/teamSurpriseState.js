@@ -13,6 +13,8 @@ import {
 export const activeShields = Object.create(null);   // { [teamName]: expiresAtMs }
 export const activeWildCards = Object.create(null); // { [teamName]: { type, expires } }
 export const activeCooldowns = Object.create(null); // { [teamName]: expiresAtMs }
+const teamAttackTimestamps = Object.create(null);   // { [teamName]: lastAttackTimestamp }
+let globalCooldownMs = DEFAULT_COOLDOWN_MINUTES * 60 * 1000;
 
 export function readShieldDurationMinutes() {
   if (typeof window === 'undefined' || !window?.localStorage) return DEFAULT_SHIELD_MINUTES;
@@ -103,4 +105,34 @@ export function resetSurpriseCaches() {
   for (const key of Object.keys(activeShields)) delete activeShields[key];
   for (const key of Object.keys(activeWildCards)) delete activeWildCards[key];
   for (const key of Object.keys(activeCooldowns)) delete activeCooldowns[key];
+  for (const key of Object.keys(teamAttackTimestamps)) delete teamAttackTimestamps[key];
+}
+
+export function recordTeamAttackTimestamp(teamName, timestamp = Date.now()) {
+  const normalized = typeof teamName === 'string' ? teamName.trim() : '';
+  if (!normalized) return 0;
+  const value = Number(timestamp);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  teamAttackTimestamps[normalized] = value;
+  return value;
+}
+
+export function getLastTeamAttackTimestamp(teamName) {
+  const normalized = typeof teamName === 'string' ? teamName.trim() : '';
+  if (!normalized) return 0;
+  const value = teamAttackTimestamps[normalized];
+  return Number.isFinite(value) ? value : 0;
+}
+
+export function setGlobalCooldownMs(nextValue) {
+  const numeric = Number(nextValue);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return globalCooldownMs;
+  }
+  globalCooldownMs = numeric;
+  return globalCooldownMs;
+}
+
+export function getGlobalCooldown() {
+  return globalCooldownMs;
 }

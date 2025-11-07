@@ -18,6 +18,7 @@ import {
   increment,
   decrement,
   subscribeAllCooldowns,
+  setGlobalCooldown
 } from '../../services/team-surprise/teamSurpriseService.js';
 import { escapeHtml } from '../../modules/utils.js';
 import { getDocs, collection, writeBatch, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -164,8 +165,15 @@ export function initializeSurpriseSelector() {
   if (cooldownSelect) {
     const savedDuration = localStorage.getItem(COOLDOWN_DURATION_STORAGE_KEY) || '5';
     cooldownSelect.value = savedDuration;
-    cooldownSelect.addEventListener('change', () => {
+    cooldownSelect.addEventListener('change', async () => {
       localStorage.setItem(COOLDOWN_DURATION_STORAGE_KEY, cooldownSelect.value);
+      const minutes = Number.parseInt(cooldownSelect.value, 10);
+      const durationMs = Number.isFinite(minutes) && minutes > 0 ? minutes * 60 * 1000 : 0;
+      try {
+        await setGlobalCooldown(durationMs);
+      } catch (err) {
+        console.warn('⚠️ Failed to apply global cooldown duration:', err);
+      }
     });
   }
 

@@ -50,7 +50,6 @@ export class FlatTireControlController {
     const cfg = await service.loadFlatTireConfig();
     applyConfig(this, cfg);
     await this.ensureMapsAndZonesReady();
-    this.queueRefresh(true);
 
     this.subscriptions.push(service.subscribeFlatTireConfig((config) => {
       applyConfig(this, config);

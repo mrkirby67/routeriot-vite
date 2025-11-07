@@ -23,9 +23,12 @@ import {
   setDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { SurpriseTypes } from '../../features/team-surprise/teamSurpriseTypes.js';
+import { SurpriseTypes, DEFAULT_COOLDOWN_MINUTES } from '../../features/team-surprise/teamSurpriseTypes.js';
 
 const TEAM_SURPRISES_COLLECTION = collection(db, 'teamSurprises');
+const GLOBAL_COOLDOWN_DOC = doc(db, 'gameState', 'surpriseSettings');
+const GLOBAL_COOLDOWN_FIELD = 'globalCooldownMs';
+const DEFAULT_GLOBAL_COOLDOWN_MS = DEFAULT_COOLDOWN_MINUTES * 60 * 1000;
 
 // === BEGIN RECOVERED BLOCK ===
 function normalizeCount(value) {
@@ -347,6 +350,31 @@ export function subscribeAllTeamInventories(callback) {
     });
     callback(inventories);
   });
+}
+
+export async function setGlobalCooldown(ms) {
+  const value = Number(ms);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error('Global cooldown must be a non-negative number in milliseconds.');
+  }
+  await setDoc(GLOBAL_COOLDOWN_DOC, { [GLOBAL_COOLDOWN_FIELD]: value }, { merge: true });
+}
+
+export function subscribeToGlobalCooldown(callback) {
+  if (typeof callback !== 'function') return () => {};
+  return onSnapshot(
+    GLOBAL_COOLDOWN_DOC,
+    (snapshot) => {
+      const data = snapshot.exists() ? snapshot.data() : null;
+      const candidate = Number(data?.[GLOBAL_COOLDOWN_FIELD]);
+      const value = Number.isFinite(candidate) && candidate >= 0 ? candidate : DEFAULT_GLOBAL_COOLDOWN_MS;
+      callback(value);
+    },
+    (error) => {
+      console.warn('⚠️ Failed to subscribe to global cooldown settings:', error);
+      callback(DEFAULT_GLOBAL_COOLDOWN_MS);
+    }
+  );
 }
 // === END RECOVERED BLOCK ===
 

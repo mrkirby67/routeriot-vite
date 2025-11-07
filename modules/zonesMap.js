@@ -3,7 +3,7 @@
 // PURPOSE: Static map and geometry encoding helpers for mini-map previews
 // ============================================================================
 
-import { firebaseConfig } from './config.js';
+import { firebaseConfig, GOOGLE_MAPS_API_KEY } from './config.js';
 
 const FALLBACK_DIAMETER_KM = 0.05;
 
@@ -110,7 +110,7 @@ export function generateMiniMap(zoneData = {}) {
   mapUrl.searchParams.set('size', '150x150');
   mapUrl.searchParams.set('maptype', 'satellite');
   mapUrl.searchParams.set('markers', `color:red|${lat},${lng}`);
-  mapUrl.searchParams.set('key', firebaseConfig.apiKey);
+  mapUrl.searchParams.set('key', GOOGLE_MAPS_API_KEY);
 
   // Optional overlay circle via encoded or point-based path
   try {

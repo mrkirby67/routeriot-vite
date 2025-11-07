@@ -35,7 +35,7 @@ import { clearAllCollectionsAndReset } from '../../modules/gameRulesManager.js';
 import { saveRules, loadRules } from '../../services/gameRulesManager.js';
 import { getGameStatus, setGameStatus, listenToGameStateUpdates } from '../../features/game-state/gameStateController.js';
 import { showFlashMessage } from '../../ui/gameNotifications.js';
-import ChatServiceV2 from '../../services/ChatServiceV2.js';
+
 
 import styles from './GameControls.module.css';
 
@@ -254,12 +254,7 @@ export function GameControlsComponent() {
           <button id="save-rules-btn" class="${styles.controlButton} ${styles.start}">💾 Save Rules</button>
         </div>
       </div>
-      <div class="${styles.chirpPanel}">
-        <h2>CHIRP Task Replies</h2>
-        <div id="chirp-response-feed" class="${styles.chirpFeed}">
-          <p class="${styles.chirpEmpty}">Awaiting CHIRP responses…</p>
-        </div>
-      </div>
+
     </div>
   `;
 }
@@ -284,91 +279,9 @@ export function initializeGameControlsLogic() {
   const rulesText = document.getElementById('rules-text');
   const saveRulesBtn = document.getElementById('save-rules-btn');
   const randomizeBtn = document.getElementById('randomize-btn');
-  const chirpFeedEl = document.getElementById('chirp-response-feed');
-  const chirpResponses = [];
-  const chirpTasks = new Map();
-  let unsubscribeChirpResponses = null;
-  let unsubscribeChirpTasks = null;
 
-  const formatChirpTime = (ms) => {
-    if (!ms) return '--:--';
-    const dt = new Date(ms);
-    if (Number.isNaN(dt.getTime())) return '--:--';
-    return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
 
-  const renderChirpFeed = () => {
-    if (!chirpFeedEl) return;
-    chirpFeedEl.innerHTML = '';
-    if (!chirpResponses.length) {
-      const empty = document.createElement('p');
-      empty.className = styles.chirpEmpty;
-      empty.textContent = 'Awaiting CHIRP responses…';
-      chirpFeedEl.appendChild(empty);
-      return;
-    }
 
-    const slice = chirpResponses.slice(0, 40);
-    slice.forEach((response) => {
-      const item = document.createElement('div');
-      item.className = styles.chirpFeedItem;
-
-      const meta = document.createElement('span');
-      meta.className = styles.chirpFeedMeta;
-      const sender = response.senderDisplay || response.teamName || 'Unknown';
-      meta.textContent = `${formatChirpTime(response.timestampMs)} • ${sender}`;
-
-      const taskTitle = response.taskTitle
-        || chirpTasks.get(response.taskId)?.title
-        || response.taskId;
-      const status = chirpTasks.get(response.taskId)?.status;
-      const statusLabel = status && status !== 'active' ? ` (${status})` : '';
-
-      const taskLine = document.createElement('span');
-      taskLine.className = styles.chirpFeedTask;
-      taskLine.textContent = `Task: ${taskTitle}${statusLabel}`;
-
-      const body = document.createElement('div');
-      body.textContent = response.responseText || response.text || '';
-
-      item.appendChild(meta);
-      item.appendChild(taskLine);
-      item.appendChild(body);
-      chirpFeedEl.appendChild(item);
-    });
-  };
-
-  const appendChirpResponses = (batch = []) => {
-    if (!Array.isArray(batch) || !batch.length) return;
-    let mutated = false;
-    batch.forEach((response) => {
-      if (!response || !response.id) return;
-      const exists = chirpResponses.findIndex((item) => item.id === response.id);
-      if (exists === -1) {
-        chirpResponses.push(response);
-        mutated = true;
-      }
-    });
-    if (mutated) {
-      chirpResponses.sort((a, b) => {
-        const aTs = typeof a.timestampMs === 'number' ? a.timestampMs : 0;
-        const bTs = typeof b.timestampMs === 'number' ? b.timestampMs : 0;
-        return bTs - aTs;
-      });
-      if (chirpResponses.length > 80) {
-        chirpResponses.length = 80;
-      }
-      renderChirpFeed();
-    }
-  };
-
-  const updateChirpTasks = (tasks = []) => {
-    chirpTasks.clear();
-    tasks.forEach((task) => {
-      chirpTasks.set(task.id, task);
-    });
-    renderChirpFeed();
-  };
 
   if (!startBtn || !endBtn) {
     console.warn('⚠️ Game control buttons missing. Initialization skipped.');
@@ -423,19 +336,19 @@ export function initializeGameControlsLogic() {
     applyStatus(state?.status ?? 'idle');
   });
 
-  if (rulesText) {
-    loadRules()
-      .then((data) => {
-        if (data && typeof data.content === 'string') {
-          rulesText.value = data.content;
-        }
-      })
-      .catch((err) => console.warn('⚠️ Failed to load rules content:', err));
-  }
-
-  if (rulesBtn && rulesSection) {
-    rulesBtn.addEventListener('click', () => {
+  if (rulesBtn && rulesSection && rulesText) {
+    rulesBtn.addEventListener('click', async () => {
       const open = rulesSection.style.display !== 'none';
+      if (!open) { // If opening the section
+        try {
+          const data = await loadRules();
+          if (data && typeof data.content === 'string') {
+            rulesText.value = data.content;
+          }
+        } catch (err) {
+          console.warn('⚠️ Failed to load rules content on toggle:', err);
+        }
+      }
       rulesSection.style.display = open ? 'none' : 'block';
       rulesBtn.textContent = open ? '📜 Edit Rules' : '❌ Close Rules';
     });
@@ -542,31 +455,7 @@ export function initializeGameControlsLogic() {
     }
   });
 
-  if (chirpFeedEl) {
-    renderChirpFeed();
-    unsubscribeChirpResponses = ChatServiceV2.listenChirpResponses({
-      cb: appendChirpResponses
-    });
-    unsubscribeChirpTasks = ChatServiceV2.listenChirpTasks({
-      cb: updateChirpTasks,
-      includeClosed: true
-    });
-  }
 
-  return (reason = 'cleanup') => {
-    detachGameStatus?.();
-    detachLegacyStatus?.();
-    if (typeof unsubscribeChirpResponses === 'function') {
-      unsubscribeChirpResponses(reason);
-    }
-    if (typeof unsubscribeChirpTasks === 'function') {
-      unsubscribeChirpTasks(reason);
-    }
-    chirpResponses.length = 0;
-    chirpTasks.clear();
-    renderChirpFeed();
-    console.info(`🧼 GameControls cleanup invoked (${reason}).`);
-  };
 }
 
 // === AICP COMPONENT FOOTER ===

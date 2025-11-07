@@ -21,6 +21,7 @@ const rulesRef = doc(db, 'config', 'gameRules');
 
 export async function saveRules(rules) {
   try {
+    console.log('Saving rules:', rules);
     await setDoc(rulesRef, rules, { merge: true });
     console.info('✅ Rules saved successfully.');
   } catch (err) {
@@ -32,8 +33,10 @@ export async function loadRules() {
   try {
     const snap = await getDoc(rulesRef);
     if (snap.exists()) {
+      const rules = snap.data();
+      console.log('Loaded rules:', rules);
       console.info('📜 Rules loaded successfully.');
-      return snap.data();
+      return rules;
     }
     console.warn('⚠️ No rules found. Returning empty defaults.');
     return {};

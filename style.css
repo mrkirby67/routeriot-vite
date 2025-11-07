@@ -885,3 +885,21 @@ body.shield-active {
 #speedbump-overlay button:hover {
   background: #d35400;
 }
+
+.surprise-cooldown-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+}
+.surprise-cooldown-content {
+  background: #fff;
+  padding: 18px 26px;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  text-align: center;
+}

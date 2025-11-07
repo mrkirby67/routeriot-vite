@@ -53,7 +53,7 @@ export function renderRows(controller, forceFullRender = false) {
     zoneKeys.forEach((key) => {
       const zone = zones[key] || {};
       const label = zone.name || `Zone ${key.toUpperCase()}`;
-      const disabled = zone.gps ? '' : ' disabled';
+      const disabled = '';
       const selected = key === selectedKey ? ' selected' : '';
       html += `<option value="${key}"${disabled}${selected}>${escapeHtml(label)}</option>`;
     });
@@ -94,6 +94,7 @@ export function renderRows(controller, forceFullRender = false) {
         const cachedZone = controller.selectedZones?.get(teamName) || '';
         const selectedZone = assigned?.zoneKey || cachedZone || '';
         select.innerHTML = buildOptions(selectedZone);
+        select.value = selectedZone;
       }
       const statusCell = row.querySelector('[data-role="status-cell"]');
       if (statusCell) statusCell.innerHTML = renderStatusCell(assigned);
