@@ -1,0 +1,7 @@
+{
+  "layer": "features",
+  "name": "bugStrike.bridge",
+  "depends_on": [],
+  "description": "Bridge utilities that decouple bug strike UI events from controller logic.",
+  "phase": "active"
+}

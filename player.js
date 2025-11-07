@@ -21,6 +21,7 @@ import { showFlashMessage } from './modules/gameUI.js';
 import { initializeSpeedBumpPlayer } from './modules/speedBumpPlayer.js';
 import { initializeFlatTireUI } from './modules/flatTireUI.js';
 import { initializeChirpResponder } from './modules/chirpResponder.js';
+import { initializeBugStrikeController } from './features/bug-strike/bugStrikeController.js';
 
 let gameStatusUnsub = null;
 let chatCleanup = null;
@@ -29,6 +30,7 @@ let speedBumpCleanup = null;
 let flatTireCleanup = null;
 let chirpCleanup = null;
 let unloadHandler = null;
+let bugStrikeCleanup = null;
 
 function teardownPlayerListeners(reason = 'manual') {
   chatCleanup?.(reason);
@@ -45,6 +47,9 @@ function teardownPlayerListeners(reason = 'manual') {
 
   chirpCleanup?.(reason);
   chirpCleanup = null;
+
+  bugStrikeCleanup?.(reason);
+  bugStrikeCleanup = null;
 
   gameStatusUnsub?.(reason);
   gameStatusUnsub = null;
@@ -99,6 +104,7 @@ export async function initializePlayerPage() {
     speedBumpCleanup = initializeSpeedBumpPlayer(currentTeamName);
     flatTireCleanup = initializeFlatTireUI(currentTeamName);
     chirpCleanup = initializeChirpResponder(currentTeamName);
+    bugStrikeCleanup = await initializeBugStrikeController(currentTeamName);
   } catch (err) {
     console.error('🔥 Error initializing player modules:', err);
     alert('Error initializing player. Check console.');

@@ -401,13 +401,49 @@
             </div><div class="layer"><h2>features</h2>
                 <div class="module">
                     <div class="module-header">
-                        <h3>bugStrikePlayer</h3>
+                        <h3>bugStrike.bridge</h3>
+                        <span class="phase" style="background-color: #5cb85c">active</span>
+                    </div>
+                    <p><strong>Description:</strong> Bridge utilities that decouple bug strike UI events from controller logic.</p>
+                    <p><strong>Dependencies:</strong> None</p>
+                    <p>
+                        <a href="../features/bug-strike/bugStrike.bridge.js">Code</a> | <a href="../features/bug-strike/bugStrike.bridge.meta.json">Metadata</a>
+                    </p>
+                </div>
+            
+                <div class="module">
+                    <div class="module-header">
+                        <h3>bugStrike.events</h3>
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
                     <p><strong>Description:</strong> TODO</p>
                     <p><strong>Dependencies:</strong> None</p>
                     <p>
-                        <a href="../features/bug-strike/bugStrikePlayer.js">Code</a> | <a href="../features/bug-strike/bugStrikePlayer.meta.json">Metadata</a>
+                        <a href="../features/bug-strike/bugStrike.events.js">Code</a> | <a href="../features/bug-strike/bugStrike.events.meta.json">Metadata</a>
+                    </p>
+                </div>
+            
+                <div class="module">
+                    <div class="module-header">
+                        <h3>bugStrikeController</h3>
+                        <span class="phase" style="background-color: #5cb85c">active</span>
+                    </div>
+                    <p><strong>Description:</strong> Coordinates bug strike token checks, Firestore updates, and control notifications.</p>
+                    <p><strong>Dependencies:</strong> bugStrikeState, bugStrike.bridge, ChatServiceV2, teamSurpriseController</p>
+                    <p>
+                        <a href="../features/bug-strike/bugStrikeController.js">Code</a> | <a href="../features/bug-strike/bugStrikeController.meta.json">Metadata</a>
+                    </p>
+                </div>
+            
+                <div class="module">
+                    <div class="module-header">
+                        <h3>bugStrikeState</h3>
+                        <span class="phase" style="background-color: #5cb85c">active</span>
+                    </div>
+                    <p><strong>Description:</strong> Tracks bug strike tokens (mapped to Bug Splat inventory) and exposes helpers.</p>
+                    <p><strong>Dependencies:</strong> teamSurpriseService</p>
+                    <p>
+                        <a href="../features/bug-strike/bugStrikeState.js">Code</a> | <a href="../features/bug-strike/bugStrikeState.meta.json">Metadata</a>
                     </p>
                 </div>
             

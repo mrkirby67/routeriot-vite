@@ -1,0 +1,9 @@
+{
+  "layer": "features",
+  "name": "bugStrikeState",
+  "depends_on": [
+    "teamSurpriseService"
+  ],
+  "description": "Tracks bug strike tokens (mapped to Bug Splat inventory) and exposes helpers.",
+  "phase": "active"
+}

@@ -1,6 +1,6 @@
 {
   "layer": "features",
-  "name": "bugStrikePlayer",
+  "name": "bugStrike.events",
   "depends_on": [],
   "description": "TODO",
   "phase": "draft"

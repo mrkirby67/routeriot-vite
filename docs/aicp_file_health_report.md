@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-11-06T23:07:50.046Z
+# AICP File Health Report — 2025-11-07T00:28:26.738Z
 
 | File | Status | Details |
 |------|--------|---------|
@@ -34,7 +34,7 @@
 | components/ZoneQuestions/ZoneQuestionsLogic.js | ⚠️ Incomplete | description is TODO |
 | components/ZoneQuestions/ZoneQuestionsTypes.js | ⚠️ Incomplete | description is TODO |
 | components/ZoneQuestions/ZoneQuestionsUI.js | ⚠️ Incomplete | description is TODO |
-| features/bug-strike/bugStrikePlayer.js | ⚠️ Incomplete | description is TODO |
+| features/bug-strike/bugStrike.events.js | ⚠️ Incomplete | description is TODO |
 | features/flat-tire/flatTireController.js | ⚠️ Incomplete | description is TODO |
 | features/flat-tire/flatTireEvents.js | ⚠️ Incomplete | description is TODO |
 | features/flat-tire/flatTireTypes.js | ⚠️ Incomplete | description is TODO |

@@ -1,0 +1,12 @@
+{
+  "layer": "features",
+  "name": "bugStrikeController",
+  "depends_on": [
+    "bugStrikeState",
+    "bugStrike.bridge",
+    "ChatServiceV2",
+    "teamSurpriseController"
+  ],
+  "description": "Coordinates bug strike token checks, Firestore updates, and control notifications.",
+  "phase": "active"
+}
