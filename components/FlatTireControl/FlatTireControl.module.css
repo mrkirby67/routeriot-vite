@@ -371,6 +371,13 @@
 
 .actionsCell {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.actionButtonsRow {
+  display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
@@ -406,6 +413,26 @@
 .releaseBtn {
   background: #66bb6a;
   color: #062d14;
+}
+
+.actionsMeta {
+  font-size: 0.75rem;
+  color: #90a4ae;
+}
+
+.actionsMeta strong {
+  color: #fff;
+}
+
+.actionsMetaTime {
+  color: #ffcc80;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.actionsMetaEmpty {
+  color: #546e7a;
+  font-style: italic;
 }
 
 .zoneSelect {

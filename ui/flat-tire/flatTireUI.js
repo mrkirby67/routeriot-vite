@@ -76,9 +76,8 @@ export function renderRows(controller, forceFullRender = false) {
           ${buildOptions(selectedZone)}
         </select></td>
         <td class="${styles.statusCell}" data-role="status-cell">${renderStatusCell(assigned)}</td>
-        <td class="${styles.actionsCell}">
-          <button class="${styles.actionBtn} ${styles.assignBtn}" data-action="assign" ${assigned || !hasConfiguredZones ? 'disabled' : ''}>🚨 Send</button>
-          <button class="${styles.actionBtn} ${styles.releaseBtn}" data-action="release" ${assigned ? '' : 'disabled'}>✅ Release</button>
+        <td class="${styles.actionsCell}" data-role="actions-cell">
+          ${renderActionsCell(assigned, hasConfiguredZones)}
         </td>`;
       frag.appendChild(row);
     });
@@ -98,10 +97,8 @@ export function renderRows(controller, forceFullRender = false) {
       }
       const statusCell = row.querySelector('[data-role="status-cell"]');
       if (statusCell) statusCell.innerHTML = renderStatusCell(assigned);
-      const assignBtn = row.querySelector('button[data-action="assign"]');
-      if (assignBtn) assignBtn.disabled = Boolean(assigned) || !hasConfiguredZones;
-      const releaseBtn = row.querySelector('button[data-action="release"]');
-      if (releaseBtn) releaseBtn.disabled = !assigned;
+      const actionsCell = row.querySelector('[data-role="actions-cell"]');
+      if (actionsCell) actionsCell.innerHTML = renderActionsCell(assigned, hasConfiguredZones);
     });
   }
 }
@@ -137,6 +134,46 @@ function renderStatusCell(assignment) {
     ${countdownMarkup}
     ${subtext}
   `;
+}
+
+function renderActionsCell(assignment, hasConfiguredZones) {
+  const assignDisabled = Boolean(assignment) || !hasConfiguredZones;
+  const releaseDisabled = !assignment;
+  return `
+    <div class="${styles.actionButtonsRow}">
+      <button class="${styles.actionBtn} ${styles.assignBtn}" data-action="assign" ${assignDisabled ? 'disabled' : ''}>🚨 Send</button>
+      <button class="${styles.actionBtn} ${styles.releaseBtn}" data-action="release" ${releaseDisabled ? 'disabled' : ''}>✅ Release</button>
+    </div>
+    ${renderActionMeta(assignment)}
+  `;
+}
+
+function renderActionMeta(assignment) {
+  if (!assignment) {
+    return `<span class="${styles.actionsMeta} ${styles.actionsMetaEmpty}">No flat tire history.</span>`;
+  }
+  const assignedBy = assignment.assignedBy || assignment.fromTeam || 'Game Control';
+  const timestamp =
+    assignment.assignedAtMs ??
+    assignment.assignedAt?.toMillis?.() ??
+    assignment.updatedAtMs ??
+    null;
+  const formatted = formatTimestamp(timestamp);
+  return `
+    <span class="${styles.actionsMeta}">
+      Sent by <strong>${escapeHtml(assignedBy)}</strong>
+      <span class="${styles.actionsMetaTime}">${escapeHtml(formatted)}</span>
+    </span>
+  `;
+}
+
+function formatTimestamp(value) {
+  if (!Number.isFinite(value)) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  const datePart = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const timePart = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${datePart} ${timePart}`;
 }
 
 function cssEscape(value) {
