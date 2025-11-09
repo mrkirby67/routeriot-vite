@@ -39,6 +39,41 @@ import { showFlashMessage } from '../../ui/gameNotifications.js';
 
 import styles from './GameControls.module.css';
 
+function buildTeamSizes(playerCount, preferredSize) {
+  const baseSize = Math.max(2, Number(preferredSize) || 2);
+  if (playerCount <= 0) return [];
+  if (playerCount <= baseSize) return [playerCount];
+
+  const sizes = [];
+  const fullTeams = Math.floor(playerCount / baseSize);
+  let assignedPlayers = fullTeams * baseSize;
+
+  for (let i = 0; i < fullTeams; i += 1) {
+    sizes.push(baseSize);
+  }
+
+  let remainder = playerCount - assignedPlayers;
+  if (remainder === 0) return sizes;
+
+  if (remainder === 1 && sizes.length > 0) {
+    sizes[0] += 1;
+    return sizes;
+  }
+
+  while (remainder > 0) {
+    const chunk = Math.min(baseSize, remainder);
+    if (chunk === 1 && sizes.length > 0) {
+      sizes[sizes.length - 1] += 1;
+      remainder -= 1;
+    } else {
+      sizes.push(chunk);
+      remainder -= chunk;
+    }
+  }
+
+  return sizes;
+}
+
 // ============================================================================
 // 🎲 Randomize Teams
 // ============================================================================
@@ -74,22 +109,37 @@ async function randomizeTeams() {
     const batch = writeBatch(db);
     const teamNames = allTeams.map((t) => t.name);
     const assignedTeams = new Set();
+    const teamSizes = buildTeamSizes(racers.length, teamSize);
+    let cursor = 0;
 
-    for (let i = 0; i < racers.length; i++) {
-      const racer = racers[i];
-      const teamIndex = Math.floor(i / teamSize);
-      const teamName = teamNames[teamIndex % teamNames.length];
+    teamSizes.forEach((size, bucketIndex) => {
+      const teamName = teamNames[bucketIndex % teamNames.length];
       assignedTeams.add(teamName);
+      for (let offset = 0; offset < size && cursor < racers.length; offset += 1) {
+        const racer = racers[cursor++];
+        const racerRef = doc(db, 'racers', racer.id);
+        batch.update(racerRef, { team: teamName });
+      }
+    });
+
+    // Safety net for any remaining racers (shouldn't occur but keeps assignments consistent).
+    while (cursor < racers.length && teamSizes.length > 0) {
+      const fallbackTeam = teamNames[(teamSizes.length - 1) % teamNames.length];
+      const racer = racers[cursor++];
       const racerRef = doc(db, 'racers', racer.id);
-      batch.update(racerRef, { team: teamName });
+      batch.update(racerRef, { team: fallbackTeam });
     }
 
     const activeTeamsRef = doc(db, 'game', 'activeTeams');
     batch.set(activeTeamsRef, { list: Array.from(assignedTeams).sort() });
 
     await batch.commit();
-    const teamCount = Math.ceil(racers.length / teamSize) || 0;
-    showAnimatedBanner(`✅ Teams randomized!\n${teamCount} team(s) • ${teamSize} per team`, '#2e7d32');
+    const teamCount = teamSizes.length;
+    const breakdown = teamSizes.join(' / ');
+    showAnimatedBanner(
+      `✅ Teams randomized!\n${teamCount} team(s)\nSplit: ${breakdown}`,
+      '#2e7d32',
+    );
     console.log('✅ Teams randomized and updated in Firestore.');
 
   } catch (err) {
@@ -228,7 +278,7 @@ export function GameControlsComponent() {
 
       <div class="${styles.teamSetup}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <label for="team-size">Team Size:</label>
-        <input type="number" id="team-size" value="2" min="1" style="width:70px;">
+        <input type="number" id="team-size" value="2" min="2" style="width:70px;">
         <button id="randomize-btn" class="${styles.controlButton} ${styles.pause}">🎲 Randomize Teams</button>
         <button id="send-links-btn" class="${styles.controlButton} ${styles.start}">📧 Racers Take Your Marks</button>
         <button id="toggle-rules-btn" class="${styles.controlButton} ${styles.pause}">📜 Edit Rules</button>
