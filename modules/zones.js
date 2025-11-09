@@ -227,14 +227,14 @@ async function showFinalStandings() {
     overlay.innerHTML = `
       <div>${title}</div>
       <div style="margin-top:10px;">${message}</div>
-      <div id="countdown" style="margin-top:20px;font-size:1.3em;">Closing in 20s...</div>
+      <div id="countdown" style="margin-top:20px;font-size:1.3em;">Closing in 10s...</div>
     `;
     document.body.appendChild(overlay);
     requestAnimationFrame(() => (overlay.style.opacity = "1"));
 
     // 🎉 Confetti celebration
     startConfetti();
-    let remaining = 20;
+    let remaining = 10;
     const countdownEl = overlay.querySelector("#countdown");
 
     const interval = setInterval(() => {

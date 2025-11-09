@@ -371,13 +371,14 @@
 
 .actionsCell {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .actionButtonsRow {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
@@ -418,6 +419,9 @@
 .actionsMeta {
   font-size: 0.75rem;
   color: #90a4ae;
+  margin-left: auto;
+  text-align: right;
+  min-width: 180px;
 }
 
 .actionsMeta strong {

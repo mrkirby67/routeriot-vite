@@ -259,6 +259,21 @@ async function announceTopThree() {
   });
 }
 
+function showResultsCountdown() {
+    let remaining = 10;
+    showAnimatedBanner('GAME OVER', '#c62828');
+
+    const countdownInterval = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+            showAnimatedBanner(`Showing results in ${remaining}...`, '#c62828');
+        } else {
+            clearInterval(countdownInterval);
+            announceTopThree();
+        }
+    }, 1000);
+}
+
 // ============================================================================
 // COMPONENT MARKUP
 // ============================================================================
@@ -359,10 +374,7 @@ export function initializeGameControlsLogic() {
 
     if ((status === 'over' || status === 'ended') && previousStatus === 'active') {
         console.log('🏆 Game ended, starting 10s countdown for results...');
-        setTimeout(() => {
-            console.log('🎉 Announcing top three!');
-            announceTopThree();
-        }, 10000);
+        showResultsCountdown();
     }
 
     const disableStart = status === 'active' || status === 'paused';

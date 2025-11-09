@@ -65,6 +65,7 @@ export function renderRows(controller, forceFullRender = false) {
     body.innerHTML = '';
     activeTeams.forEach(teamName => {
       const assigned = assignments.get(teamName);
+      const historyEntry = controller.assignmentHistory?.get(teamName);
       if (assigned?.zoneKey) controller.selectedZones?.set(teamName, assigned.zoneKey);
       const cachedZone = controller.selectedZones?.get(teamName) || '';
       const selectedZone = assigned?.zoneKey || cachedZone || '';
@@ -77,7 +78,7 @@ export function renderRows(controller, forceFullRender = false) {
         </select></td>
         <td class="${styles.statusCell}" data-role="status-cell">${renderStatusCell(assigned)}</td>
         <td class="${styles.actionsCell}" data-role="actions-cell">
-          ${renderActionsCell(assigned, hasConfiguredZones)}
+          ${renderActionsCell(assigned, historyEntry, hasConfiguredZones)}
         </td>`;
       frag.appendChild(row);
     });
@@ -87,6 +88,7 @@ export function renderRows(controller, forceFullRender = false) {
       const row = body.querySelector(`tr[data-team="${cssEscape(teamName)}"]`);
       if (!row) return;
       const assigned = assignments.get(teamName);
+      const historyEntry = controller.assignmentHistory?.get(teamName);
       if (assigned?.zoneKey) controller.selectedZones?.set(teamName, assigned.zoneKey);
       const select = row.querySelector('select[data-role="zone-select"]');
       if (select) {
@@ -98,7 +100,7 @@ export function renderRows(controller, forceFullRender = false) {
       const statusCell = row.querySelector('[data-role="status-cell"]');
       if (statusCell) statusCell.innerHTML = renderStatusCell(assigned);
       const actionsCell = row.querySelector('[data-role="actions-cell"]');
-      if (actionsCell) actionsCell.innerHTML = renderActionsCell(assigned, hasConfiguredZones);
+      if (actionsCell) actionsCell.innerHTML = renderActionsCell(assigned, historyEntry, hasConfiguredZones);
     });
   }
 }
@@ -136,7 +138,7 @@ function renderStatusCell(assignment) {
   `;
 }
 
-function renderActionsCell(assignment, hasConfiguredZones) {
+function renderActionsCell(assignment, historyEntry, hasConfiguredZones) {
   const assignDisabled = Boolean(assignment) || !hasConfiguredZones;
   const releaseDisabled = !assignment;
   return `
@@ -144,25 +146,31 @@ function renderActionsCell(assignment, hasConfiguredZones) {
       <button class="${styles.actionBtn} ${styles.assignBtn}" data-action="assign" ${assignDisabled ? 'disabled' : ''}>🚨 Send</button>
       <button class="${styles.actionBtn} ${styles.releaseBtn}" data-action="release" ${releaseDisabled ? 'disabled' : ''}>✅ Release</button>
     </div>
-    ${renderActionMeta(assignment)}
+    ${renderActionMeta(assignment, historyEntry)}
   `;
 }
 
-function renderActionMeta(assignment) {
-  if (!assignment) {
+function renderActionMeta(assignment, historyEntry) {
+  const source = assignment || historyEntry;
+  if (!source) {
     return `<span class="${styles.actionsMeta} ${styles.actionsMetaEmpty}">No flat tire history.</span>`;
   }
-  const assignedBy = assignment.assignedBy || assignment.fromTeam || 'Game Control';
+  const assignedBy = source.assignedBy || source.fromTeam || 'Game Control';
   const timestamp =
-    assignment.assignedAtMs ??
-    assignment.assignedAt?.toMillis?.() ??
-    assignment.updatedAtMs ??
+    source.assignedAtMs ??
+    source.assignedAt?.toMillis?.() ??
+    source.updatedAtMs ??
     null;
   const formatted = formatTimestamp(timestamp);
+  const zoneName = source.zoneName || source.zoneKey || '';
+  const zoneMarkup = zoneName
+    ? `<span>→ ${escapeHtml(zoneName)}</span>`
+    : '';
   return `
     <span class="${styles.actionsMeta}">
       Sent by <strong>${escapeHtml(assignedBy)}</strong>
       <span class="${styles.actionsMetaTime}">${escapeHtml(formatted)}</span>
+      ${zoneMarkup}
     </span>
   `;
 }

@@ -22,6 +22,7 @@ export class FlatTireControlController {
   constructor() {
     this.dom = { zoneInputs: new Map(), zoneMaps: new Map(), zoneDiameterInputs: new Map(), zoneRefreshButtons: new Map() };
     this.assignments = new Map();
+    this.assignmentHistory = new Map();
     this.activeTeams = [];
     this.config = {};
     this.subscriptions = [];
@@ -56,13 +57,24 @@ export class FlatTireControlController {
       this.ensureMapsAndZonesReady().then(() => this.queueRefresh());
     }));
     this.subscriptions.push(service.subscribeFlatTireAssignments(list => {
-      this.assignments = new Map(list.map(i => [i.teamName, i]));
+      const assignmentMap = new Map();
       list.forEach((entry) => {
         const teamName = typeof entry?.teamName === 'string' ? entry.teamName.trim() : '';
-        if (teamName && entry?.zoneKey) {
+        if (!teamName) return;
+        assignmentMap.set(teamName, entry);
+        if (entry?.zoneKey) {
           this.selectedZones.set(teamName, entry.zoneKey);
         }
+        const existing = this.assignmentHistory.get(teamName);
+        const existingStamp = existing
+          ? (existing.assignedAtMs ?? existing.assignedAt?.toMillis?.() ?? 0)
+          : 0;
+        const incomingStamp = entry?.assignedAtMs ?? entry?.assignedAt?.toMillis?.() ?? 0;
+        if (!existing || incomingStamp >= existingStamp) {
+          this.assignmentHistory.set(teamName, entry);
+        }
       });
+      this.assignments = assignmentMap;
       this.queueRefresh();
       this.updateSendButtonState();
     }));
