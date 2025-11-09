@@ -45,8 +45,8 @@ import styles from './GameControls.module.css';
 async function randomizeTeams() {
   console.log('🎲 Randomizing teams...');
 
-  const teamSizeInput = document.getElementById('team-size');
-  const teamSize = parseInt(teamSizeInput.value, 10) || 2;
+  const numTeamsInput = document.getElementById('num-teams');
+  const numTeams = parseInt(numTeamsInput.value, 10) || 4;
 
   try {
     const racersSnap = await getDocs(collection(db, 'racers'));
@@ -70,21 +70,16 @@ async function randomizeTeams() {
       [racers[i], racers[j]] = [racers[j], racers[i]];
     }
 
+    const batch = writeBatch(db);
+    const teamNames = allTeams.map(t => t.name).slice(0, numTeams);
     const assignedTeams = new Set();
+
     for (let i = 0; i < racers.length; i++) {
       const racer = racers[i];
-      const teamName = teamNames[teamIndex];
+      const teamName = teamNames[i % numTeams];
       assignedTeams.add(teamName);
       const racerRef = doc(db, 'racers', racer.id);
       batch.update(racerRef, { team: teamName });
-
-      if ((i + 1) % teamSize === 0) {
-        teamIndex++;
-        if (teamIndex >= teamNames.length) {
-          // Loop back to the beginning of the team list if we run out of teams
-          teamIndex = 0;
-        }
-      }
     }
 
     const activeTeamsRef = doc(db, 'game', 'activeTeams');
@@ -229,8 +224,8 @@ export function GameControlsComponent() {
       </div>
 
       <div class="${styles.teamSetup}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <label for="team-size">Team Size:</label>
-        <input type="number" id="team-size" value="2" min="1" style="width:60px;">
+        <label for="num-teams">Number of Teams:</label>
+        <input type="number" id="num-teams" value="4" min="1" style="width:60px;">
         <button id="randomize-btn" class="${styles.controlButton} ${styles.pause}">🎲 Randomize Teams</button>
         <button id="send-links-btn" class="${styles.controlButton} ${styles.start}">📧 Racers Take Your Marks</button>
         <button id="toggle-rules-btn" class="${styles.controlButton} ${styles.pause}">📜 Edit Rules</button>
