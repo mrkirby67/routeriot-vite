@@ -17,20 +17,33 @@
 import { db } from '../../modules/config.js';
 import { doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-const gameStateRef = doc(db, 'state', 'gameStatus');
+const gameStateRef = doc(db, 'game', 'gameState');
 
 export async function getGameStatus() {
   const snap = await getDoc(gameStateRef);
-  if (snap.exists()) return snap.data().status;
-  return 'idle';
+  if (!snap.exists()) return 'idle';
+  const data = snap.data() || {};
+  return typeof data.status === 'string' ? data.status : 'idle';
 }
 
 export async function setGameStatus(status) {
-  await setDoc(gameStateRef, { status, updatedAt: new Date().toISOString() }, { merge: true });
+  await setDoc(
+    gameStateRef,
+    {
+      status,
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true },
+  );
 }
 
 export function listenToGameStateUpdates(callback) {
   return onSnapshot(gameStateRef, (snap) => {
-    if (snap.exists()) callback(snap.data().status);
+    if (snap.exists()) {
+      const data = snap.data() || {};
+      callback?.(typeof data.status === 'string' ? data.status : 'idle');
+    } else {
+      callback?.('idle');
+    }
   });
 }
