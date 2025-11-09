@@ -21,11 +21,18 @@ import {
 
 const GAME_STATE_DOC = doc(db, PEW_COLLECTIONS.gameState, 'current');
 
-let cachedState = structuredClone(EMPTY_GAME_STATE);
+const clone = (value) => {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+};
+
+let cachedState = clone(EMPTY_GAME_STATE);
 let isBootstrapped = false;
 
 function coerceState(payload) {
-  if (!payload) return structuredClone(EMPTY_GAME_STATE);
+  if (!payload) return clone(EMPTY_GAME_STATE);
   return {
     ...EMPTY_GAME_STATE,
     ...payload,
@@ -44,7 +51,7 @@ export async function initializeGameStateIfNeeded() {
     const snap = await getDoc(GAME_STATE_DOC);
     if (!snap.exists()) {
       await setDoc(GAME_STATE_DOC, EMPTY_GAME_STATE);
-      cachedState = structuredClone(EMPTY_GAME_STATE);
+      cachedState = clone(EMPTY_GAME_STATE);
     } else {
       cachedState = coerceState(snap.data());
     }

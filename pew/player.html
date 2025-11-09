@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pew Pursuit – Player</title>
+    <meta
+      name="description"
+      content="Pew Pursuit player dashboard for standalone scavenger hunt mode."
+    />
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      #pew-question {
+        display: none;
+        margin-top: 1rem;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 1rem;
+      }
+      #pew-question-actions {
+        margin-top: 0.75rem;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      #pew-question-actions input {
+        flex: 1;
+      }
+      #pew-question-actions button {
+        min-width: 120px;
+      }
+      #pew-player-zones button[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1 id="pew-player-team-name">Loading Team…</h1>
+      <p class="slogan">Navigate zones, answer questions, earn points.</p>
+
+      <section class="control-section">
+        <h2>Game Status</h2>
+        <p><strong>Status:</strong> <span id="pew-player-status">--</span></p>
+        <p><strong>Timer:</strong> <span id="pew-player-timer">--:--</span></p>
+      </section>
+
+      <section class="control-section">
+        <h2>Live Scoreboard</h2>
+        <div id="pew-player-scoreboard">
+          <p>Waiting for gameState_pew…</p>
+        </div>
+      </section>
+
+      <section class="control-section">
+        <h2>Zones</h2>
+        <div id="pew-player-zones">
+          <p>Loading zones_pew entries…</p>
+        </div>
+      </section>
+
+      <section id="pew-question">
+        <h3 id="pew-question-title">Zone Challenge</h3>
+        <p id="pew-question-body">
+          Approach a zone to trigger its challenge and submit an answer.
+        </p>
+        <div id="pew-question-actions">
+          <input
+            type="text"
+            id="pew-question-answer"
+            placeholder="Enter your answer…"
+          />
+          <button type="button" id="pew-question-submit">Submit</button>
+          <button type="button" id="pew-question-dismiss">Dismiss</button>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="./player.js"></script>
+  </body>
+</html>

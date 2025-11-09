@@ -70,13 +70,11 @@ async function randomizeTeams() {
       [racers[i], racers[j]] = [racers[j], racers[i]];
     }
 
-    const batch = writeBatch(db);
-    const teamNames = allTeams.map(t => t.name);
-    let teamIndex = 0;
-
+    const assignedTeams = new Set();
     for (let i = 0; i < racers.length; i++) {
       const racer = racers[i];
       const teamName = teamNames[teamIndex];
+      assignedTeams.add(teamName);
       const racerRef = doc(db, 'racers', racer.id);
       batch.update(racerRef, { team: teamName });
 
@@ -88,6 +86,9 @@ async function randomizeTeams() {
         }
       }
     }
+
+    const activeTeamsRef = doc(db, 'game', 'activeTeams');
+    batch.set(activeTeamsRef, { list: Array.from(assignedTeams).sort() });
 
     await batch.commit();
     showAnimatedBanner('✅ Teams have been randomized!', '#2e7d32');

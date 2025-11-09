@@ -75,6 +75,23 @@ function computeEndMs({ startTime, endTime, durationMinutes, remainingMs }) {
   return Number.isFinite(endMs) ? endMs : null;
 }
 
+async function endGameByTimer() {
+  try {
+    const snap = await getDoc(gameStateRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+    if (data.status !== 'active') return; // Only end active games
+
+    await updateDoc(gameStateRef, {
+      status: 'over',
+      updatedAt: serverTimestamp(),
+    });
+    console.log('🏁 Game Over (timer expired)');
+  } catch (err) {
+    console.error("❌ Error ending game by timer:", err);
+  }
+}
+
 function handleActiveState(snapshotData = {}) {
   const { previousStatus } = snapshotData;
   const resumedFromPause = previousStatus === 'paused';
@@ -86,14 +103,14 @@ function handleActiveState(snapshotData = {}) {
 
   let remaining = 0;
   if (resumedFromPause) {
-    remaining = resumeCountdownTimer(pausedRemainingMs);
+    remaining = resumeCountdownTimer(pausedRemainingMs, null, endGameByTimer);
     if (remaining > 0) {
       showFlashMessage?.('Game resumed ▶️', '#2e7d32', 2500);
     }
   }
 
   if (!remaining && Number.isFinite(durationMs)) {
-    remaining = startCountdownTimer(durationMs);
+    remaining = startCountdownTimer(durationMs, null, endGameByTimer);
     if (!countdownShown) {
       showCountdownBanner?.({ parent: document.body });
       showFlashMessage?.('🏁 The Race is ON!', '#2e7d32');
@@ -348,8 +365,8 @@ export async function resumeGame() {
       updatedAt: resumeStamp,
     });
 
-    const resumed = resumeCountdownTimer(remainingMs);
-    if (!resumed) startCountdownTimer(remainingMs);
+    const resumed = resumeCountdownTimer(remainingMs, null, endGameByTimer);
+    if (!resumed) startCountdownTimer(remainingMs, null, endGameByTimer);
 
     console.log(`▶️ Game resumed (ends at ${newEndTime.toDate().toLocaleTimeString()})`);
     publishStateDiagnostics({

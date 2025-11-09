@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pew Pursuit – Control</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      .pew-map {
+        width: 100%;
+        height: 360px;
+        border-radius: 12px;
+        border: 1px solid #30363d;
+        overflow: hidden;
+        background: #0d1117;
+      }
+      .team-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .team-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.6rem 0.8rem;
+        border-radius: 8px;
+        background: #161b22;
+        border: 1px solid #30363d;
+      }
+      .team-row small {
+        display: block;
+        color: #8b949e;
+      }
+      .status-chip {
+        padding: 0.2rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+      }
+      .status-chip.ready {
+        background: #1f6feb;
+      }
+      .status-chip.missing {
+        background: #8b949e;
+      }
+      .pew-admin-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .pew-admin-buttons button {
+        flex: 1;
+        min-width: 120px;
+      }
+      .pew-admin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-top: 0.5rem;
+      }
+      #pew-duration-min {
+        width: 100%;
+        margin-top: 0.3rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Pew Pursuit Control Center</h1>
+      <p class="slogan">Standalone scavenger hunt controller</p>
+
+      <section class="control-section">
+        <h2>Game Timer</h2>
+        <div class="pew-admin-grid">
+          <div>
+            <p><strong>Status:</strong> <span id="pew-game-status">Booting…</span></p>
+            <p>
+              <strong>Countdown:</strong>
+              <span id="pew-timer-display">--:--</span>
+            </p>
+          </div>
+          <div>
+            <label for="pew-duration-min">Round Duration (minutes)</label>
+            <input id="pew-duration-min" type="number" value="45" min="1" />
+          </div>
+        </div>
+        <div class="pew-admin-buttons">
+          <button id="pew-start-btn">Start Game</button>
+          <button id="pew-pause-btn">Pause</button>
+          <button id="pew-end-btn">End Game</button>
+        </div>
+      </section>
+
+      <section class="control-section">
+        <h2>Teams</h2>
+        <div id="pew-team-list">
+          <p>Waiting for teams_pew collection…</p>
+        </div>
+      </section>
+
+      <section class="control-section">
+        <h2>Scoreboard</h2>
+        <div id="pew-scoreboard">
+          <p>Score data will appear once teams visit zones.</p>
+        </div>
+      </section>
+
+      <section class="control-section">
+        <h2>Zone Map</h2>
+        <div id="pew-map-panel" class="pew-map"></div>
+      </section>
+    </div>
+
+    <script type="module" src="./control.js"></script>
+  </body>
+</html>

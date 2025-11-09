@@ -8,6 +8,8 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         control: resolve(__dirname, 'control.html'),
         player: resolve(__dirname, 'player.html'),
+        pewControl: resolve(__dirname, 'pew/control.html'),
+        pewPlayer: resolve(__dirname, 'pew/player.html'),
       },
     },
   },
