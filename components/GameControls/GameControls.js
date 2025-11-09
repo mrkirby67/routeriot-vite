@@ -301,11 +301,20 @@ export function initializeGameControlsLogic() {
 
   const applyStatus = (rawStatus = 'idle') => {
     const status = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : 'idle';
+    const previousStatus = lastAppliedStatus;
     isGameActive = status === 'active';
 
     if (lastAppliedStatus !== status) {
       console.info(`🎮 GameControls status → ${status}`);
       lastAppliedStatus = status;
+    }
+
+    if ((status === 'over' || status === 'ended') && previousStatus === 'active') {
+        console.log('🏆 Game ended, starting 10s countdown for results...');
+        setTimeout(() => {
+            console.log('🎉 Announcing top three!');
+            announceTopThree();
+        }, 10000);
     }
 
     const disableStart = status === 'active' || status === 'paused';
@@ -317,7 +326,7 @@ export function initializeGameControlsLogic() {
     endBtn.setAttribute('aria-disabled', String(endDisabled));
 
     if (pauseBtn) {
-      pauseBtn.disabled = status === 'idle' || status === 'ended';
+      pauseBtn.disabled = status === 'idle' || status === 'ended' || status === 'over';
       pauseBtn.textContent = status === 'paused' ? '▶️ Resume Game' : '⏸️ Pause Game';
     }
   };
