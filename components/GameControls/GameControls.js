@@ -45,8 +45,9 @@ import styles from './GameControls.module.css';
 async function randomizeTeams() {
   console.log('🎲 Randomizing teams...');
 
-  const numTeamsInput = document.getElementById('num-teams');
-  const numTeams = parseInt(numTeamsInput.value, 10) || 4;
+  const teamSizeInput = document.getElementById('team-size');
+  const teamSizeValue = parseInt(teamSizeInput?.value, 10);
+  const teamSize = Number.isFinite(teamSizeValue) && teamSizeValue > 0 ? teamSizeValue : 2;
 
   try {
     const racersSnap = await getDocs(collection(db, 'racers'));
@@ -71,12 +72,13 @@ async function randomizeTeams() {
     }
 
     const batch = writeBatch(db);
-    const teamNames = allTeams.map(t => t.name).slice(0, numTeams);
+    const teamNames = allTeams.map((t) => t.name);
     const assignedTeams = new Set();
 
     for (let i = 0; i < racers.length; i++) {
       const racer = racers[i];
-      const teamName = teamNames[i % numTeams];
+      const teamIndex = Math.floor(i / teamSize);
+      const teamName = teamNames[teamIndex % teamNames.length];
       assignedTeams.add(teamName);
       const racerRef = doc(db, 'racers', racer.id);
       batch.update(racerRef, { team: teamName });
@@ -86,7 +88,8 @@ async function randomizeTeams() {
     batch.set(activeTeamsRef, { list: Array.from(assignedTeams).sort() });
 
     await batch.commit();
-    showAnimatedBanner('✅ Teams have been randomized!', '#2e7d32');
+    const teamCount = Math.ceil(racers.length / teamSize) || 0;
+    showAnimatedBanner(`✅ Teams randomized!\n${teamCount} team(s) • ${teamSize} per team`, '#2e7d32');
     console.log('✅ Teams randomized and updated in Firestore.');
 
   } catch (err) {
@@ -224,8 +227,8 @@ export function GameControlsComponent() {
       </div>
 
       <div class="${styles.teamSetup}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <label for="num-teams">Number of Teams:</label>
-        <input type="number" id="num-teams" value="4" min="1" style="width:60px;">
+        <label for="team-size">Team Size:</label>
+        <input type="number" id="team-size" value="2" min="1" style="width:70px;">
         <button id="randomize-btn" class="${styles.controlButton} ${styles.pause}">🎲 Randomize Teams</button>
         <button id="send-links-btn" class="${styles.controlButton} ${styles.start}">📧 Racers Take Your Marks</button>
         <button id="toggle-rules-btn" class="${styles.controlButton} ${styles.pause}">📜 Edit Rules</button>

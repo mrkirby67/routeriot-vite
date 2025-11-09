@@ -23,11 +23,11 @@
     "aicp-integrity-ro": "node tools/aicp_integrity_ro.js",
     "aicp-metadata-dashboard": "node tools/aicp_metadata_dashboard.js",
     "aicp-chat": "node tools/aicp_validate.js --include services/messageService.js --include components/Broadcast/* --include features/chat/* --fix",
-    "set": "npm run aicp-metadata-normalize && npm run aicp-metadata-dashboard && npm run aicp-health",
+    "set": "(npm run aicp-metadata-normalize && npm run aicp-metadata-dashboard && npm run aicp-health) && echo '✅ set script completed successfully.' || echo '❌ set script failed.'",
     "codex-refresh": "node tools/codex_refresh.js && npm run aicp-validate -- --fix",
     "codex-refresh:export": "node tools/codex_refresh.js --export",
     "aicp-all": "npm run codex-refresh && npm run aicp-docs",
-    "go": "[ -d .git ] || { echo '❌ Not in a Git repo!'; exit 1; }; npm run aicp-metadata-normalize && npm run aicp-integrity-ro && npm run deploy && git add -A && git commit -m \"🔄 Auto-sync on $(date '+%Y-%m-%d %H:%M:%S')\" || echo '⚠️ No changes to commit' && git push origin main && echo '✅ Firebase + GitHub Sync Complete 🚀'"
+    "go": "([ -d .git ] || { echo '❌ Not in a Git repo!'; exit 1; }; npm run aicp-metadata-normalize && npm run aicp-integrity-ro && npm run deploy && (git add -A && git commit -m \"🔄 Auto-sync on $(date '+%Y-%m-%d %H:%M:%S')\" || echo '⚠️ No changes to commit') && git push origin main) && echo '✅ go script finished. Firebase + GitHub Sync Complete 🚀' || echo '❌ go script failed.'"
   },
   "devDependencies": {
     "chalk": "^5.6.2",
