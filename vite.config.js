@@ -31,7 +31,7 @@ export default defineConfig({
         { src: 'ff', dest: 'dist' },
 
         // ✅ Copy the shared config folder that ff/firebaseApp.js depends on
-        { src: 'modules', dest: 'dist' }
+        { src: 'core', dest: 'dist' }
       ],
       hook: 'writeBundle'
     })
