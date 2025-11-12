@@ -253,7 +253,10 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         updateCountdownDisplays(state);
-        setBuzzAvailability(state.phase === 'live' && !hasBuzzedThisRound);
+        const countdownPhase = state.phase === 'countdown' || state.phase === 'suspense';
+        const canBuzzEarly =
+          countdownPhase && (onePushRule || state.eliminationMode === true);
+        setBuzzAvailability((state.phase === 'live' || canBuzzEarly) && !hasBuzzedThisRound);
         attachWinnerWatcher(state.activeRoundId);
         attachAttemptWatcher(state.activeRoundId, state.liveAt || null);
       }
