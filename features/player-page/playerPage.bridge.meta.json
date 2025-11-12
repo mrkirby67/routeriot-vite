@@ -1,0 +1,7 @@
+{
+  "layer": "features",
+  "name": "playerPage.bridge",
+  "depends_on": [],
+  "description": "Bridge for emitting player page UI updates",
+  "phase": "active"
+}

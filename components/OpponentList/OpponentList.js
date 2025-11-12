@@ -23,20 +23,27 @@ import * as teamService from "../../services/teamService.js";
  * Fetches team data and renders the list.
  */
 
-export async function initializeOpponentList() {
-  const teams = await teamService.getAllTeams();
-  const opponentListContainer = document.getElementById("opponent-list"); // Assuming an element with this ID exists
-
-  if (opponentListContainer) {
-    // Clear previous list
-    opponentListContainer.innerHTML = "";
-    // Render new list
-    teams.forEach(team => {
-      const teamElement = document.createElement("div");
-      teamElement.textContent = team.name; // Assuming team object has a 'name' property
-      opponentListContainer.appendChild(teamElement);
-    });
+export async function initializeOpponentList(prefetchedTeams) {
+  try {
+    const teams = Array.isArray(prefetchedTeams) ? prefetchedTeams : await teamService.getAllTeams();
+    renderOpponentList(teams);
+  } catch (err) {
+    console.warn('⚠️ Failed to load opponent list:', err);
+    renderOpponentList([]);
   }
+}
+
+export function renderOpponentList(teams = []) {
+  const opponentListContainer = document.getElementById("opponent-list"); // Assuming an element with this ID exists
+  if (!opponentListContainer) return;
+
+  opponentListContainer.innerHTML = "";
+  teams.forEach(team => {
+    if (!team) return;
+    const teamElement = document.createElement("div");
+    teamElement.textContent = team.name || team.id || 'Unknown team';
+    opponentListContainer.appendChild(teamElement);
+  });
 }
 
 // === AICP COMPONENT FOOTER ===

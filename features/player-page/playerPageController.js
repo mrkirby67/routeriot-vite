@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: features/player-page/playerPageController.js
 // PURPOSE: Controller for the main player page.
-// DEPENDS_ON: components/OpponentList/OpponentList.js, features/chat/playerChat.state.js
+// DEPENDS_ON: ../../services/teamService.js, ../chat/playerChat.state.js, ./playerPage.bridge.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -16,17 +16,24 @@
  * for the player view.
  */
 
-import { initializeOpponentList } from "../../components/OpponentList/OpponentList.js";
+import { getAllTeams } from "../../services/teamService.js";
 import { initializeChat } from "../chat/playerChat.state.js";
+import { notifyOpponentList } from "./playerPage.bridge.js";
 
 /*
  * Initializes the player page.
  */
 
-export function initializePlayerPage() {
+export async function initializePlayerPage() {
   console.log("Initializing player page...");
-  initializeOpponentList();
   initializeChat();
+  try {
+    const teams = await getAllTeams();
+    notifyOpponentList(teams);
+  } catch (err) {
+    console.warn('⚠️ Unable to load opponent list:', err);
+    notifyOpponentList([]);
+  }
   // Other initialization logic will go here.
 }
 

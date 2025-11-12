@@ -1,6 +1,6 @@
 {
   "phase": "validated",
-  "layer": "components",
+  "layer": "features",
   "name": "autoScheduler",
   "depends_on": [],
   "description": "TODO"

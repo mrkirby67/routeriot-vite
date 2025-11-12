@@ -2,7 +2,6 @@
   "layer": "features",
   "name": "playerChat.state",
   "depends_on": [
-    "ChatLog",
     "ChatServiceV2",
     "playerChat.bridge"
   ],

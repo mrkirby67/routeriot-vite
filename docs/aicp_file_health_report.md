@@ -1,5 +1,5 @@
-# AICP File Health Report — 2025-11-12T02:57:59.223Z
-Files scanned: 138
+# AICP File Health Report — 2025-11-12T03:37:54.854Z
+Files scanned: 143
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
 |----|------|--------|-----------|-------------|------------|
@@ -7,7 +7,7 @@ Files scanned: 138
 | ✅ | components/GameControls/GameControls.js | 545 | 18.8 | 77 | 8% |
 | ✅ | services/team-surprise/teamSurpriseService.js | 525 | 17.5 | 107 | 5% |
 | ✅ | services/ChatServiceV2.js | 490 | 17.0 | 108 | 5% |
-| ✅ | features/team-surprise/teamSurpriseController.js | 452 | 13.4 | 65 | 6% |
+| ✅ | features/team-surprise/teamSurpriseController.js | 453 | 13.4 | 65 | 6% |
 | ✅ | modules/speedBump/interactions.js | 399 | 13.6 | 77 | 7% |
 | ✅ | components/BugStrikeControl/BugStrikeControl.js | 394 | 11.9 | 45 | 9% |
 | ✅ | ui/overlays/speedBumpOverlay.js | 386 | 13.0 | 65 | 7% |
@@ -21,10 +21,10 @@ Files scanned: 138
 | ✅ | components/ZoneQuestions/ZoneQuestionsEditor.js | 286 | 9.4 | 39 | 16% |
 | ✅ | components/SpeedBumpControl/SpeedBumpControl.js | 285 | 8.5 | 47 | 9% |
 | ✅ | components/ZoneManagement/ZoneManagement.js | 284 | 9.3 | 56 | 15% |
+| ✅ | features/flat-tire/flatTireController.js | 282 | 10.1 | 52 | 10% |
 | ✅ | modules/controlStatus.js | 275 | 9.4 | 37 | 14% |
 | ✅ | features/flat-tire/flatTireEvents.js | 267 | 9.1 | 71 | 5% |
 | ✅ | modules/flatTireUI.js | 265 | 8.4 | 39 | 2% |
-| ✅ | features/flat-tire/flatTireController.js | 262 | 9.6 | 50 | 10% |
 | ✅ | modules/playerBugStrikeUI.js | 259 | 8.5 | 42 | 17% |
 | ✅ | components/Scoreboard/Scoreboard.js | 258 | 9.2 | 33 | 18% |
 | ✅ | modules/zones.js | 256 | 8.8 | 34 | 3% |
@@ -60,7 +60,7 @@ Files scanned: 138
 | ✅ | modules/speedBump/overlay.js | 134 | 3.8 | 33 | 3% |
 | ✅ | components/ZoneQuestions/ZoneQuestionsLogic.js | 134 | 4.6 | 40 | 31% |
 | ✅ | modules/playerUI/overlays/shieldAndWrecked.js | 131 | 4.0 | 23 | 4% |
-| ✅ | features/chat/playerChat.state.js | 130 | 3.6 | 21 | 7% |
+| ✅ | features/chat/playerChat.state.js | 129 | 3.6 | 21 | 7% |
 | ✅ | modules/playerUI/overlays/flatTireOverlay.js | 122 | 4.4 | 17 | 2% |
 | ✅ | components/ZoneManagement/zoneFirestore.js | 119 | 3.9 | 8 | 25% |
 | ✅ | features/bug-strike/bugStrikeState.js | 118 | 3.4 | 19 | 4% |
@@ -87,10 +87,11 @@ Files scanned: 138
 | ✅ | modules/chatManager/playerChat.events.js | 74 | 2.1 | 11 | 5% |
 | ✅ | services/messageService.js | 73 | 2.4 | 11 | 21% |
 | ✅ | modules/googleMapsLoader.js | 72 | 2.7 | 13 | 22% |
-| ✅ | components/FlatTireControl/controller/firestoreSync.js | 72 | 2.4 | 12 | 38% |
+| ✅ | features/flat-tire/controller/firestoreSync.js | 72 | 2.4 | 12 | 38% |
 | ✅ | modules/diagnostics_flatTireZones.js | 66 | 2.0 | 10 | 8% |
 | ✅ | modules/chatManager/playerChat.section.js | 65 | 2.4 | 8 | 8% |
 | ✅ | modules/speedBump/core.js | 65 | 2.0 | 9 | 5% |
+| ✅ | components/OpponentList/OpponentList.js | 65 | 2.0 | 5 | 43% |
 | ✅ | components/SpeedBumpControl/controller/teamPrompts.js | 65 | 2.3 | 12 | 42% |
 | ✅ | features/bug-strike/bugStrike.events.js | 63 | 1.9 | 7 | 8% |
 | ✅ | modules/chatManager/playerChat.utils.js | 61 | 1.7 | 14 | 7% |
@@ -98,17 +99,17 @@ Files scanned: 138
 | ✅ | modules/chirpCooldown.js | 60 | 1.6 | 12 | 8% |
 | ✅ | modules/messageListener.js | 60 | 1.9 | 14 | 7% |
 | ✅ | services/firestoreRefs.js | 59 | 2.3 | 10 | 44% |
-| ✅ | components/OpponentList/OpponentList.js | 58 | 1.8 | 3 | 52% |
 | ✅ | components/SpeedBumpControl/controller/stateSync.js | 58 | 2.0 | 8 | 47% |
+| ✅ | features/player-page/playerPageController.js | 56 | 1.7 | 4 | 50% |
 | ✅ | ui/overlays/FlatTireOverlay.js | 56 | 1.4 | 6 | 48% |
 | ✅ | modules/speedBumpChallenges.js | 55 | 1.9 | 10 | 7% |
 | ✅ | modules/speedBumpPlayer.js | 53 | 1.8 | 8 | 8% |
 | ✅ | components/SpeedBumpControl/speedBumpControlController.js | 53 | 1.7 | 4 | 49% |
 | ✅ | components/TeamSurpriseManager/TeamSurpriseManager.js | 53 | 1.9 | 6 | 51% |
-| ✅ | components/FlatTireControl/controller/autoScheduler.js | 52 | 2.1 | 11 | 21% |
+| ✅ | features/flat-tire/controller/autoScheduler.js | 52 | 2.1 | 11 | 21% |
+| ✅ | services/flat-tire/flatTireService.js | 51 | 1.6 | 2 | 53% |
 | ✅ | ui/overlays/teamSurpriseOverlay.js | 51 | 1.4 | 12 | 0% |
 | ✅ | features/game-state/gameStateController.js | 50 | 1.7 | 7 | 28% |
-| ✅ | features/player-page/playerPageController.js | 49 | 1.5 | 4 | 57% |
 | ✅ | modules/chatManager/playerChat.js | 48 | 1.8 | 5 | 17% |
 | ✅ | services/gameRulesManager.js | 48 | 1.7 | 4 | 29% |
 | ✅ | features/chat/playerChat.events.js | 47 | 1.3 | 8 | 19% |
@@ -119,35 +120,39 @@ Files scanned: 138
 | ✅ | modules/speedBump/timers.js | 45 | 1.5 | 13 | 9% |
 | ✅ | features/team-surprise/speedBumpFlavor.js | 45 | 1.6 | 3 | 53% |
 | ✅ | modules/auth.js | 44 | 1.2 | 6 | 7% |
-| ✅ | services/flat-tire/flatTireService.js | 44 | 1.4 | 1 | 59% |
 | ✅ | features/speed-bump/speedBumpPlayer.js | 43 | 1.2 | 5 | 65% |
 | ✅ | features/bug-strike/bugStrike.bridge.js | 42 | 1.2 | 8 | 10% |
 | ✅ | services/teamService.js | 41 | 1.4 | 2 | 63% |
 | ✅ | modules/chatManager/registry.js | 40 | 1.4 | 16 | 10% |
 | ✅ | modules/playerUI/autoInit.js | 40 | 1.3 | 6 | 10% |
 | ✅ | services/team-surprise/teamSurpriseTypes.js | 40 | 1.4 | 1 | 68% |
+| ✅ | features/chat/playerChat.bridge.js | 40 | 1.0 | 11 | 0% |
 | ✅ | ui/notifications/notifications.subscribe.js | 35 | 1.3 | 15 | 17% |
 | ✅ | modules/teamSurpriseManager.js | 33 | 1.7 | 0 | 79% |
-| ✅ | features/chat/playerChat.bridge.js | 32 | 0.8 | 10 | 0% |
 | ✅ | modules/chatManager/utils.js | 31 | 1.1 | 5 | 13% |
 | ✅ | features/flat-tire/flatTireTypes.js | 31 | 1.0 | 1 | 87% |
 | ✅ | components/FlatTireControl/flatTireControlController.js | 31 | 1.1 | 0 | 87% |
 | ✅ | modules/speedBump/reversals.js | 28 | 1.5 | 2 | 11% |
 | ✅ | modules/firestoreIntegrity.js | 22 | 0.6 | 2 | 0% |
+| ✅ | ui/notifications/flatTire.subscribe.js | 22 | 0.6 | 6 | 0% |
 | ✅ | ui/overlays/shieldOverlay.js | 22 | 0.7 | 8 | 0% |
 | ✅ | ui/overlays/speedbump.subscribe.js | 18 | 0.5 | 4 | 6% |
 | ✅ | ui/overlays/teamSurprise.subscribe.js | 18 | 0.5 | 4 | 6% |
 | ✅ | modules/gameStateVerifier.js | 15 | 0.5 | 3 | 0% |
 | ✅ | modules/playerUI/overlays.js | 15 | 0.5 | 3 | 7% |
+| ✅ | ui/notifications/playerPage.subscribe.js | 15 | 0.4 | 4 | 0% |
+| ✅ | ui/notifications/chat.subscribe.js | 11 | 0.2 | 3 | 0% |
 | ✅ | modules/playerUI.js | 10 | 0.5 | 1 | 40% |
 | ✅ | modules/utils.js | 6 | 0.2 | 1 | 17% |
+| ✅ | features/flat-tire/flatTire.bridge.js | 6 | 0.1 | 1 | 0% |
+| ✅ | features/player-page/playerPage.bridge.js | 6 | 0.2 | 1 | 0% |
 
 ## Largest 10 Files
 - modules/gameStateManager.js — 570 lines, 18.3 KB (Complexity: 76)
 - components/GameControls/GameControls.js — 545 lines, 18.8 KB (Complexity: 77)
 - services/team-surprise/teamSurpriseService.js — 525 lines, 17.5 KB (Complexity: 107)
 - services/ChatServiceV2.js — 490 lines, 17.0 KB (Complexity: 108)
-- features/team-surprise/teamSurpriseController.js — 452 lines, 13.4 KB (Complexity: 65)
+- features/team-surprise/teamSurpriseController.js — 453 lines, 13.4 KB (Complexity: 65)
 - modules/speedBump/interactions.js — 399 lines, 13.6 KB (Complexity: 77)
 - components/BugStrikeControl/BugStrikeControl.js — 394 lines, 11.9 KB (Complexity: 45)
 - ui/overlays/speedBumpOverlay.js — 386 lines, 13.0 KB (Complexity: 65)

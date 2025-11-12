@@ -1,0 +1,7 @@
+{
+  "layer": "ui",
+  "name": "chat.subscribe",
+  "depends_on": [],
+  "description": "TODO",
+  "phase": "draft"
+}

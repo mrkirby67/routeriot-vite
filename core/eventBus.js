@@ -24,6 +24,10 @@ export function emit(eventName, payload) {
   }
 }
 
+// Alias helpers for ergonomic imports
+export const subscribe = on;
+export const unsubscribe = off;
+
 // Convenience helper for notifications
 export function notify({ kind = 'info', text = '', timeout = 3000 } = {}) {
   emit('ui:notify', { kind, text, timeout });

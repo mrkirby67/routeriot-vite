@@ -15,6 +15,7 @@ import {
   serverTimestamp as firestoreServerTimestamp,
   increment,
   deleteDoc,
+  deleteField,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import {
   ref,
@@ -47,10 +48,13 @@ const dom = {
   leaderboardList: document.getElementById('leaderboardList'),
   playerList: document.getElementById('playerList'),
   resetPlayersBtn: document.getElementById('resetPlayersBtn'),
+  refreshGameBtn: document.getElementById('refreshGameBtn'),
   winnerDisplay: document.getElementById('winnerDisplay'),
   roundResultsCard: document.getElementById('roundResultsCard'),
   resultsMeta: document.getElementById('resultsMeta'),
   resultsTableBody: document.querySelector('#resultsTable tbody'),
+  liveResultsMeta: document.getElementById('liveResultsMeta'),
+  liveResultsTableBody: document.querySelector('#liveResultsTable tbody'),
 };
 
 const firestore = getFirestoreInstance();
@@ -72,6 +76,7 @@ const processedWinners = new Set();
 let countdownSequenceToken = 0;
 let attemptsListener = null;
 let attemptsRefHandle = null;
+let roundCounter = 0;
 
 dom.unlockForm?.addEventListener('submit', handleUnlockSubmit);
 dom.resetBtn?.addEventListener('click', relockControls);
@@ -79,12 +84,47 @@ dom.roundOptionsForm?.addEventListener('change', handleOptionChange);
 dom.startRoundBtn?.addEventListener('click', startRound);
 dom.resetPlayersBtn?.addEventListener('click', handleResetPlayers);
 dom.nextRoundBtn?.addEventListener('click', handleNextRound);
+dom.refreshGameBtn?.addEventListener('click', handleGameRefresh);
 
 bootstrap();
 
 async function bootstrap() {
   await ensureAnonymousAuth();
 }
+
+async function handleGameRefresh() {
+  if (!unlockedGameId || !playerRecords.length) {
+    dom.roundStatus.textContent = 'No game to refresh.';
+    return;
+  }
+  const confirmed = window.confirm(
+    'Are you sure you want to refresh the game? This will reset all scores and elimination statuses.'
+  );
+  if (!confirmed) return;
+
+  roundCounter = 0;
+  try {
+    const updates = playerRecords.map((player) => {
+      const playerRef = doc(
+        firestore,
+        'ff_games',
+        unlockedGameId,
+        'players',
+        player.id
+      );
+      return updateDoc(playerRef, {
+        score: 0,
+        eliminatedInRound: deleteField(),
+      });
+    });
+    await Promise.all(updates);
+    dom.roundStatus.textContent = 'Game refreshed. Scores and eliminations have been reset.';
+  } catch (error) {
+    console.error('Failed to refresh game', error);
+    dom.roundStatus.textContent = 'Could not refresh the game. Check console.';
+  }
+}
+
 
 async function handleUnlockSubmit(event) {
   event.preventDefault();
@@ -170,6 +210,7 @@ function relockControls() {
   setWinnerDisplay('');
   detachAttemptsWatcher();
   renderRoundResults([]);
+  renderLiveResults([]);
 }
 
 function teardownListeners() {
@@ -311,6 +352,8 @@ async function startRound(event) {
       'Round already in progress. Wait until it locks.';
     return;
   }
+
+  roundCounter++;
   dom.startRoundBtn.disabled = true;
   dom.roundStatus.textContent = 'Scheduling round…';
   try {
@@ -341,6 +384,7 @@ async function startRound(event) {
       suspenseMs,
       countdownValue: countdownValues[0] ?? null,
       activeRoundId: roundId,
+      roundNumber: roundCounter,
       updatedAt: Date.now(),
     });
     processedWinners.delete(roundId);
@@ -350,6 +394,7 @@ async function startRound(event) {
     setWinnerDisplay('');
   } catch (error) {
     console.error(error);
+    roundCounter--;
     dom.roundStatus.textContent = 'Unable to start round. Try again.';
   } finally {
     setTimeout(() => {
@@ -647,7 +692,7 @@ function renderPlayerLobby() {
 
     if (player.eliminatedInRound) {
       const eliminatedText = document.createElement('span');
-      eliminatedText.textContent = `Eliminated in round`;
+      eliminatedText.textContent = `Eliminated (Round ${player.eliminatedInRound.roundNumber})`;
       eliminatedText.className = 'eliminated-text';
       status.appendChild(eliminatedText);
     } else {
@@ -705,7 +750,8 @@ async function handleEliminations(roundId) {
     const attempt = attempts[playerId];
     if (attempt.tooSoon) {
       playersToEliminate.add(playerId);
-    } else {
+    }
+    else {
       const reactionMs =
         attempt.buzzAt && currentState.liveAt
           ? attempt.buzzAt - currentState.liveAt
@@ -730,11 +776,70 @@ async function handleEliminations(roundId) {
       playerId
     );
     await updateDoc(playerRef, {
-      eliminatedInRound: roundId,
+      eliminatedInRound: {
+        roundId: roundId,
+        roundNumber: currentState.roundNumber,
+        timestamp: firestoreServerTimestamp(),
+      }
     });
   }
 }
 
+
+function renderLiveResults(rows = []) {
+  if (!dom.liveResultsTableBody || !dom.liveResultsMeta) return;
+  dom.liveResultsMeta.textContent = rows.length
+    ? `Live attempts: ${rows.length}`
+    : 'No attempts yet.';
+  if (!rows.length) {
+    dom.liveResultsTableBody.innerHTML =
+      '<tr><td colspan="3" class="muted">Waiting for buzzes…</td></tr>';
+    return;
+  }
+  dom.liveResultsTableBody.innerHTML = rows
+    .map(
+      (row, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${row.nickname}</td>
+          <td>${
+            typeof row.reactionMs === 'number'
+              ? `${row.reactionMs}ms`
+              : row.reactionMs
+          }</td>
+        </tr>
+      `
+    )
+    .join('');
+}
+
+function renderRoundResults(rows = []) {
+  if (!dom.resultsTableBody || !dom.resultsMeta) return;
+  dom.resultsMeta.textContent = rows.length
+    ? `Final attempts: ${rows.length}`
+    : 'No attempts yet.';
+  if (!rows.length) {
+    dom.resultsTableBody.innerHTML =
+      '<tr><td colspan="3" class="muted">Waiting for buzzes…</td></tr>';
+    return;
+  }
+  dom.resultsTableBody.innerHTML = rows
+    .map(
+      (row, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${row.nickname}</td>
+          <td>${
+            typeof row.reactionMs === 'number'
+              ? `${row.reactionMs}ms`
+              : row.reactionMs
+          }</td>
+        </tr>
+      `
+    )
+    .join('');
+  renderLiveResults(rows);
+}
 
 function attachAttemptsWatcher(roundId) {
   detachAttemptsWatcher();
@@ -772,7 +877,7 @@ function attachAttemptsWatcher(roundId) {
         if (b.reactionMs === 'Too Soon') return 1;
         return a.reactionMs - b.reactionMs;
       });
-    renderRoundResults(rows);
+    renderLiveResults(rows);
   };
   onValue(attemptsRefHandle, attemptsListener);
 }
@@ -785,31 +890,34 @@ function detachAttemptsWatcher() {
   attemptsListener = null;
 }
 
-function renderRoundResults(rows = []) {
-  if (!dom.resultsTableBody || !dom.resultsMeta) return;
-  dom.resultsMeta.textContent = rows.length
-    ? `Attempts received: ${rows.length}`
-    : 'No attempts yet.';
-  if (!rows.length) {
-    dom.resultsTableBody.innerHTML =
-      '<tr><td colspan="3" class="muted">Waiting for buzzes…</td></tr>';
-    return;
+async function handleNextRound(event) {
+  event?.preventDefault();
+  if (!stateRef) return;
+  countdownSequenceToken++;
+  latestWinner = null;
+  processedWinners.clear();
+  try {
+    await updateRtdb(stateRef, {
+      phase: 'register',
+      countdownValue: null,
+      activeRoundId: null,
+      liveAt: null,
+      closeAt: null,
+      suspenseAt: null,
+      suspenseMs: null,
+      winnerNickname: null,
+      updatedAt: Date.now(),
+    });
+    dom.roundStatus.textContent = 'Round reset. Ready when you are.';
+    setWinnerDisplay('');
+    dom.startRoundBtn.disabled = false;
+    detachAttemptsWatcher();
+    renderRoundResults([]);
+    renderLiveResults([]);
+  } catch (error) {
+    console.error('Failed to reset round state', error);
+    dom.roundStatus.textContent = 'Unable to reset round right now.';
   }
-  dom.resultsTableBody.innerHTML = rows
-    .map(
-      (row, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${row.nickname}</td>
-          <td>${
-            typeof row.reactionMs === 'number'
-              ? `${row.reactionMs}ms`
-              : row.reactionMs
-          }</td>
-        </tr>
-      `
-    )
-    .join('');
 }
 
 function normalizeTimestamp(value) {
@@ -860,35 +968,6 @@ async function handleResetPlayers() {
   } catch (error) {
     console.error('Failed to reset players', error);
     dom.roundStatus.textContent = 'Unable to reset players right now.';
-  }
-}
-
-async function handleNextRound(event) {
-  event?.preventDefault();
-  if (!stateRef) return;
-  countdownSequenceToken++;
-  latestWinner = null;
-  processedWinners.clear();
-  try {
-    await updateRtdb(stateRef, {
-      phase: 'register',
-      countdownValue: null,
-      activeRoundId: null,
-      liveAt: null,
-      closeAt: null,
-      suspenseAt: null,
-      suspenseMs: null,
-      winnerNickname: null,
-      updatedAt: Date.now(),
-    });
-    dom.roundStatus.textContent = 'Round reset. Ready when you are.';
-    setWinnerDisplay('');
-    dom.startRoundBtn.disabled = false;
-    detachAttemptsWatcher();
-    renderRoundResults([]);
-  } catch (error) {
-    console.error('Failed to reset round state', error);
-    dom.roundStatus.textContent = 'Unable to reset round right now.';
   }
 }
 

@@ -1,5 +1,5 @@
 {
-  "layer": "components",
+  "layer": "features",
   "name": "firestoreSync",
   "depends_on": [],
   "description": "TODO",

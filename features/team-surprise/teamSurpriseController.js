@@ -63,6 +63,7 @@ import {
 } from '../../services/team-surprise/teamSurpriseService.js';
 import ChatServiceV2 from '../../services/ChatServiceV2.js';
 import { emit } from '/core/eventBus.js';
+import { loadTeamSurpriseUI } from '@/core/lazyLoader.js';
 import { registerSurpriseTriggerHandler } from './teamSurprise.bridge.js';
 
 let uiModulePromise = null;
@@ -72,7 +73,7 @@ const activeSpeedBumpAttackers = new Map(); // attacker -> { victim }
 
 function loadUiModule() {
   if (!uiModulePromise) {
-    uiModulePromise = import('../../ui/team-surprise/teamSurpriseUI.js');
+    uiModulePromise = loadTeamSurpriseUI();
   }
   return uiModulePromise;
 }

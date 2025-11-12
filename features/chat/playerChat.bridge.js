@@ -1,5 +1,12 @@
+import { emit } from '/core/eventBus.js';
+
 let sendHandler = null;
 let attachHandler = null;
+
+export function pushChatMessages(messages = []) {
+  const payload = Array.isArray(messages) ? [...messages] : [];
+  emit('chat:messages', payload);
+}
 
 export function registerChatSendHandler(fn) {
   if (sendHandler) {

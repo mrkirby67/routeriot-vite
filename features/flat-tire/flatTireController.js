@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: features/flat-tire/flatTireController.js
 // PURPOSE: Orchestrates the Flat Tire feature, importing from smaller modules.
-// DEPENDS_ON: services/flat-tire/flatTireService.js, ui/flat-tire/flatTireUI.js, features/flat-tire/flatTireEvents.js, components/FlatTireControl/controller/firestoreSync.js, components/FlatTireControl/controller/autoScheduler.js, ../../modules/googleMapsLoader.js
+// DEPENDS_ON: ../../services/flat-tire/flatTireService.js, ./flatTireEvents.js, ./controller/firestoreSync.js, ./controller/autoScheduler.js, ./flatTire.bridge.js, ../../modules/googleMapsLoader.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -11,12 +11,11 @@
 // === END AICP FEATURE HEADER ===
 
 import * as service from '../../services/flat-tire/flatTireService.js';
-import * as ui from '../../ui/flat-tire/flatTireUI.js';
 import * as events from './flatTireEvents.js';
-import { subscribeToRacers, applyConfig } from '../../components/FlatTireControl/controller/firestoreSync.js';
-import { startAutoScheduler, stopAutoScheduler } from '../../components/FlatTireControl/controller/autoScheduler.js';
+import { subscribeToRacers, applyConfig } from './controller/firestoreSync.js';
+import { startAutoScheduler, stopAutoScheduler } from './controller/autoScheduler.js';
+import { notifyFlatTireEvent } from './flatTire.bridge.js';
 import { loadGoogleMapsApi } from '../../modules/googleMapsLoader.js';
-
 
 export class FlatTireControlController {
   constructor() {
@@ -57,7 +56,7 @@ export class FlatTireControlController {
   }
 
   async initialize() {
-    ui.setupDomRefs(this);
+    notifyFlatTireEvent({ type: 'setupDomRefs', controller: this });
 
     const debounce = (func, delay) => {
         let timeout;
@@ -177,15 +176,26 @@ export class FlatTireControlController {
 
   refreshZonesDisplay(forceFullRender = false) {
     this.forceMapRefresh();
-    ui.renderRows(this, forceFullRender);
+    notifyFlatTireEvent({
+      type: 'renderRows',
+      controller: this,
+      forceFullRender
+    });
   }
 
   forceMapRefresh() {
     if (!this.config?.zones) return;
-    const signature = ui.generateZoneSignature(this.config.zones);
+    const signature = generateZoneSignature(this.config.zones);
     if (signature === this._lastZoneSignature) return;
     this._lastZoneSignature = signature;
-    Object.keys(this.config.zones).forEach((key) => ui.updateZonePreview(key, this.config, this.dom));
+    Object.keys(this.config.zones).forEach((key) => {
+      notifyFlatTireEvent({
+        type: 'updateZonePreview',
+        controller: this,
+        zoneKey: key,
+        config: this.config
+      });
+    });
   }
 
   queueRefresh(force = false) {
@@ -234,6 +244,16 @@ export class FlatTireControlController {
 
 export function createFlatTireControlController() {
   return new FlatTireControlController();
+}
+
+function generateZoneSignature(zones = {}) {
+  const normalized = {};
+  Object.entries(zones).forEach(([key, zone]) => {
+    const gps = typeof zone?.gps === 'string' ? zone.gps.trim() : '';
+    const diameter = Number(zone?.diameterMeters) || Number(zone?.diameter) || 0;
+    normalized[key] = { gps, diameter };
+  });
+  return JSON.stringify(normalized);
 }
 
 function escapeSelector(value) {

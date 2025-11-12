@@ -159,29 +159,49 @@
               <p class="eyebrow">Player Lobby</p>
               <h3>Registered Players</h3>
             </div>
-            <button id="resetPlayersBtn" class="ghost danger small">
-              Reset Players
-            </button>
+            <div>
+              <button id="refreshGameBtn" class="ghost small">Refresh Game</button>
+              <button id="resetPlayersBtn" class="ghost danger small">
+                Reset Players
+              </button>
+            </div>
           </header>
           <ul id="playerList" class="player-list">
             <li class="muted">No players connected yet.</li>
           </ul>
         </section>
 
-        <section class="card" id="roundResultsCard">
-          <h2>Round Results</h2>
-          <div id="resultsMeta" class="muted">No attempts yet.</div>
-          <table class="table compact" id="resultsTable">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Nickname</th>
-                <th>Reaction (ms)</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </section>
+        <div class="controls-grid">
+          <div class="card" id="liveResultsCard">
+            <h2>Live Results</h2>
+            <div id="liveResultsMeta" class="muted">No attempts yet.</div>
+            <table class="table compact" id="liveResultsTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nickname</th>
+                  <th>Reaction (ms)</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="card" id="roundResultsCard">
+            <h2>Round Results</h2>
+            <div id="resultsMeta" class="muted">No attempts yet.</div>
+            <table class="table compact" id="resultsTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nickname</th>
+                  <th>Reaction (ms)</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
 
         <section class="panel ending-panel scene-classroom" id="endingScene" aria-live="polite">
           <header>

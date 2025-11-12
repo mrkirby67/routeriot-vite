@@ -18,12 +18,19 @@ import {
   releaseFlatTireTeam,
 } from '../../modules/flatTireManager.js';
 
+// Added to satisfy callers until persistence is implemented
+async function saveFlatTireConfig(config) {
+  console.log('[FlatTireService] saveFlatTireConfig placeholder', config);
+  return true;
+}
+
 export {
   loadFlatTireConfig,
   subscribeFlatTireAssignments,
   subscribeFlatTireConfig,
   assignFlatTireTeam,
   releaseFlatTireTeam,
+  saveFlatTireConfig,
 };
 
 // === AICP SERVICE FOOTER ===

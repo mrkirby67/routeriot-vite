@@ -42,6 +42,7 @@ const REQUIRED_IDS = [
   'resultsPanel',
   'playerResultsBody',
   'eliminatedPanel',
+  'eliminationReason',
 ];
 
 const REQUIRED_INPUT_NAMES = ['firstName', 'lastName', 'nickname', 'victoryChant'];
@@ -121,6 +122,7 @@ window.addEventListener('DOMContentLoaded', () => {
         resultsPanel: $('resultsPanel'),
         resultsBody: $('playerResultsBody'),
         eliminatedPanel: $('eliminatedPanel'),
+        eliminationReason: $('eliminationReason'),
       };
 
       const inputRefs = {
@@ -198,10 +200,20 @@ window.addEventListener('DOMContentLoaded', () => {
             teardownListeners();
             show(els.registrationPanel);
             hide(els.statusPanel);
+            hide(els.eliminatedPanel);
             return;
           }
           const data = snap.data();
           els.scoreLabel.textContent = data.score ?? 0;
+
+          if (data.eliminatedInRound) {
+            isEliminated = true;
+            hide(els.statusPanel);
+            show(els.eliminatedPanel);
+            els.eliminationReason.textContent = `You were eliminated in Round ${
+              data.eliminatedInRound.roundNumber || ''
+            }.`;
+          }
         });
       }
 
@@ -216,6 +228,10 @@ window.addEventListener('DOMContentLoaded', () => {
       }
 
       function handleStateUpdate(state) {
+        if (isEliminated) {
+          hide(els.buzzButton);
+          return;
+        }
         els.phaseMessage.textContent = phaseCopy(state.phase);
         onePushRule = state.onePushRule === true;
 
@@ -283,6 +299,10 @@ window.addEventListener('DOMContentLoaded', () => {
       }
 
       function setBuzzAvailability(enabled) {
+        if (isEliminated) {
+          hide(els.buzzButton);
+          return;
+        }
         show(els.buzzButton);
         els.buzzButton.disabled = !enabled;
         els.buzzStatus.textContent = enabled ? 'GO!' : '';
@@ -399,7 +419,7 @@ window.addEventListener('DOMContentLoaded', () => {
       }
 
       els.buzzButton.addEventListener('click', async () => {
-        if (!gameId || !playerUid || !playerProfile) return;
+        if (isEliminated || !gameId || !playerUid || !playerProfile) return;
         if (onePushRule && hasBuzzedThisRound) {
           els.buzzStatus.textContent = 'You have already buzzed this round.';
           return;

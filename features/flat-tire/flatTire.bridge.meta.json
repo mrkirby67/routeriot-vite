@@ -1,0 +1,7 @@
+{
+  "layer": "features",
+  "name": "flatTire.bridge",
+  "depends_on": [],
+  "description": "Event bridge for Flat Tire UI updates",
+  "phase": "active"
+}

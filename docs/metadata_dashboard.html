@@ -1029,9 +1029,45 @@
                         <span class="phase" style="background-color: #5cb85c">active</span>
                     </div>
                     <p><strong>Description:</strong> Manages player chat state, message list rendering, and message dispatch through the chat bridge.</p>
-                    <p><strong>Dependencies:</strong> ChatLog, ChatServiceV2, playerChat.bridge</p>
+                    <p><strong>Dependencies:</strong> ChatServiceV2, playerChat.bridge</p>
                     <p>
                         <a href="../modules/chatManager/playerChat.state.js">Code</a> | <a href="../modules/chatManager/playerChat.state.meta.json">Metadata</a>
+                    </p>
+                </div>
+            
+                <div class="module">
+                    <div class="module-header">
+                        <h3>autoScheduler</h3>
+                        <span class="phase" style="background-color: #337ab7">validated</span>
+                    </div>
+                    <p><strong>Description:</strong> TODO</p>
+                    <p><strong>Dependencies:</strong> None</p>
+                    <p>
+                        <a href="../features/flat-tire/controller/autoScheduler.js">Code</a> | <a href="../features/flat-tire/controller/autoScheduler.meta.json">Metadata</a>
+                    </p>
+                </div>
+            
+                <div class="module">
+                    <div class="module-header">
+                        <h3>firestoreSync</h3>
+                        <span class="phase" style="background-color: #f0ad4e">draft</span>
+                    </div>
+                    <p><strong>Description:</strong> TODO</p>
+                    <p><strong>Dependencies:</strong> None</p>
+                    <p>
+                        <a href="../features/flat-tire/controller/firestoreSync.js">Code</a> | <a href="../features/flat-tire/controller/firestoreSync.meta.json">Metadata</a>
+                    </p>
+                </div>
+            
+                <div class="module">
+                    <div class="module-header">
+                        <h3>flatTire.bridge</h3>
+                        <span class="phase" style="background-color: #5cb85c">active</span>
+                    </div>
+                    <p><strong>Description:</strong> Event bridge for Flat Tire UI updates</p>
+                    <p><strong>Dependencies:</strong> None</p>
+                    <p>
+                        <a href="../features/flat-tire/flatTire.bridge.js">Code</a> | <a href="../features/flat-tire/flatTire.bridge.meta.json">Metadata</a>
                     </p>
                 </div>
             
@@ -1041,7 +1077,7 @@
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
                     <p><strong>Description:</strong> TODO</p>
-                    <p><strong>Dependencies:</strong> autoScheduler, firestoreSync, flatTireEvents, flatTireService, flatTireUI</p>
+                    <p><strong>Dependencies:</strong> autoScheduler, firestoreSync, flatTireEvents, flatTireService, flatTire.bridge</p>
                     <p>
                         <a href="../features/flat-tire/flatTireController.js">Code</a> | <a href="../features/flat-tire/flatTireController.meta.json">Metadata</a>
                     </p>
@@ -1085,11 +1121,23 @@
             
                 <div class="module">
                     <div class="module-header">
+                        <h3>playerPage.bridge</h3>
+                        <span class="phase" style="background-color: #5cb85c">active</span>
+                    </div>
+                    <p><strong>Description:</strong> Bridge for emitting player page UI updates</p>
+                    <p><strong>Dependencies:</strong> None</p>
+                    <p>
+                        <a href="../features/player-page/playerPage.bridge.js">Code</a> | <a href="../features/player-page/playerPage.bridge.meta.json">Metadata</a>
+                    </p>
+                </div>
+            
+                <div class="module">
+                    <div class="module-header">
                         <h3>playerPageController</h3>
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
                     <p><strong>Description:</strong> TODO</p>
-                    <p><strong>Dependencies:</strong> OpponentList, playerChat.state</p>
+                    <p><strong>Dependencies:</strong> playerChat.state, teamService</p>
                     <p>
                         <a href="../features/player-page/playerPageController.js">Code</a> | <a href="../features/player-page/playerPageController.meta.json">Metadata</a>
                     </p>
@@ -1217,18 +1265,6 @@
             
                 <div class="module">
                     <div class="module-header">
-                        <h3>autoScheduler</h3>
-                        <span class="phase" style="background-color: #337ab7">validated</span>
-                    </div>
-                    <p><strong>Description:</strong> TODO</p>
-                    <p><strong>Dependencies:</strong> None</p>
-                    <p>
-                        <a href="../components/FlatTireControl/controller/autoScheduler.js">Code</a> | <a href="../components/FlatTireControl/controller/autoScheduler.meta.json">Metadata</a>
-                    </p>
-                </div>
-            
-                <div class="module">
-                    <div class="module-header">
                         <h3>domHandlers</h3>
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
@@ -1236,18 +1272,6 @@
                     <p><strong>Dependencies:</strong> None</p>
                     <p>
                         <a href="../components/FlatTireControl/controller/domHandlers.js">Code</a> | <a href="../components/FlatTireControl/controller/domHandlers.meta.json">Metadata</a>
-                    </p>
-                </div>
-            
-                <div class="module">
-                    <div class="module-header">
-                        <h3>firestoreSync</h3>
-                        <span class="phase" style="background-color: #f0ad4e">draft</span>
-                    </div>
-                    <p><strong>Description:</strong> TODO</p>
-                    <p><strong>Dependencies:</strong> None</p>
-                    <p>
-                        <a href="../components/FlatTireControl/controller/firestoreSync.js">Code</a> | <a href="../components/FlatTireControl/controller/firestoreSync.meta.json">Metadata</a>
                     </p>
                 </div>
             
@@ -1577,6 +1601,30 @@
             
                 <div class="module">
                     <div class="module-header">
+                        <h3>chat.subscribe</h3>
+                        <span class="phase" style="background-color: #f0ad4e">draft</span>
+                    </div>
+                    <p><strong>Description:</strong> TODO</p>
+                    <p><strong>Dependencies:</strong> None</p>
+                    <p>
+                        <a href="../ui/notifications/chat.subscribe.js">Code</a> | <a href="../ui/notifications/chat.subscribe.meta.json">Metadata</a>
+                    </p>
+                </div>
+            
+                <div class="module">
+                    <div class="module-header">
+                        <h3>flatTire.subscribe</h3>
+                        <span class="phase" style="background-color: #f0ad4e">draft</span>
+                    </div>
+                    <p><strong>Description:</strong> TODO</p>
+                    <p><strong>Dependencies:</strong> None</p>
+                    <p>
+                        <a href="../ui/notifications/flatTire.subscribe.js">Code</a> | <a href="../ui/notifications/flatTire.subscribe.meta.json">Metadata</a>
+                    </p>
+                </div>
+            
+                <div class="module">
+                    <div class="module-header">
                         <h3>notifications.subscribe</h3>
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
@@ -1584,6 +1632,18 @@
                     <p><strong>Dependencies:</strong> None</p>
                     <p>
                         <a href="../ui/notifications/notifications.subscribe.js">Code</a> | <a href="../ui/notifications/notifications.subscribe.meta.json">Metadata</a>
+                    </p>
+                </div>
+            
+                <div class="module">
+                    <div class="module-header">
+                        <h3>playerPage.subscribe</h3>
+                        <span class="phase" style="background-color: #f0ad4e">draft</span>
+                    </div>
+                    <p><strong>Description:</strong> TODO</p>
+                    <p><strong>Dependencies:</strong> None</p>
+                    <p>
+                        <a href="../ui/notifications/playerPage.subscribe.js">Code</a> | <a href="../ui/notifications/playerPage.subscribe.meta.json">Metadata</a>
                     </p>
                 </div>
             

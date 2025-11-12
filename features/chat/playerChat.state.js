@@ -9,8 +9,7 @@
 // ============================================================================
 
 import ChatServiceV2, { normalizeDoc } from "../../services/ChatServiceV2.js";
-import { renderMessages } from "../../components/ChatLog/ChatLog.js";
-import { ensureChatEventListeners, registerChatSendHandler } from "./playerChat.bridge.js";
+import { ensureChatEventListeners, registerChatSendHandler, pushChatMessages } from "./playerChat.bridge.js";
 
 let teamId = null;
 let unsubscribeMessages = null;
@@ -62,7 +61,7 @@ export function initializeChat() {
 
   messageBuffer.length = 0;
   messageIds.clear();
-  renderMessages([]);
+  pushChatMessages([]);
 
   unsubscribeMessages?.();
   unsubscribeMessages = ChatServiceV2.listenForTeam(teamId, (incomingBatch) => {
@@ -92,7 +91,7 @@ export function initializeChat() {
     });
 
     if (didAppend) {
-      renderMessages(messageBuffer);
+      pushChatMessages([...messageBuffer]);
     }
   });
 }

@@ -2,8 +2,8 @@
   "layer": "features",
   "name": "playerPageController",
   "depends_on": [
-    "OpponentList",
-    "playerChat.state"
+    "playerChat.state",
+    "teamService"
   ],
   "description": "TODO",
   "phase": "draft"

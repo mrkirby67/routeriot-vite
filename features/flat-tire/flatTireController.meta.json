@@ -6,7 +6,7 @@
     "firestoreSync",
     "flatTireEvents",
     "flatTireService",
-    "flatTireUI"
+    "flatTire.bridge"
   ],
   "description": "TODO",
   "phase": "draft"
