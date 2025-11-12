@@ -3,7 +3,6 @@
   "name": "GameControls",
   "depends_on": [
     "ChatServiceV2",
-    "gameNotifications",
     "gameRulesManager",
     "gameStateController"
   ],

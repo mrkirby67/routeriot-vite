@@ -2,11 +2,11 @@
 // modules/googleMapsLoader.js
 // ----------------------------------------------------------------------------
 // Loads the Google Maps JavaScript API using the key from your .env file.
-// Designed for Vite projects — reads key via modules/config.js (VITE_GOOGLE_MAPS_API_KEY fallback).
+// Designed for Vite projects — reads key via /core/config.js (VITE_GOOGLE_MAPS_API_KEY fallback).
 // Includes retry protection, async loading, and detailed error logging.
 // ============================================================================
 
-import { GOOGLE_MAPS_API_KEY } from './config.js';
+import { GOOGLE_MAPS_API_KEY } from '/core/config.js';
 
 let mapsPromise = null;
 

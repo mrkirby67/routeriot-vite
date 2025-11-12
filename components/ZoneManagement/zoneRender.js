@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/ZoneManagement/zoneRender.js
 // PURPOSE: 🔍 Helper: Dynamic Zoom from Diameter
-// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../data.js, components/ZoneQuestions/ZoneQuestionsTypes.js, ../../modules/zoneManager.js
+// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../data.js, components/ZoneQuestions/ZoneQuestionsTypes.js, ../../modules/zoneManager.js
 // USED_BY: components/ZoneManagement/ZoneManagement.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -11,7 +11,7 @@
 // === END AICP COMPONENT HEADER ===
 
 import styles from './ZoneManagement.module.css';
-import { db, firebaseConfig } from '../../modules/config.js';
+import { db, firebaseConfig } from '/core/config.js';
 import {
   collection,
   getDocs,

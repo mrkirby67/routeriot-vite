@@ -8,7 +8,7 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-import { db } from '../modules/config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   doc,

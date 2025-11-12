@@ -15,7 +15,7 @@ import {
   initializeSurpriseSelector,
   teardownSurpriseSelector
 } from '../SurpriseSelector/SurpriseSelector.js';
-import { checkShieldBeforeAttack } from '../../ui/team-surprise/teamSurpriseUI.js';
+import { checkShieldBeforeAttack } from '../../features/team-surprise/teamSurpriseController.js';
 
 export function renderTeamSurpriseManager(container) {
   if (!container) return () => {};

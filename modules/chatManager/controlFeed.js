@@ -3,7 +3,7 @@
 // PURPOSE: Control dashboard listener for all communications
 // ============================================================================
 
-import { db } from '../config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   collectionGroup,

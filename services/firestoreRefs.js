@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: services/firestoreRefs.js
 // PURPOSE: Centralizes all Firestore database references for the application.
-// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../modules/config.js
+// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, /core/config.js
 // USED_BY: services/gameStateService.js, services/teamService.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -11,7 +11,7 @@
 // === END AICP SERVICE HEADER ===
 
 import { doc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from "../modules/config.js";
+import { db } from "/core/config.js";
 
 /* Centralized Firestore reference helpers. */
 export const refs = {

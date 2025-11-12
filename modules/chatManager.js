@@ -1,6 +1,6 @@
 import ChatServiceV2 from '../services/ChatServiceV2.js';
 import { BroadcastComponent, initializeBroadcastLogic } from '../components/Broadcast/Broadcast.js';
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import {
   collectionGroup,
   onSnapshot,

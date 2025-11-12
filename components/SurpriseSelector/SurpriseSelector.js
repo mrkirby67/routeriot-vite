@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/SurpriseSelector/SurpriseSelector.js
 // PURPOSE: export async function applyToAllTeams(selectedType, newCount = 0) {
-// DEPENDS_ON: ../../data.js, ../../features/team-surprise/teamSurpriseController.js, ../../modules/utils.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/config.js
+// DEPENDS_ON: ../../data.js, ../../features/team-surprise/teamSurpriseController.js, ../../modules/utils.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, /core/config.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -12,7 +12,7 @@
 
 import styles from './SurpriseSelector.module.css';
 import { allTeams } from '../../data.js';
-import { SurpriseTypes } from '../../features/team-surprise/teamSurpriseTypes.js';
+import { SurpriseTypes } from '/services/team-surprise/teamSurpriseTypes.js';
 import {
   subscribeTeamSurprises,
   increment,
@@ -22,7 +22,7 @@ import {
 } from '../../services/team-surprise/teamSurpriseService.js';
 import { escapeHtml } from '../../modules/utils.js';
 import { getDocs, collection, writeBatch, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 
 /* Apply the selected wild-card values to every team in Firestore. */
 export async function applyToAllTeams(selectedType, newCount = 0) {

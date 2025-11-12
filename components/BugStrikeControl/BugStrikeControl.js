@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/BugStrikeControl/BugStrikeControl.js
 // PURPOSE: 🧱 COMPONENT MARKUP
-// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../features/team-surprise/teamSurpriseController.js, ../../data.js
+// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../features/team-surprise/teamSurpriseController.js, ../../data.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -10,7 +10,7 @@
 // ============================================================================
 // === END AICP COMPONENT HEADER ===
 
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   deleteDoc,

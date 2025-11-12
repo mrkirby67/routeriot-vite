@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { collection, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from '../config.js';
+import { db } from '/core/config.js';
 
 import { processedMessages } from './core.js';
 import { applySpeedBump, applyProofSent, releaseSpeedBump } from './interactions.js';

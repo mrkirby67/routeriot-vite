@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/RacerManagement/RacerManagement.js
 // PURPOSE: Provides Racer Management UI and Firestore synchronization for roster data.
-// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -10,26 +10,31 @@
 // ============================================================================
 // === END AICP COMPONENT HEADER ===
 
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import { onSnapshot, collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import styles from './RacerManagement.module.css';
 
 export function RacerManagementComponent() {
     const componentHtml = `
         <div class="${styles.controlSection}">
-            <h2>Racer Management</h2>
-            <table class="${styles.dataTable}" id="racers-table">
-                <thead>
-                    <tr>
-                        <th>Assigned Team</th>
-                        <th>Racer Name</th>
-                        <th>Cell Number</th>
-                        <th>Email Address</th>
-                    </tr>
-                </thead>
-                <tbody id="racers-table-body">
-                </tbody>
-            </table>
+            <div class="${styles.header}">
+                <h2>Racer Management</h2>
+                <button id="toggle-racers-btn" class="${styles.expandBtn}">Expand ▼</button>
+            </div>
+            <div id="racers-table-container" style="display: none;">
+                <table class="${styles.dataTable}" id="racers-table">
+                    <thead>
+                        <tr>
+                            <th>Assigned Team</th>
+                            <th>Racer Name</th>
+                            <th>Cell Number</th>
+                            <th>Email Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="racers-table-body">
+                    </tbody>
+                </table>
+            </div>
         </div>
     `;
     return componentHtml;
@@ -37,7 +42,17 @@ export function RacerManagementComponent() {
 
 export function initializeRacerManagementLogic() {
     const tableBody = document.getElementById('racers-table-body');
-    if (!tableBody) return;
+    const toggleBtn = document.getElementById('toggle-racers-btn');
+    const tableContainer = document.getElementById('racers-table-container');
+
+    if (!tableBody || !toggleBtn || !tableContainer) return;
+
+    toggleBtn.addEventListener('click', () => {
+        const isHidden = tableContainer.style.display === 'none';
+        tableContainer.style.display = isHidden ? 'block' : 'none';
+        toggleBtn.textContent = isHidden ? 'Collapse ▲' : 'Expand ▼';
+    });
+
     const racersCollection = collection(db, "racers");
 
     async function saveRacerData(event) {

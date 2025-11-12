@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fastest Finger · Control</title>
+    <link rel="stylesheet" href="./ff.css" />
+  </head>
+  <body>
+    <main class="ff-shell">
+      <section class="panel" id="unlockSection">
+        <h1>Fastest Finger · Control Room</h1>
+        <p class="subtle">
+          Enter the shared Game ID and the control password stored in
+          <code>ff_games/&lt;gameId&gt;/settings/controlPassword</code> to unlock
+          the dashboard.
+        </p>
+        <form id="unlockForm" class="stack">
+          <label>
+            Game ID
+            <input
+              type="text"
+              id="controlGameId"
+              name="controlGameId"
+              required
+              autocomplete="off"
+              placeholder="e.g. history-period-3"
+            />
+          </label>
+          <label>
+            Control Password
+            <input
+              type="password"
+              id="controlPassword"
+              name="controlPassword"
+              required
+              autocomplete="off"
+            />
+          </label>
+          <button type="submit" class="primary">Unlock Controls</button>
+          <p class="status-text" id="unlockStatus" role="status"></p>
+        </form>
+      </section>
+
+      <section class="panel hidden" id="controlsSection">
+        <header class="section-head">
+          <div>
+            <p class="eyebrow">Game</p>
+            <h2 id="controlsGameLabel">—</h2>
+          </div>
+          <button id="resetToRegister" class="ghost small">
+            Lock Controls
+          </button>
+        </header>
+
+        <div class="controls-grid">
+          <form id="roundOptionsForm" class="card stack">
+            <h3>Round Setup</h3>
+
+            <fieldset>
+              <legend>Countdown Duration</legend>
+              <label class="pill">
+                <input
+                  type="radio"
+                  name="countdownMs"
+                  value="3000"
+                  checked
+                />
+                3 seconds
+              </label>
+              <label class="pill">
+                <input type="radio" name="countdownMs" value="5000" />
+                5 seconds
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Buzz Window</legend>
+              <label class="pill">
+                <input type="radio" name="windowMs" value="5000" checked />
+                5 seconds
+              </label>
+              <label class="pill">
+                <input type="radio" name="windowMs" value="7000" />
+                7 seconds
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Ending Scene Style</legend>
+              <label class="pill">
+                <input
+                  type="radio"
+                  name="endSceneStyle"
+                  value="classroom"
+                  checked
+                />
+                Classroom Clean
+              </label>
+              <label class="pill">
+                <input type="radio" name="endSceneStyle" value="neon" />
+                Esports Neon
+              </label>
+              <label class="pill">
+                <input type="radio" name="endSceneStyle" value="spotlight" />
+                Big Winner Spotlight
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Game Rules</legend>
+              <label class="pill">
+                <input
+                  type="checkbox"
+                  name="onePushRule"
+                  value="true"
+                  checked
+                />
+                Single Push Only
+              </label>
+              <label class="pill">
+                <input
+                  type="checkbox"
+                  name="eliminationMode"
+                  value="true"
+                />
+                Elimination Mode
+              </label>
+            </fieldset>
+          </form>
+
+          <div class="card status-card">
+            <div class="phase-chip" id="phaseBadge">Phase · register</div>
+            <p id="countdownCopy" class="status-text">
+              Waiting for players to register…
+            </p>
+            <div class="timer-board">
+              <div>
+                <p class="eyebrow">Next Event</p>
+                <strong id="countdownClock">—</strong>
+              </div>
+              <div>
+                <p class="eyebrow">Window Ends</p>
+                <strong id="windowClock">—</strong>
+              </div>
+            </div>
+            <button id="startRoundBtn" class="primary tall">
+              Start Round
+            </button>
+            <p class="status-text small" id="roundStatus" role="status"></p>
+            <button id="nextRoundBtn" class="ghost tall">Next Round</button>
+            <p class="status-text" id="winnerDisplay" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <section class="panel" id="lobbyPanel">
+          <header class="section-head">
+            <div>
+              <p class="eyebrow">Player Lobby</p>
+              <h3>Registered Players</h3>
+            </div>
+            <button id="resetPlayersBtn" class="ghost danger small">
+              Reset Players
+            </button>
+          </header>
+          <ul id="playerList" class="player-list">
+            <li class="muted">No players connected yet.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="roundResultsCard">
+          <h2>Round Results</h2>
+          <div id="resultsMeta" class="muted">No attempts yet.</div>
+          <table class="table compact" id="resultsTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nickname</th>
+                <th>Reaction (ms)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel ending-panel scene-classroom" id="endingScene" aria-live="polite">
+          <header>
+            <p class="eyebrow">Ending Scene</p>
+            <h3>Leaderboard &amp; Winner Spotlight</h3>
+          </header>
+          <div class="ending-content">
+            <div class="winner-banner">
+              <p class="eyebrow">Winner</p>
+              <h2 id="winnerName">Waiting…</h2>
+              <p id="winnerChant" class="chant"></p>
+              <p id="winnerReaction" class="status-text"></p>
+            </div>
+            <ol id="leaderboardList" class="leaderboard"></ol>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./ff_control.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          regs.forEach((reg) => reg.unregister());
+        });
+      }
+    </script>
+  </body>
+</html>

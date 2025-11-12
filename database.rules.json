@@ -1,0 +1,28 @@
+{
+  "rules": {
+    "ff": {
+      "$gameId": {
+        "rounds": {
+          "$roundId": {
+            "winner": {
+              ".read": true,
+              ".write": "auth != null"
+            },
+            "attempts": {
+              "$uid": {
+                ".read": true,
+                ".write": "auth != null && auth.uid === $uid && !data.exists()"
+              }
+            },
+            ".read": true,
+            ".write": "auth != null"
+          }
+        },
+        "state": {
+          ".read": true,
+          ".write": "auth != null"
+        }
+      }
+    }
+  }
+}

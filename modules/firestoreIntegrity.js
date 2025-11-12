@@ -1,5 +1,5 @@
 import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from './config.js';
+import { db } from '/core/config.js';
 
 export async function verifyFirestoreSchema() {
   const required = [

@@ -3,7 +3,7 @@
 // PURPOSE: Shared helpers for zone metadata (display names, caching)
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const zoneNameCache = new Map();

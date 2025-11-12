@@ -3,7 +3,7 @@
 // PURPOSE: Shared helpers for Flat Tire — Tow Time assignments and config
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import { calculateDistance } from './zonesUtils.js';
 import {
   collection,

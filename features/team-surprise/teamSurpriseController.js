@@ -15,7 +15,7 @@ import {
   SHIELD_DURATION_STORAGE_KEY,
   DEFAULT_SHIELD_MINUTES,
   DEFAULT_COOLDOWN_MINUTES
-} from './teamSurpriseTypes.js';
+} from '/services/team-surprise/teamSurpriseTypes.js';
 import {
   activeShields,
   activeWildCards,
@@ -62,8 +62,8 @@ import {
   requestSpeedBumpRelease
 } from '../../services/team-surprise/teamSurpriseService.js';
 import ChatServiceV2 from '../../services/ChatServiceV2.js';
+import { emit } from '/core/eventBus.js';
 import { registerSurpriseTriggerHandler } from './teamSurprise.bridge.js';
-import { showSurpriseCooldownOverlay } from '../../playerUI/overlays/surpriseCooldownOverlay.js';
 
 let uiModulePromise = null;
 let unsubscribeGlobalCooldown = null;
@@ -197,9 +197,12 @@ export async function attemptSurpriseAttack({
     }
     if (attackStatus.type === 'cooldown' && typeof document !== 'undefined') {
       try {
-        showSurpriseCooldownOverlay({
-          type: mapToOverlayType(type, normalizedType),
-          remainingMs: attackStatus.remainingMs ?? getGlobalCooldown()
+        emit('ui:overlay:show', {
+          id: 'team-surprise',
+          data: {
+            type: mapToOverlayType(type, normalizedType),
+            remainingMs: attackStatus.remainingMs ?? getGlobalCooldown()
+          }
         });
       } catch (err) {
         console.debug('⚠️ Failed to render cooldown overlay:', err?.message || err);

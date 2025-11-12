@@ -15,7 +15,7 @@ import {
   deleteDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import { showFlashMessage } from './gameUI.js';
 import { clearAllTeamSurprises } from './teamSurpriseManager.js';
 import { allTeams } from '../data.js';
@@ -89,16 +89,22 @@ export async function clearAllScores(autoTriggered = false, clearTable = true) {
 // ---------------------------------------------------------------------------
 // 🏁 SAFELY END GAME (Resets zones + teamStatus + scores)
 // ---------------------------------------------------------------------------
-export async function safelyEndGameAndResetZones() {
+export async function safelyEndGameAndResetZones(options = {}) {
+  const {
+    markStatusOver = true,
+    source = 'manual',
+  } = options || {};
   try {
     console.group("🏁 SAFE END GAME");
 
-    // 1️⃣ Mark game as over
-    await updateDoc(GAME_STATE_REF, {
-      status: 'over',
-      updatedAt: serverTimestamp(),
-    });
-    console.log("🕹️ Game status updated → over");
+    // 1️⃣ Mark game as over (optional for callers who already set status)
+    if (markStatusOver) {
+      await updateDoc(GAME_STATE_REF, {
+        status: 'over',
+        updatedAt: serverTimestamp(),
+      });
+      console.log("🕹️ Game status updated → over");
+    }
 
     // 2️⃣ Reset zones to Available
     const zonesSnap = await getDocs(collection(db, "zones"));
@@ -140,7 +146,7 @@ export async function safelyEndGameAndResetZones() {
     });
 
     showFlashMessage('🏁 Game ended & reset complete.', '#2e7d32', 2500);
-    console.log("✅ Full reset done.");
+    console.log(`✅ Full reset done. (source: ${source})`);
     console.groupEnd();
   } catch (e) {
     console.error("❌ Error ending game:", e);
@@ -224,7 +230,14 @@ if (typeof window !== 'undefined') {
 // 🧹 Transient cleanup: flat tire assignments, surprise stock, shields
 // ---------------------------------------------------------------------------
 export async function clearTransientGameCollections() {
-  const targets = ["flatTireAssignments", "teamSurprises", "shields"];
+  const targets = [
+    "flatTireAssignments",
+    "teamSurprises",
+    "shields",
+    "bugStrikes",
+    "bugStrikeAssignments",
+    "speedBumpAssignments",
+  ];
   try {
     for (const colName of targets) {
       const snap = await getDocs(collection(db, colName));

@@ -8,7 +8,7 @@ import {
   SHIELD_DURATION_STORAGE_KEY,
   DEFAULT_SHIELD_MINUTES,
   DEFAULT_COOLDOWN_MINUTES
-} from './teamSurpriseTypes.js';
+} from '/services/team-surprise/teamSurpriseTypes.js';
 
 export const activeShields = Object.create(null);   // { [teamName]: expiresAtMs }
 export const activeWildCards = Object.create(null); // { [teamName]: { type, expires } }

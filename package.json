@@ -32,6 +32,7 @@
   "devDependencies": {
     "chalk": "^5.6.2",
     "js-yaml": "^4.1.0",
+    "rollup-plugin-copy": "^3.5.0",
     "vite": "^5.3.1"
   },
   "engines": {

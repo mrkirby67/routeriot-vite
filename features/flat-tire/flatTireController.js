@@ -38,10 +38,40 @@ export class FlatTireControlController {
     this.handleZoneSelectChange = events.handleZoneSelectChange.bind(this);
     this.handleTableClick = events.handleTableClick.bind(this);
     this.handleBulkSendClick = events.handleBulkSendClick.bind(this);
+    this._handleConfigInputChange = this._handleConfigInputChange.bind(this);
+  }
+
+  _handleConfigInputChange() {
+    if (this.ignoreConfigInput) return;
+
+    const newConfig = { zones: {} };
+    this.dom.zoneInputs.forEach((input, key) => {
+      const diameterInput = this.dom.zoneDiameterInputs.get(key);
+      if (!newConfig.zones[key]) newConfig.zones[key] = {};
+      newConfig.zones[key].gps = input.value.trim();
+      if (diameterInput) {
+        newConfig.zones[key].diameterMeters = parseInt(diameterInput.value, 10) || 200;
+      }
+    });
+    service.saveFlatTireConfig(newConfig);
   }
 
   async initialize() {
     ui.setupDomRefs(this);
+
+    const debounce = (func, delay) => {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+        };
+    };
+
+    const debouncedSave = debounce(this._handleConfigInputChange, 500);
+    this.dom.zoneInputs.forEach(input => input.addEventListener('input', debouncedSave));
+    this.dom.zoneDiameterInputs.forEach(input => input.addEventListener('input', debouncedSave));
+
     this.dom.tableBody?.addEventListener('click', (e) => events.handleTableClick(e, this));
     this.dom.sendBtn?.addEventListener('click', (e) => events.handleBulkSendClick(e, this));
     this.updateSendButtonState();

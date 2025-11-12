@@ -1,5 +1,5 @@
 // File: modules/homeMap.js
-import { db, firebaseConfig } from './config.js';
+import { db, firebaseConfig } from '/core/config.js';
 import { getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* Parse "lat, lng" -> {lat, lng} or null */

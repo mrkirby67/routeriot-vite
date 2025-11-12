@@ -3,7 +3,7 @@
 // ============================================================================ 
 
 import { broadcastEvent } from '../zonesFirestore.js'; 
-import { db } from '../config.js';
+import { db } from '/core/config.js';
 import {
   doc,
   setDoc,

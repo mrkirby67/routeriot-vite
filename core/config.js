@@ -1,5 +1,5 @@
 // ============================================================================
-// FILE: modules/config.js
+// FILE: core/config.js
 // PURPOSE: Firebase + Google Maps configuration with .env fallback
 // ============================================================================
 
@@ -21,7 +21,7 @@ function getEnv(key, fallback) {
 // ---------------------------------------------------------------------------
 // 🔑 Keys with fallback values (Firebase & Maps)
 // ---------------------------------------------------------------------------
-const FALLBACK_FIREBASE_KEY = "AIzaSyDxpd_n3RY7M6hEqMh3BAZLAgzPTTfUQXc";
+const FALLBACK_FIREBASE_KEY = "AIzaSyCBiN5dNijJejhmIKTRE1-vxpICKtQBewI";
 const FALLBACK_MAPS_KEY = "AIzaSyDxpd_n3RY7M6hEqMh3BAZLAgzPTTfUQXc";
 
 export const FIREBASE_API_KEY = getEnv("VITE_FIREBASE_API_KEY", FALLBACK_FIREBASE_KEY);

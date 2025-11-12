@@ -3,7 +3,7 @@
 // PURPOSE: Firebase read/write + broadcast helpers for zones
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import {
   doc,
   setDoc,

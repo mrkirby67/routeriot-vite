@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: services/speed-bump/speedBumpService.js
 // PURPOSE: Firestore helpers for triggering and monitoring Speed Bump events.
-// DEPENDS_ON: ../../modules/config.js
+// DEPENDS_ON: /core/config.js
 // USED_BY: components/SpeedBumpControl/SpeedBumpControl.js, modules/speedBumpPlayer.js
 // AUTHOR: Route Riot – Speed Bump Refresh
 // CREATED: 2025-10-30
@@ -10,7 +10,7 @@
 // ============================================================================
 // === END AICP SERVICE HEADER ===
 
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import {
   doc,
   setDoc,

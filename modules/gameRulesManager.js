@@ -8,7 +8,7 @@
 // That service is now the single source of truth for managing game rules.
 // This monolithic file is being phased out.
 // ============================================================================
-import { app, db, firebaseConfig } from './config.js';
+import { app, db, firebaseConfig } from '/core/config.js';
 import {
   doc,
   getDoc,
@@ -273,7 +273,7 @@ async function clearGameSideEffects() {
  */
 export async function clearAllCollectionsAndReset() {
   const { collection, getDocs, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-  const { db } = await import("./config.js");
+  const { db } = await import("/core/config.js");
   const { resetGameState } = await import("./gameStateManager.js");
   const { showFlashMessage } = await import("./gameUI.js");
 

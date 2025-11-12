@@ -8,7 +8,7 @@
 // AICP_VERSION: 1.0
 // ============================================================================
 
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import { doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import ChatServiceV2 from '../../services/ChatServiceV2.js';
 import styles from './Broadcast.module.css';

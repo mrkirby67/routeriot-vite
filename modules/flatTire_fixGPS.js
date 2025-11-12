@@ -3,7 +3,7 @@
 // PURPOSE: Ensure all depot zones have proper numeric GPS fields
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   getDocs,

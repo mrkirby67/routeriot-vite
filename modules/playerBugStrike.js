@@ -3,7 +3,7 @@
 // PURPOSE: Player-side Bug Swarm listener & popup spawner
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import '../styles/playerBugStrike.css';

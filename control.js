@@ -48,7 +48,7 @@ import { watchLiveGameStatus, clearAllChatAndScores } from './modules/controlSta
 import { listenForGameStatus } from './modules/gameStateManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
 import { clearCountdownTimer, getRemainingMs, startCountdownTimer, pauseCountdownTimer } from './modules/gameTimer.js';
-import { db } from './modules/config.js';
+import { db } from '/core/config.js';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const GAME_STATE_REF = doc(db, "game", "gameState");

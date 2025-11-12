@@ -3,7 +3,7 @@
 // PURPOSE: Non-destructive Firestore scanner for tow zone validation
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   getDocs

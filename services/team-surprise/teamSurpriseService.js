@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: services/team-surprise/teamSurpriseService.js
 // PURPOSE: Firestore data layer for Team Surprise inventories and cooldowns.
-// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../features/team-surprise/teamSurpriseTypes.js
+// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, /services/team-surprise/teamSurpriseTypes.js
 // USED_BY: features/team-surprise/teamSurpriseController.js, components/SurpriseSelector/SurpriseSelector.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -10,7 +10,7 @@
 // ============================================================================
 // === END AICP SERVICE HEADER ===
 
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   addDoc,
@@ -23,7 +23,7 @@ import {
   setDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { SurpriseTypes, DEFAULT_COOLDOWN_MINUTES } from '../../features/team-surprise/teamSurpriseTypes.js';
+import { SurpriseTypes, DEFAULT_COOLDOWN_MINUTES } from '/services/team-surprise/teamSurpriseTypes.js';
 
 const TEAM_SURPRISES_COLLECTION = collection(db, 'teamSurprises');
 const SPEEDBUMP_ASSIGNMENTS_COLLECTION = collection(db, 'speedBumpAssignments');

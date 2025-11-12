@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/ZoneManagement/ZoneManagement.js
 // PURPOSE: Initialize Zone Management logic for the Control dashboard.
-// DEPENDS_ON: components/ZoneManagement/zoneUI.js, components/ZoneManagement/zoneRender.js, components/ZoneManagement/zoneHandlers.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/config.js, ../../data.js, ../../modules/zoneManager.js
+// DEPENDS_ON: components/ZoneManagement/zoneUI.js, components/ZoneManagement/zoneRender.js, components/ZoneManagement/zoneHandlers.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, /core/config.js, ../../data.js, ../../modules/zoneManager.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -21,7 +21,7 @@ import {
   serverTimestamp,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import { allTeams } from '../../data.js';
 import {
   hydrateZoneCooldown,

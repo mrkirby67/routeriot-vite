@@ -3,7 +3,7 @@
 // Connects exclusively to teams_pew collection.
 // ============================================================================
 
-import { db } from '../modules/config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   doc,

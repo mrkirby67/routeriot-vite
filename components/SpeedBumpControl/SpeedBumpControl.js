@@ -11,11 +11,12 @@
 // === END AICP COMPONENT HEADER ===
 
 import { getAllTeams } from '../../services/teamService.js';
+import { allTeams } from '../../data.js';
 import {
   triggerSpeedBump,
   subscribeToSpeedBumpStatuses
 } from '../../services/speed-bump/speedBumpService.js';
-import { showFlashMessage } from '../../ui/gameNotifications.js';
+import { notify } from '/core/eventBus.js';
 
 const teardownCallbacks = [];
 const statusCells = new Map();
@@ -126,7 +127,7 @@ function bindButtons(root) {
       try {
         await triggerSpeedBump(teamId, type, { teamName });
         console.info(`🚧 Speed Bump sent to ${teamName} (${type})`);
-        showFlashMessage('Speed Bump Sent!', 2500);
+        notify({ kind: 'info', text: 'Speed Bump Sent!', timeout: 2500 });
       } catch (err) {
         console.error(`⚠️ Failed to trigger speed bump for ${teamName}:`, err);
         if (statusMeta) {
@@ -183,6 +184,16 @@ export function SpeedBumpControlComponent() {
   `;
 }
 
+function normalizeTeamRecord(record) {
+  if (!record) return null;
+  const name = typeof record.name === 'string' && record.name.trim() ? record.name.trim() : '';
+  const id =
+    typeof record.id === 'string' && record.id.trim()
+      ? record.id.trim()
+      : name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  return id ? { ...record, id, name: name || record.id || id } : null;
+}
+
 export async function initializeSpeedBumpControl() {
   runTeardown('reinitialize');
 
@@ -206,6 +217,22 @@ export async function initializeSpeedBumpControl() {
   }
 
   if (!Array.isArray(teams) || !teams.length) {
+    console.warn('[SpeedBumpControl] No Firestore teams found. Falling back to data.js roster.');
+    let fallbackCounter = 0;
+    teams = allTeams
+      .map((team) =>
+        normalizeTeamRecord({
+          id: team?.name || team?.email || `fallback-team-${fallbackCounter++}`,
+          name: team?.name,
+          slogan: team?.slogan,
+        }),
+      )
+      .filter(Boolean);
+  } else {
+    teams = teams.map(normalizeTeamRecord).filter(Boolean);
+  }
+
+  if (!teams.length) {
     tableBody.innerHTML = `
       <tr>
         <td colspan="3">No teams available.</td>

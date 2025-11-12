@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/FlatTireControl/controller/firestoreSync.js
 // PURPOSE: Syncs Flat Tire control state with Firestore racer data and feature config.
-// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../../modules/config.js
+// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, /core/config.js
 // USED_BY: features/flat-tire/flatTireController.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -11,7 +11,7 @@
 // === END AICP COMPONENT HEADER ===
 
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from '../../../modules/config.js';
+import { db } from '/core/config.js';
 
 export function subscribeToRacers(controller) {
   try {
@@ -38,8 +38,13 @@ export function applyConfig(controller, config) {
 
   ['north', 'south', 'east', 'west'].forEach(k => {
     const zone = config.zones[k];
-    const input = controller.dom.zoneInputs.get(k);
-    if (input) input.value = zone.gps || '';
+    if (!zone) return;
+
+    const gpsInput = controller.dom.zoneInputs.get(k);
+    if (gpsInput) gpsInput.value = zone.gps || '';
+
+    const diameterInput = controller.dom.zoneDiameterInputs.get(k);
+    if (diameterInput) diameterInput.value = zone.diameterMeters || 200;
   });
 
   if (controller.dom.autoIntervalInput)

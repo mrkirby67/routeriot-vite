@@ -9,8 +9,8 @@ import {
   consumeSurprise,
   incrementSurprise
 } from "../../services/team-surprise/teamSurpriseService.js";
-import { SurpriseTypes } from "../team-surprise/teamSurpriseTypes.js";
-import { db } from "../../modules/config.js";
+import { SurpriseTypes } from "/services/team-surprise/teamSurpriseTypes.js";
+import { db } from "/core/config.js";
 import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const SETTINGS_DOC = doc(db, "settings", "bugStrikeSettings");

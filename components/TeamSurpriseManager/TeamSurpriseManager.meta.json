@@ -3,7 +3,7 @@
   "name": "TeamSurpriseManager",
   "depends_on": [
     "SurpriseSelector",
-    "teamSurpriseUI"
+    "teamSurpriseController"
   ],
   "description": "TODO",
   "phase": "draft"

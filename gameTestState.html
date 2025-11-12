@@ -4,7 +4,7 @@
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   // ✅ Pull config safely from your existing module
-  import { firebaseConfig } from './modules/config.js';
+  import { firebaseConfig } from '/core/config.js';
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);

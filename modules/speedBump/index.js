@@ -3,7 +3,7 @@
 // PURPOSE: Unified export hub for all Speed Bump logic (core, comms, timers, etc.)
 // ============================================================================
 
-import { db } from '../config.js';
+import { db } from '/core/config.js';
 import {
   doc,
   setDoc,

@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/Scoreboard/Scoreboard.js
 // PURPOSE: SCOREBOARD COMPONENT (Unified Control + Player)
-// DEPENDS_ON: ../../modules/config.js, ../../modules/scoreboardManager.js, ../../modules/zoneManager.js, ../../modules/utils.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// DEPENDS_ON: /core/config.js, ../../modules/scoreboardManager.js, ../../modules/zoneManager.js, ../../modules/utils.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -10,7 +10,7 @@
 // ============================================================================
 // === END AICP COMPONENT HEADER ===
 
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import { addPointsToTeam } from '../../modules/scoreboardManager.js';
 import { getZoneDisplayName } from '../../modules/zoneManager.js';
 import { escapeHtml } from '../../modules/utils.js';

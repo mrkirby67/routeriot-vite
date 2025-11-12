@@ -12,7 +12,7 @@
 
 export * from '../features/team-surprise/teamSurpriseController.js';
 export * from '../services/team-surprise/teamSurpriseService.js';
-export * from '../features/team-surprise/teamSurpriseTypes.js';
+export * from '../services/team-surprise/teamSurpriseTypes.js';
 export { checkShieldBeforeAttack } from '../ui/team-surprise/teamSurpriseUI.js';
 
 // === AICP MODULE FOOTER ===
@@ -22,7 +22,7 @@ export { checkShieldBeforeAttack } from '../ui/team-surprise/teamSurpriseUI.js';
 // codex_phase: tier3_components_injection
 // export_bridge: features/team-surprise
 // exports: *
-// linked_files: ["features/team-surprise/teamSurpriseController.js", "services/team-surprise/teamSurpriseService.js", "features/team-surprise/teamSurpriseEvents.js", "features/team-surprise/teamSurpriseTypes.js", "ui/team-surprise/teamSurpriseUI.js"]
+// linked_files: ["features/team-surprise/teamSurpriseController.js", "services/team-surprise/teamSurpriseService.js", "features/team-surprise/teamSurpriseEvents.js", "services/team-surprise/teamSurpriseTypes.js", "ui/team-surprise/teamSurpriseUI.js"]
 // owner: RouteRiot-AICP
 // phase: tier3_components_injection
 // review_status: pending_alignment

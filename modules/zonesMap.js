@@ -3,7 +3,7 @@
 // PURPOSE: Static map and geometry encoding helpers for mini-map previews
 // ============================================================================
 
-import { firebaseConfig, GOOGLE_MAPS_API_KEY } from './config.js';
+import { firebaseConfig, GOOGLE_MAPS_API_KEY } from '/core/config.js';
 
 const FALLBACK_DIAMETER_KM = 0.05;
 

@@ -3,7 +3,7 @@
 // PURPOSE: Core player UI initialization + DOM helpers
 // ============================================================================
 
-import { db } from '../config.js';
+import { db } from '/core/config.js';
 import { allTeams } from '../../data.js';
 import { getZoneDisplayName } from '../zoneManager.js';
 import { hidePausedOverlay, showResumeBanner } from './overlays.js';

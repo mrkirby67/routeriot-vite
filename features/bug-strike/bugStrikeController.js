@@ -5,7 +5,7 @@
 
 import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import ChatServiceV2 from "../../services/ChatServiceV2.js";
-import { db } from "../../modules/config.js";
+import { db } from "/core/config.js";
 import { isTeamAttackable } from "../team-surprise/teamSurpriseController.js";
 import {
   ensureBugStrikeEventListeners,

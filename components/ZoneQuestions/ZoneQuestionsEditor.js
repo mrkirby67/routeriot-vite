@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestionsEditor.js
 // PURPOSE: 🧱 Render Form
-// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../data.js, components/ZoneQuestions/ZoneQuestionsLogic.js, components/ZoneQuestions/ZoneQuestionsTypes.js
+// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../data.js, components/ZoneQuestions/ZoneQuestionsLogic.js, components/ZoneQuestions/ZoneQuestionsTypes.js
 // USED_BY: components/ZoneQuestions/ZoneQuestionsUI.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -11,7 +11,7 @@
 // === END AICP COMPONENT HEADER ===
 
 import styles from './ZoneQuestions.module.css';
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   doc,

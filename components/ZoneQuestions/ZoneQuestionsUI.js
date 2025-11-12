@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/ZoneQuestions/ZoneQuestionsUI.js
 // PURPOSE: 🧱 Component (UI)
-// DEPENDS_ON: components/ZoneQuestions/ZoneQuestionsEditor.js, components/ZoneQuestions/ZoneQuestionsLogic.js, ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// DEPENDS_ON: components/ZoneQuestions/ZoneQuestionsEditor.js, components/ZoneQuestions/ZoneQuestionsLogic.js, /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
 // USED_BY: components/ZoneQuestions/ZoneQuestions.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -13,7 +13,7 @@
 import styles from './ZoneQuestions.module.css';
 import { renderZoneQuestionEditor, initializeZoneQuestionEditor } from './ZoneQuestionsEditor.js';
 import { renderAnswerSummary } from './ZoneQuestionsLogic.js';
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   getDocs,

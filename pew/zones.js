@@ -3,7 +3,7 @@
 // Uses only the zones_pew collection and Pew Pursuit game state updater.
 // ============================================================================
 
-import { db } from '../modules/config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   getDocs,

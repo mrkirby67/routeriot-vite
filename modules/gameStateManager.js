@@ -6,7 +6,7 @@
 //   teamStatus/{teamName} → { lastKnownLocation, timestamp, score, ... }
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import {
   doc,
   setDoc,
@@ -82,13 +82,27 @@ async function endGameByTimer() {
     const data = snap.data();
     if (data.status !== 'active') return; // Only end active games
 
-    await updateDoc(gameStateRef, {
-      status: 'over',
-      updatedAt: serverTimestamp(),
-    });
+    const cleanupModule = await import('./controlActions.js');
+    const { safelyEndGameAndResetZones } = cleanupModule;
+    if (typeof safelyEndGameAndResetZones === 'function') {
+      await safelyEndGameAndResetZones({ markStatusOver: true, source: 'timer' });
+    } else {
+      await updateDoc(gameStateRef, {
+        status: 'over',
+        updatedAt: serverTimestamp(),
+      });
+    }
     console.log('🏁 Game Over (timer expired)');
   } catch (err) {
     console.error("❌ Error ending game by timer:", err);
+    try {
+      await updateDoc(gameStateRef, {
+        status: 'over',
+        updatedAt: serverTimestamp(),
+      });
+    } catch (fallbackError) {
+      console.error('❌ Fallback status update failed after timer expiry:', fallbackError);
+    }
   }
 }
 
@@ -516,7 +530,7 @@ export function clearGameStatusListeners(reason = 'manual') {
 // ---------------------------------------------------------------------------
 export async function resetGameState() {
   const { doc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-  const { db } = await import("./config.js");
+  const { db } = await import("/core/config.js");
 
   const stateRef = doc(db, "game", "gameState");
   const defaultState = {

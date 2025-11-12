@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/SpeedBumpControl/controller/stateSync.js
 // PURPOSE: Synchronizes Speed Bump control state with Firestore teams and bump assignments.
-// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../../modules/config.js, ../../../modules/speedBump/index.js
+// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, /core/config.js, ../../../modules/speedBump/index.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -11,7 +11,7 @@
 // === END AICP COMPONENT HEADER ===
 
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from '../../../modules/config.js';
+import { db } from '/core/config.js';
 import { subscribeSpeedBumps } from '../../../modules/speedBump/index.js';
 
 export function syncTeams(controller) {

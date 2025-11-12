@@ -8,7 +8,7 @@ import { showCountdownBanner, showFlashMessage } from './gameUI.js';
 import { startGame as startGameState, pauseGame, resumeGame, releaseZones, listenForGameStatus } from './gameStateManager.js';
 import { safelyEndGameAndResetZones, resetFullGameState } from './controlActions.js';
 import { clearAllChatAndScores } from './controlStatus.js'; // ✅ NEW IMPORT
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import {
   doc, getDoc, getDocs, collection
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";

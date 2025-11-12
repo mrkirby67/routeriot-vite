@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/GameControls/GameControls.js
 // PURPOSE: 🎉 Animated Broadcast Banner
-// DEPENDS_ON: ../../modules/config.js, ../../data.js, ../../modules/emailTeams.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/gameTimer.js, ../../modules/gameStateManager.js, ../../modules/gameMaintenance.js, ../../modules/gameRulesManager.js
+// DEPENDS_ON: /core/config.js, ../../data.js, ../../modules/emailTeams.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/gameTimer.js, ../../modules/gameStateManager.js, ../../modules/gameMaintenance.js, ../../modules/gameRulesManager.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -10,7 +10,7 @@
 // ============================================================================
 // === END AICP COMPONENT HEADER ===
 
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import { allTeams } from '../../data.js';
 import { emailAllTeams } from '../../modules/emailTeams.js';
 import {
@@ -34,7 +34,7 @@ import {
 import { clearAllCollectionsAndReset } from '../../modules/gameRulesManager.js';
 import { saveRules, loadRules } from '../../services/gameRulesManager.js';
 import { getGameStatus, setGameStatus, listenToGameStateUpdates } from '../../features/game-state/gameStateController.js';
-import { showFlashMessage } from '../../ui/gameNotifications.js';
+import { notify } from '/core/eventBus.js';
 
 
 import styles from './GameControls.module.css';
@@ -435,7 +435,7 @@ export function initializeGameControlsLogic() {
     const currentStatus = isGameActive ? 'active' : await getGameStatus().catch(() => 'idle');
     if (currentStatus === 'active') {
       event?.preventDefault?.();
-      showFlashMessage('Game already in progress!');
+      notify({ kind: 'info', text: 'Game already in progress!' });
       applyStatus('active');
       return;
     }
@@ -444,10 +444,10 @@ export function initializeGameControlsLogic() {
     try {
       await setGameStatus('active');
       applyStatus('active');
-      showFlashMessage('Game start requested.');
+      notify({ kind: 'info', text: 'Game start requested.' });
     } catch (err) {
       console.error('❌ Failed to set game status to active:', err);
-      showFlashMessage('Unable to update game status.');
+      notify({ kind: 'info', text: 'Unable to update game status.' });
       applyStatus(currentStatus);
     }
   });
@@ -456,7 +456,7 @@ export function initializeGameControlsLogic() {
     const status = isGameActive ? 'active' : await getGameStatus().catch(() => 'idle');
     if (status !== 'active' && status !== 'paused') {
       event?.preventDefault?.();
-      showFlashMessage('No active game found.');
+      notify({ kind: 'info', text: 'No active game found.' });
       applyStatus(status);
       return;
     }
@@ -465,12 +465,12 @@ export function initializeGameControlsLogic() {
     try {
       await setGameStatus('ended');
       applyStatus('ended');
-      showFlashMessage('Game end requested.');
+      notify({ kind: 'info', text: 'Game end requested.' });
       clearCountdownTimer();
       await announceTopThree();
     } catch (err) {
       console.error('❌ Failed to end game:', err);
-      showFlashMessage('Unable to update game status.');
+      notify({ kind: 'info', text: 'Unable to update game status.' });
       applyStatus(status);
     }
   });

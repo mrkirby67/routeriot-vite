@@ -3,7 +3,7 @@
 // PURPOSE: Lightweight Firestore listener for player-to-player messages
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   onSnapshot,

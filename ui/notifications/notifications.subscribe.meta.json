@@ -1,0 +1,7 @@
+{
+  "layer": "ui",
+  "name": "notifications.subscribe",
+  "depends_on": [],
+  "description": "TODO",
+  "phase": "draft"
+}

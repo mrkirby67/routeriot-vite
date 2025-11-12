@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: services/gameRulesManager.js
 // PURPOSE: Persists game rule settings to Firestore and reloads them for control clients.
-// DEPENDS_ON: ../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
 // USED_BY: components/GameControls/GameControls.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -14,7 +14,7 @@
 // PATCH: gameRulesManager.js — Persistent Game Rules
 // ============================================================================
 
-import { db } from '../modules/config.js';
+import { db } from '/core/config.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const rulesRef = doc(db, 'config', 'gameRules');

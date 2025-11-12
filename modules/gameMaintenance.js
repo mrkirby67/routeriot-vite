@@ -4,7 +4,7 @@
 // This runs from Control only — never from player pages.
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import {
   writeBatch,
   getDocs,

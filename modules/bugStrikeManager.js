@@ -4,7 +4,7 @@
 // AUTHOR: Route Riot Dev (James + ChatGPT 2025)
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import {
   doc,
   getDoc,

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fastest Finger · Player</title>
+    <link rel="stylesheet" href="./ff.css" />
+  </head>
+  <body>
+    <main class="ff-shell">
+      <section class="panel" id="registrationPanel">
+        <h1>Fastest Finger · Player Station</h1>
+        <p class="subtle">
+          Register once, then wait for your teacher to start the round. Buzz only
+          when the screen says GO!
+        </p>
+
+        <form id="playerForm" class="grid two-col">
+          <label>
+            Game ID
+            <input
+              type="text"
+              name="gameId"
+              id="playerGameId"
+              required
+              placeholder="e.g. history-period-3"
+            />
+          </label>
+          <label>
+            First Name
+            <input type="text" name="firstName" required />
+          </label>
+          <label>
+            Last Name
+            <input type="text" name="lastName" required />
+          </label>
+          <label>
+            Nickname (shown to class)
+            <input type="text" name="nickname" maxlength="16" required />
+          </label>
+          <label class="wide">
+            Victory Chant
+            <textarea
+              name="victoryChant"
+              rows="2"
+              maxlength="80"
+              placeholder="e.g. 'Science Squad for the win!'"
+              required
+            ></textarea>
+          </label>
+          <button type="submit" class="primary stretch">Save &amp; Ready</button>
+        </form>
+      </section>
+
+      <section class="panel hidden" id="playerStatusPanel">
+        <header class="section-head">
+          <div>
+            <p class="eyebrow">Nickname</p>
+            <h2 id="playerNickname">—</h2>
+          </div>
+          <div>
+            <p class="eyebrow">Score</p>
+            <strong id="playerScore">0</strong>
+          </div>
+        </header>
+        <p class="status-text" id="phaseMessage">Waiting for the host…</p>
+        <div class="timer-board">
+          <div>
+            <p class="eyebrow">Countdown</p>
+            <strong id="playerCountdown">—</strong>
+          </div>
+          <div>
+            <p class="eyebrow">Round Window</p>
+            <strong id="playerWindow">—</strong>
+          </div>
+        </div>
+        <button id="buzzButton" class="primary buzz" disabled>
+          Buzz In!
+        </button>
+        <p class="status-text" id="buzzStatus" role="status"></p>
+      </section>
+
+      <section class="panel hidden" id="eliminatedPanel">
+        <h2>You have been eliminated</h2>
+        <p class="subtle">You can continue to watch the game.</p>
+      </section>
+
+      <section class="panel hidden" id="victoryPanel">
+        <p class="eyebrow">Round Result</p>
+        <h3 id="victoryHeadline">Who will win?</h3>
+        <p id="victoryChant" class="chant"></p>
+      </section>
+
+      <section class="panel hidden" id="resultsPanel">
+        <p class="eyebrow">Round Results</p>
+        <table class="table compact" id="playerResultsTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nickname</th>
+              <th>Reaction (ms)</th>
+            </tr>
+          </thead>
+          <tbody id="playerResultsBody">
+            <tr>
+              <td colspan="3" class="muted">No attempts yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script type="module" src="/ff/ff_player.js?v=FF_BUILD_1"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) =>
+          regs.forEach((reg) => reg.unregister())
+        );
+        caches?.keys()?.then((keys) => keys.forEach((k) => caches.delete(k)));
+      }
+    </script>
+  </body>
+</html>

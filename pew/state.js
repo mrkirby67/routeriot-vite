@@ -3,7 +3,7 @@
 // Strictly scoped to the gameState_pew/current document.
 // ============================================================================
 
-import { db } from '../modules/config.js';
+import { db } from '/core/config.js';
 import {
   doc,
   getDoc,

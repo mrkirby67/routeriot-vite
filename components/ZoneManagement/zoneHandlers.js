@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/ZoneManagement/zoneHandlers.js
 // PURPOSE: 🔍 MANAGE BUTTON (toggle zone details)
-// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/scoreboardManager.js, ../../data.js
+// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/scoreboardManager.js, ../../data.js
 // USED_BY: components/ZoneManagement/ZoneManagement.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -10,7 +10,7 @@
 // ============================================================================
 // === END AICP COMPONENT HEADER ===
 
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import {
   collection,
   getDocs,

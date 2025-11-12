@@ -3,7 +3,7 @@
 // PURPOSE: Inline Challenge + Question handling logic for player zones
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import {
   doc,
   getDoc,

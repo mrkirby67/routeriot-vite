@@ -4,7 +4,7 @@
 // Includes safer batch reset, broadcast-ready Top 3, and improved logs
 // ============================================================================
 
-import { db } from './config.js';
+import { db } from '/core/config.js';
 import { allTeams } from '../data.js';
 import {
   doc,

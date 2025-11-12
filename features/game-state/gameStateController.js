@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: features/game-state/gameStateController.js
 // PURPOSE: Provides helpers to read, write, and observe the Firestore game state.
-// DEPENDS_ON: ../../modules/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
+// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
 // USED_BY: components/GameControls/GameControls.js
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -14,7 +14,7 @@
 // PATCH: gameStateController.js — Game State Helpers
 // ============================================================================
 
-import { db } from '../../modules/config.js';
+import { db } from '/core/config.js';
 import { doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const gameStateRef = doc(db, 'game', 'gameState');

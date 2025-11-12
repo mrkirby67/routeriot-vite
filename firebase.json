@@ -7,15 +7,18 @@
       "**/node_modules/**"
     ],
     "cleanUrls": true,
-    "headers": [
+    "rewrites": [
+      {
+        "source": "/ff/player",
+        "destination": "/ff/ff_player.html"
+      },
+      {
+        "source": "/ff/control",
+        "destination": "/ff/ff_control.html"
+      },
       {
         "source": "**",
-        "headers": [
-          {
-            "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://maps.googleapis.com https://www.gstatic.com; img-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://placehold.co data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; object-src 'none'"
-          }
-        ]
+        "destination": "/index.html"
       }
     ]
   }
