@@ -1,5 +1,6 @@
 # Secret environment variables
 .env
+core/runtime-config.js
 # Logs
 logs
 *.log

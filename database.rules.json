@@ -5,21 +5,21 @@
         "rounds": {
           "$roundId": {
             "winner": {
-              ".read": true,
+              ".read": "auth != null",
               ".write": "auth != null"
             },
             "attempts": {
               "$uid": {
-                ".read": true,
+                ".read": "auth != null",
                 ".write": "auth != null && auth.uid === $uid && !data.exists()"
               }
             },
-            ".read": true,
+            ".read": "auth != null",
             ".write": "auth != null"
           }
         },
         "state": {
-          ".read": true,
+          ".read": "auth != null",
           ".write": "auth != null"
         }
       }

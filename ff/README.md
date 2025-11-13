@@ -21,3 +21,8 @@ Students join using `/ff/player`, and the teacher runs the round from `/ff/contr
 Fastest Finger uses its own data paths:
 
 ### Firestore
+
+## Firebase Configuration (FF only)
+- Copy `core/runtime-config.sample.js` to `core/runtime-config.js`.
+- Fill in your Firebase project values (apiKey, authDomain, etc.). Keep this file out of git; `.gitignore` already skips it.
+- The runtime config script is included in every FF page (and the broader Route Riot app) to avoid hardcoding keys in the repo.

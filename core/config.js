@@ -19,15 +19,34 @@ function getEnv(key, fallback) {
 }
 
 // ---------------------------------------------------------------------------
-// 🔑 Keys with fallback values (Firebase & Maps)
+// 🔑 Keys pulled from runtime config or Vite env
 // ---------------------------------------------------------------------------
-const FALLBACK_FIREBASE_KEY = "AIzaSyCBiN5dNijJejhmIKTRE1-vxpICKtQBewI";
-const FALLBACK_MAPS_KEY = "AIzaSyDxpd_n3RY7M6hEqMh3BAZLAgzPTTfUQXc";
+const runtimeFirebase =
+  typeof window !== "undefined" ? window.__ROUTER_RIOT_FIREBASE_CONFIG__ : null;
 
-export const FIREBASE_API_KEY = getEnv("VITE_FIREBASE_API_KEY", FALLBACK_FIREBASE_KEY);
+function preferRuntime(key, fallbackKey) {
+  if (runtimeFirebase && runtimeFirebase[key]) {
+    return runtimeFirebase[key];
+  }
+  if (typeof window !== "undefined" && window[fallbackKey]) {
+    return window[fallbackKey];
+  }
+  return undefined;
+}
+
+export const FIREBASE_API_KEY =
+  preferRuntime("apiKey", "__VITE_FIREBASE_API_KEY") ||
+  getEnv("VITE_FIREBASE_API_KEY", "");
+
+if (!FIREBASE_API_KEY) {
+  throw new Error(
+    "Firebase API key missing. Define window.__ROUTER_RIOT_FIREBASE_CONFIG__ or VITE_FIREBASE_API_KEY."
+  );
+}
+
 export const GOOGLE_MAPS_API_KEY =
-  getEnv("VITE_GOOGLE_MAPS_API_KEY", FALLBACK_MAPS_KEY) ||
-  (typeof window !== "undefined" ? window.__VITE_GOOGLE_MAPS_API_KEY : "");
+  preferRuntime("mapsApiKey", "__VITE_GOOGLE_MAPS_API_KEY") ||
+  getEnv("VITE_GOOGLE_MAPS_API_KEY", "");
 
 if (!GOOGLE_MAPS_API_KEY) {
   console.warn("⚠️ Google Maps API key missing – set VITE_GOOGLE_MAPS_API_KEY or inject window.__VITE_GOOGLE_MAPS_API_KEY.");
@@ -38,12 +57,12 @@ if (!GOOGLE_MAPS_API_KEY) {
 // ---------------------------------------------------------------------------
 export const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,
-  authDomain: "routeriotgame.firebaseapp.com",
-  projectId: "routeriotgame",
-  storageBucket: "routeriotgame.appspot.com",
-  messagingSenderId: "872258112513",
-  appId: "1:872258112513:web:3b1d9694a1c78f04f8c400",
-  measurementId: "G-5MBCFDB983"
+  authDomain: runtimeFirebase?.authDomain || "routeriotgame.firebaseapp.com",
+  projectId: runtimeFirebase?.projectId || "routeriotgame",
+  storageBucket: runtimeFirebase?.storageBucket || "routeriotgame.appspot.com",
+  messagingSenderId: runtimeFirebase?.messagingSenderId || "872258112513",
+  appId: runtimeFirebase?.appId || "1:872258112513:web:3b1d9694a1c78f04f8c400",
+  measurementId: runtimeFirebase?.measurementId || "G-5MBCFDB983"
 };
 
 // ---------------------------------------------------------------------------
