@@ -8,8 +8,7 @@ import {
   doc,
   getDoc,
   setDoc,
-  serverTimestamp,
-  runTransaction
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { validateAnswer } from './zonesUtils.js';
@@ -21,6 +20,7 @@ import {
   startZoneCooldown,
   getZoneCooldownRemaining
 } from './zoneManager.js';
+import { publish } from '/core/eventBus.js';
 
 // ---------------------------------------------------------------------------
 // 🧭 Context State
@@ -208,17 +208,11 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
         },
         { merge: true }
       );
-      
-      // Atomic update for score and zone control
-      const scoreRef = doc(db, 'scores', currentTeamName);
-      await runTransaction(db, async (transaction) => {
-        const scoreDoc = await transaction.get(scoreRef);
-        const currentScore = scoreDoc.exists() ? scoreDoc.data().score || 0 : 0;
-        transaction.set(scoreRef, { 
-            score: currentScore + points, 
-            zonesControlled: zoneId,
-            updatedAt: serverTimestamp() 
-        }, { merge: true });
+
+      publish('zone:capture', {
+        teamName: currentTeamName,
+        zoneId,
+        points
       });
 
       await startZoneCooldown(zoneId, cooldownMinutes);

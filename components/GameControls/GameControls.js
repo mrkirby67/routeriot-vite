@@ -34,7 +34,8 @@ import {
 import { clearAllCollectionsAndReset } from '../../modules/gameRulesManager.js';
 import { saveRules, loadRules } from '../../services/gameRulesManager.js';
 import { getGameStatus, setGameStatus, listenToGameStateUpdates } from '../../features/game-state/gameStateController.js';
-import { notify } from '/core/eventBus.js';
+import { announceTopThree } from '../../modules/scoreboardManager.js';
+import { notify, subscribe } from '/core/eventBus.js';
 
 
 import styles from './GameControls.module.css';
@@ -212,24 +213,28 @@ function launchConfetti() {
   }
 }
 
-// ============================================================================
-// 🏆 Announce Top 3 Finishers
-// ============================================================================
-async function announceTopThree() {
-  const scoresSnap = await getDocs(collection(db, 'scores'));
-  const teams = [];
-  scoresSnap.forEach(docSnap => {
-    const d = docSnap.data();
-    teams.push({ name: docSnap.id, score: d.score || 0 });
-  });
+function showResultsCountdown() {
+    let remaining = 10;
+    showAnimatedBanner('GAME OVER', '#c62828');
 
-  if (teams.length === 0) {
+    const countdownInterval = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+            showAnimatedBanner(`Showing results in ${remaining}...`, '#c62828');
+        } else {
+            clearInterval(countdownInterval);
+            announceTopThree({ ui: true, chat: true });
+        }
+    }, 1000);
+}
+
+function renderTopThreeBanner(standings = []) {
+  if (!Array.isArray(standings) || standings.length === 0) {
     showAnimatedBanner('No teams found — no results to announce.', '#555');
     return;
   }
 
-  teams.sort((a, b) => b.score - a.score);
-  const podium = teams.slice(0, 3);
+  const podium = standings.slice(0, 3);
   const max = podium[0]?.score || 0;
 
   let message = '🏁 FINAL STANDINGS 🏁\n';
@@ -241,37 +246,16 @@ async function announceTopThree() {
     podium[1].score === podium[2].score
   ) {
     message += '🤝 It’s a 3-way tie for first place!\n';
-    podium.forEach(t => (message += `🏅 ${t.name} — ${t.score} pts\n`));
+    podium.forEach((t) => (message += `🏅 ${t.team} — ${t.score} pts\n`));
   } else {
     const medals = ['🥇', '🥈', '🥉'];
-    podium.forEach((t, i) => (message += `${medals[i] || '🏅'} ${t.name} — ${t.score} pts\n`));
+    podium.forEach((t, i) => {
+      message += `${medals[i] || '🏅'} ${t.team} — ${t.score} pts\n`;
+    });
   }
 
   showAnimatedBanner(message, '#6a1b9a');
   launchConfetti();
-
-  await ChatServiceV2.send({
-    fromTeam: 'Game Master',
-    toTeam: 'ALL',
-    text: message,
-    kind: 'system',
-    meta: { source: 'game-controls:final-standings' }
-  });
-}
-
-function showResultsCountdown() {
-    let remaining = 10;
-    showAnimatedBanner('GAME OVER', '#c62828');
-
-    const countdownInterval = setInterval(() => {
-        remaining--;
-        if (remaining > 0) {
-            showAnimatedBanner(`Showing results in ${remaining}...`, '#c62828');
-        } else {
-            clearInterval(countdownInterval);
-            announceTopThree();
-        }
-    }, 1000);
 }
 
 // ============================================================================
@@ -330,6 +314,7 @@ let isGameActive = false;
 let lastAppliedStatus = 'idle';
 let detachGameStatus = null;
 let detachLegacyStatus = null;
+let detachTopThreeFeed = null;
 
 export function initializeGameControlsLogic() {
   const startBtn = document.getElementById('start-btn') || document.getElementById('start-game');
@@ -406,6 +391,11 @@ export function initializeGameControlsLogic() {
     applyStatus(state?.status ?? 'idle');
   });
 
+  detachTopThreeFeed?.();
+  detachTopThreeFeed = subscribe('ui:topThree', (standings) => {
+    renderTopThreeBanner(standings);
+  });
+
   if (rulesBtn && rulesSection && rulesText) {
     rulesBtn.addEventListener('click', async () => {
       const open = rulesSection.style.display !== 'none';
@@ -467,7 +457,7 @@ export function initializeGameControlsLogic() {
       applyStatus('ended');
       notify({ kind: 'info', text: 'Game end requested.' });
       clearCountdownTimer();
-      await announceTopThree();
+      await announceTopThree({ ui: true, chat: true });
     } catch (err) {
       console.error('❌ Failed to end game:', err);
       notify({ kind: 'info', text: 'Unable to update game status.' });
@@ -525,7 +515,14 @@ export function initializeGameControlsLogic() {
     }
   });
 
-
+  return () => {
+    detachGameStatus?.();
+    detachGameStatus = null;
+    detachLegacyStatus?.();
+    detachLegacyStatus = null;
+    detachTopThreeFeed?.();
+    detachTopThreeFeed = null;
+  };
 }
 
 // === AICP COMPONENT FOOTER ===

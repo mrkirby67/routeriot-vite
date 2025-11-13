@@ -28,6 +28,10 @@ export function emit(eventName, payload) {
 export const subscribe = on;
 export const unsubscribe = off;
 
+export function publish(eventName, payload) {
+  emit(eventName, payload);
+}
+
 // Convenience helper for notifications
 export function notify({ kind = 'info', text = '', timeout = 3000 } = {}) {
   emit('ui:notify', { kind, text, timeout });

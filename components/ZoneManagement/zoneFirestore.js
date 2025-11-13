@@ -2,7 +2,7 @@
 // ============================================================================
 // FILE: components/ZoneManagement/zoneFirestore.js
 // PURPOSE: 📣 GENERIC BROADCAST EVENT
-// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/zonesUtils.js, ../../modules/scoreboardManager.js, ../../modules/data.js
+// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, ../../modules/zonesUtils.js, ../../modules/data.js
 // USED_BY: none
 // AUTHOR: James Kirby / Route Riot Project
 // CREATED: 2025-10-30
@@ -20,8 +20,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { flashPlayerLocation } from '../../modules/zonesUtils.js';
-import { updateControlledZones } from '../../modules/scoreboardManager.js';
-import { allTeams } from '../../modules/data.js';
+import { allTeams } from '../../data.js';
 
 /* ---------------------------------------------------------------------------
  * 📣 GENERIC BROADCAST EVENT
@@ -83,10 +82,7 @@ export async function broadcastWin(teamName, zoneName) {
     // 1️⃣ Announce victory
     await broadcastEvent(cleanTeam, `🏆 has captured ${zoneName}!`);
 
-    // 2️⃣ Update scoreboard
-    await updateControlledZones(cleanTeam, zoneName);
-
-    // 3️⃣ Update zone ownership
+    // 2️⃣ Update zone ownership
     await setDoc(
       doc(db, "zones", zoneName),
       {

@@ -17,4 +17,6 @@ window.__ROUTER_RIOT_FIREBASE_CONFIG__ = {
 window.__FF_FIREBASE_CONFIG__ = window.__ROUTER_RIOT_FIREBASE_CONFIG__;
 
 // Optional: expose Maps key if components rely on it.
-window.__VITE_GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
+window.__ROUTER_RIOT_GOOGLE_MAPS_KEY__ = 'YOUR_GOOGLE_MAPS_API_KEY';
+window.__VITE_GOOGLE_MAPS_API_KEY = window.__ROUTER_RIOT_GOOGLE_MAPS_KEY__;
+window.__ROUTER_RIOT_FIREBASE_CONFIG__.mapsApiKey = window.__ROUTER_RIOT_GOOGLE_MAPS_KEY__;

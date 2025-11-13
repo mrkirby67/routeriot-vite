@@ -19,6 +19,7 @@ import { db } from '/core/config.js';
 import { showFlashMessage } from './gameUI.js';
 import { clearAllTeamSurprises } from './teamSurpriseManager.js';
 import { allTeams } from '../data.js';
+import { refreshScoreboard, resetAllScores } from './scoreboardManager.js';
 
 const GAME_STATE_REF = doc(db, "game", "gameState");
 
@@ -29,12 +30,8 @@ export async function clearAllScores(autoTriggered = false, clearTable = true) {
   try {
     console.group("🧹 CLEAR SCOREBOARD START");
 
-    // 1️⃣ Delete all documents in "scores"
-    const scoresSnap = await getDocs(collection(db, "scores"));
-    const batch = writeBatch(db);
-    scoresSnap.forEach((s) => batch.delete(s.ref));
-    await batch.commit();
-    console.log(`🗑️ ${scoresSnap.size} score docs deleted`);
+    // 1️⃣ Reset scoreboard entries via unified manager
+    await resetAllScores();
 
     // 2️⃣ Fully reset each teamStatus document
     const teamStatusSnap = await getDocs(collection(db, "teamStatus"));
@@ -74,8 +71,7 @@ export async function clearAllScores(autoTriggered = false, clearTable = true) {
     }
 
     // 5️⃣ Trigger client UI refresh globally
-    window.dispatchEvent(new CustomEvent('scoreboardCleared'));
-    window.dispatchEvent(new CustomEvent('forceScoreboardRefresh'));
+    refreshScoreboard();
 
     showFlashMessage('🧹 Scoreboard & locations cleared.', '#2e7d32', 2000);
     console.log(`✅ Scoreboard cleared (${autoTriggered ? 'auto' : 'manual'})`);

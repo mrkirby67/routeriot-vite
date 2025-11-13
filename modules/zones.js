@@ -19,7 +19,6 @@ import { waitForElement, flashPlayerLocation, playRaceStartSequence, calculateDi
 import { generateMiniMap } from './zonesMap.js';
 import { displayZoneQuestions, setTeamContext } from './zonesChallenge.js';
 import { broadcastChallenge } from './zonesFirestore.js';
-import { updateControlledZones } from './scoreboardManager.js';
 import { startConfetti, stopConfetti } from './playerUI.js';
 import { allTeams } from '../data.js';
 
@@ -156,9 +155,6 @@ export async function initializeZones(teamName) {
 
               await broadcastChallenge(currentTeamName, zoneData.name);
               displayZoneQuestions(zoneId, zoneData.name);
-
-              await updateControlledZones(currentTeamName, zoneData.name);
-              console.log(`🏆 Zone updated → ${currentTeamName} now controls ${zoneData.name}`);
             } else {
               const kmAway = Math.max(0, dist - targetRadiusKm).toFixed(3);
               alert(`📍 Getting warmer... ${kmAway} km away.`);

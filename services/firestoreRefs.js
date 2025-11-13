@@ -23,12 +23,16 @@ export const refs = {
   speedBumpAssign:  () => collection(db, 'speedBumpAssignments'),
   teams:            () => collection(db, 'teams'),
   zones:            () => collection(db, 'zones'),
+  scores:           () => collection(db, 'scores'),
 };
 /* Reference to the main game state document. */
 export const gameStateRef = doc(db, "gameState", "currentState");
 
 /* Reference to the 'teams' collection. */
 export const teamsCollectionRef = collection(db, "teams");
+
+/* Reference to the 'scores' collection. */
+export const scoresCollectionRef = collection(db, "scores");
 
 /*
  * Get a reference to a specific team document.

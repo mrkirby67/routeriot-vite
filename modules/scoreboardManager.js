@@ -1,11 +1,12 @@
 // ============================================================================
-// FILE: /modules/scoreboardManager.js (UPDATED)
-// PURPOSE: Manage all score and zone updates for the scoreboard
-// Includes safer batch reset, broadcast-ready Top 3, and improved logs
+// FILE: /modules/scoreboardManager.js (EVENT-DRIVEN)
+// PURPOSE: Manage all score and zone updates for the scoreboard + publish state
 // ============================================================================
 
+import { publish, subscribe } from '/core/eventBus.js';
 import { db } from '/core/config.js';
 import { allTeams } from '../data.js';
+import { scoresCollectionRef } from '../services/firestoreRefs.js';
 import {
   doc,
   setDoc,
@@ -13,25 +14,189 @@ import {
   runTransaction,
   collection,
   getDocs,
-  writeBatch,
   serverTimestamp,
   onSnapshot,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import ChatServiceV2 from '../services/ChatServiceV2.js';
 
+// ---------------------------------------------------------------------------
+// 📊 Internal state + caches
+// ---------------------------------------------------------------------------
+const teamStatusCollection = collection(db, 'teamStatus');
+const activeTeamsRef = doc(db, 'game', 'activeTeams');
+const zoneCaptureLogTag = '[scoreboardManager] zone:capture';
+const topThreeUiEvent = 'ui:topThree';
+
+let scoreboardState = [];
+let scoresCache = new Map(); // team -> { score, zonesControlled, updatedAt }
+let teamStatusCache = new Map(); // team -> { lastKnownLocation, timestamp }
+let activeTeamsList = [];
+let unsubscribeScores = null;
+let unsubscribeTeamStatus = null;
+let unsubscribeActiveTeams = null;
+let listenersInitialized = false;
+
+function normalizeTeamName(name = '') {
+  const trimmed = typeof name === 'string' ? name.trim() : '';
+  if (!trimmed) return '';
+  const team = allTeams.find((t) => t.name === trimmed);
+  return team ? team.name : trimmed;
+}
+
+function toNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function dedupe(list = []) {
+  const seen = new Set();
+  const ordered = [];
+  list.forEach((item) => {
+    const normalized = normalizeTeamName(item);
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    ordered.push(normalized);
+  });
+  return ordered;
+}
+
+function ensureScoreboardListeners() {
+  if (listenersInitialized) return;
+  listenersInitialized = true;
+
+  unsubscribeScores = onSnapshot(
+    scoresCollectionRef,
+    (snapshot) => {
+      const next = new Map();
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() || {};
+        next.set(docSnap.id, {
+          score: toNumber(data.score, 0),
+          zonesControlled: data.zonesControlled || '—',
+          updatedAt: data.updatedAt || null,
+        });
+      });
+      scoresCache = next;
+      rebuildScoreboardState();
+    },
+    (err) => console.error('❌ scores snapshot failed:', err)
+  );
+
+  unsubscribeTeamStatus = onSnapshot(
+    teamStatusCollection,
+    (snapshot) => {
+      const next = new Map();
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() || {};
+        next.set(docSnap.id, {
+          lastKnownLocation: data.lastKnownLocation || '',
+          timestamp: data.timestamp || null,
+        });
+      });
+      teamStatusCache = next;
+      rebuildScoreboardState();
+    },
+    (err) => console.error('❌ teamStatus snapshot failed:', err)
+  );
+
+  unsubscribeActiveTeams = onSnapshot(
+    activeTeamsRef,
+    (docSnap) => {
+      const data = docSnap.exists() ? docSnap.data() : null;
+      const list = Array.isArray(data?.list) ? data.list : [];
+      activeTeamsList = dedupe(list);
+      rebuildScoreboardState();
+    },
+    (err) => console.error('❌ activeTeams snapshot failed:', err)
+  );
+}
+
+function rebuildScoreboardState() {
+  const hasScores = scoresCache.size > 0;
+  const hasStatus = teamStatusCache.size > 0;
+
+  if (!activeTeamsList.length && !hasScores && !hasStatus) {
+    scoreboardState = [];
+    refreshScoreboard();
+    return;
+  }
+
+  const preferredOrder = dedupe(activeTeamsList);
+  const cacheNames = dedupe([
+    ...scoresCache.keys(),
+    ...teamStatusCache.keys(),
+  ]);
+
+  let orderedNames;
+  if (preferredOrder.length) {
+    orderedNames = [...preferredOrder];
+    cacheNames.forEach((name) => {
+      if (!orderedNames.includes(name)) orderedNames.push(name);
+    });
+  } else if (hasScores) {
+    orderedNames = [...scoresCache.entries()]
+      .sort((a, b) => (b[1].score ?? 0) - (a[1].score ?? 0))
+      .map(([name]) => name);
+    cacheNames.forEach((name) => {
+      if (!orderedNames.includes(name)) orderedNames.push(name);
+    });
+  } else {
+    orderedNames = cacheNames;
+  }
+
+  scoreboardState = orderedNames.map(buildTeamEntry);
+  refreshScoreboard();
+}
+
+function buildTeamEntry(teamName) {
+  const key = normalizeTeamName(teamName) || teamName || 'Unknown Team';
+  const scoreInfo = scoresCache.get(key) || {};
+  const statusInfo = teamStatusCache.get(key) || {};
+
+  return {
+    teamName: key,
+    score: scoreInfo.score ?? 0,
+    zonesControlled: scoreInfo.zonesControlled || '—',
+    lastKnownLocation: statusInfo.lastKnownLocation || '',
+    timestamp: statusInfo.timestamp || scoreInfo.updatedAt || null,
+  };
+}
+
+export function getScoreboardState() {
+  return scoreboardState.map((entry) => ({ ...entry }));
+}
+
+export function refreshScoreboard() {
+  publish('scoreboard:update', getScoreboardState());
+}
+
+ensureScoreboardListeners();
+refreshScoreboard();
+subscribe('zone:capture', (payload) => {
+  handleZoneCapture(payload);
+});
+async function handleZoneCapture({ teamName, zoneId, points } = {}) {
+  const cleanTeam = normalizeTeamName(teamName);
+  if (!cleanTeam || !zoneId) return;
+
+  try {
+    if (Number.isFinite(points)) {
+      await addPointsToTeam(cleanTeam, points);
+    }
+    await updateControlledZones(cleanTeam, zoneId);
+  } catch (err) {
+    console.error(`${zoneCaptureLogTag} failed:`, err);
+  }
+}
+
 /* ---------------------------------------------------------------------------
  * 🧮 ADD POINTS TO TEAM (Transaction Safe + Standardized)
  * ------------------------------------------------------------------------ */
-/*
- * Adds or subtracts a given number of points to a team's score.
- * @param {string} teamName - The team's standardized name.
- * @param {number} points - Positive or negative integer.
- */
 export async function addPointsToTeam(teamName, points) {
   if (!teamName || typeof points !== 'number') return;
 
-  const team = allTeams.find(t => t.name === teamName);
-  const cleanName = team ? team.name : teamName;
+  const cleanName = normalizeTeamName(teamName);
+  if (!cleanName) return;
   const scoreRef = doc(db, 'scores', cleanName);
 
   try {
@@ -39,7 +204,11 @@ export async function addPointsToTeam(teamName, points) {
       const docSnap = await tx.get(scoreRef);
       const prevScore = docSnap.exists() ? (docSnap.data().score || 0) : 0;
       const newScore = prevScore + points;
-      tx.set(scoreRef, { score: newScore, updatedAt: serverTimestamp() }, { merge: true });
+      tx.set(
+        scoreRef,
+        { score: newScore, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
     });
     console.log(`✅ Score updated: ${cleanName} → ${points >= 0 ? '+' : ''}${points}`);
   } catch (err) {
@@ -48,25 +217,45 @@ export async function addPointsToTeam(teamName, points) {
 }
 
 /* ---------------------------------------------------------------------------
+ * 🔢 DIRECT SCORE SETTER (manual overrides)
+ * ------------------------------------------------------------------------ */
+export async function setTeamScore(teamName, score) {
+  const cleanName = normalizeTeamName(teamName);
+  if (!cleanName || !Number.isFinite(Number(score))) return;
+
+  try {
+    await setDoc(
+      doc(db, 'scores', cleanName),
+      {
+        score: toNumber(score, 0),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error(`❌ Failed to set score for ${cleanName}:`, err);
+  }
+}
+
+/* ---------------------------------------------------------------------------
  * 🧭 UPDATE CONTROLLED ZONES (Standardized)
  * ------------------------------------------------------------------------ */
-/*
- * Updates the 'zonesControlled' field for a team in the scoreboard.
- * @param {string} teamName - The team's standardized name.
- * @param {string} zoneName - The name of the captured zone.
- */
 export async function updateControlledZones(teamName, zoneName) {
   if (!teamName || !zoneName) return;
 
-  const team = allTeams.find(t => t.name === teamName);
-  const cleanName = team ? team.name : teamName;
+  const cleanName = normalizeTeamName(teamName);
+  if (!cleanName) return;
   const scoreRef = doc(db, 'scores', cleanName);
 
   try {
-    await setDoc(scoreRef, {
-      zonesControlled: zoneName,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    await setDoc(
+      scoreRef,
+      {
+        zonesControlled: zoneName,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
 
     console.log(`📍 ${cleanName} now controls zone: ${zoneName}`);
   } catch (err) {
@@ -77,111 +266,76 @@ export async function updateControlledZones(teamName, zoneName) {
 /* ---------------------------------------------------------------------------
  * 🧹 RESET ALL SCORES & ZONES (Batch Operation)
  * ------------------------------------------------------------------------ */
-/*
- * Resets all team scores and clears zone control data.
- * Called by Control panel → “Clear All” button.
- */
 export async function resetScores() {
+  console.warn(
+    '⚠️ resetScores() is deprecated. Use resetAllScores() for unified clearing.'
+  );
+  await resetAllScores();
+}
+
+export async function resetAllScores() {
   try {
-    console.log('🧹 Resetting all team scores and zone ownership...');
-    const batch = writeBatch(db);
+    const standings = getScoreboardState();
+    if (!standings.length) {
+      console.log('ℹ️ No scores to reset.');
+      return;
+    }
 
-    // 1️⃣ Reset all team scores
-    const scoreSnaps = await getDocs(collection(db, 'scores'));
-    scoreSnaps.forEach(snap => {
-      batch.set(doc(db, 'scores', snap.id), {
-        score: 0,
-        zonesControlled: '—',
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    });
+    for (const entry of standings) {
+      const teamName = entry.teamName;
+      if (!teamName) continue;
+      await setTeamScore(teamName, 0);
+      await updateControlledZones(teamName, '—');
+    }
 
-    // 2️⃣ Reset all zones
-    const zoneSnaps = await getDocs(collection(db, 'zones'));
-    zoneSnaps.forEach(zSnap => {
-      batch.set(doc(db, 'zones', zSnap.id), {
-        status: 'Available',
-        controllingTeam: null,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    });
-
-    await batch.commit();
-    console.log('✅ All scores and zones successfully reset.');
+    refreshScoreboard();
+    console.log('✅ All scoreboard entries reset via resetAllScores().');
   } catch (err) {
-    console.error('❌ Failed to reset scores/zones:', err);
+    console.error('❌ resetAllScores failed:', err);
   }
 }
 
 /* ---------------------------------------------------------------------------
- * 🏆 INITIALIZE PLAYER SCOREBOARD (Live View)
+ * 🧾 PLAYER SCOREBOARD INITIALIZER (deprecated helper)
  * ------------------------------------------------------------------------ */
-/*
- * Realtime scoreboard listener for player dashboard.
- * Displays team names, scores, and sorts by score descending.
- */
 export function initializePlayerScoreboard() {
-  const scoreboardBody = document.getElementById('player-scoreboard-tbody');
-  if (!scoreboardBody) return;
-
-  const scoresCollection = collection(db, 'scores');
-
-  onSnapshot(scoresCollection, (snapshot) => {
-    const teams = [];
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      teams.push({
-        name: docSnap.id,
-        score: data.score || 0,
-        zonesControlled: data.zonesControlled || '—',
-      });
-    });
-
-    // Sort descending by score
-    teams.sort((a, b) => (b.score || 0) - (a.score || 0));
-
-    // Render table
-    scoreboardBody.innerHTML = '';
-    teams.forEach((t, i) => {
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${medal} ${t.name}</td>
-        <td>${t.score}</td>
-      `;
-      scoreboardBody.appendChild(row);
-    });
-  });
+  ensureScoreboardListeners();
+  return () => {};
 }
 
-/* ---------------------------------------------------------------------------
- * 🏁 BROADCAST TOP 3 FINISHERS (called when game ends)
- * ------------------------------------------------------------------------ */
-/*
- * Broadcasts the top 3 finishers to all players.
- * Adds spacing for visibility and includes celebration emojis.
- */
-export async function broadcastTopThree() {
-  try {
-    const scoresSnap = await getDocs(collection(db, 'scores'));
-    const scores = [];
-    scoresSnap.forEach(docSnap => {
-      const data = docSnap.data();
-      scores.push({ team: docSnap.id, score: data.score || 0 });
+export async function getTopThree() {
+  let standings = getScoreboardState();
+  if (!standings.length) {
+    const scoresSnap = await getDocs(scoresCollectionRef);
+    standings = [];
+    scoresSnap.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      standings.push({ teamName: docSnap.id, score: toNumber(data.score, 0) });
     });
+  }
 
-    if (scores.length === 0) {
+  if (!standings.length) return [];
+
+  return standings
+    .map((entry) => ({
+      team: entry.teamName,
+      score: toNumber(entry.score, 0),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+}
+
+export async function broadcastTopThree(standings = null) {
+  try {
+    const data = standings ?? (await getTopThree());
+    if (!data.length) {
       console.warn('⚠️ No scores found to broadcast.');
       return;
     }
 
-    // Sort descending by score
-    scores.sort((a, b) => b.score - a.score);
-    const topThree = scores.slice(0, 3);
-
     const spacer = '\n'.repeat(10);
     let message = `${spacer}🏁🏁🏁  FINAL RESULTS  🏁🏁🏁\n\n`;
-    topThree.forEach((t, i) => {
+    data.forEach((t, i) => {
       const medals = ['🥇', '🥈', '🥉'][i] || '🏅';
       message += `${medals}  ${t.team} — ${t.score} pts\n`;
     });
@@ -192,11 +346,28 @@ export async function broadcastTopThree() {
       toTeam: 'ALL',
       text: message,
       kind: 'system',
-      meta: { source: 'scoreboard:broadcastTopThree' }
+      meta: { source: 'scoreboard:broadcastTopThree' },
     });
 
     console.log('✅ Top 3 broadcast sent successfully.');
   } catch (err) {
     console.error('❌ Error broadcasting top 3:', err);
+  }
+}
+
+export async function announceTopThree(options = {}) {
+  const { ui = false, chat = false } = options || {};
+  const standings = await getTopThree();
+  if (!standings.length) {
+    console.warn('⚠️ announceTopThree skipped — no standings available.');
+    return;
+  }
+
+  if (chat) {
+    await broadcastTopThree(standings);
+  }
+
+  if (ui) {
+    publish(topThreeUiEvent, standings);
   }
 }
