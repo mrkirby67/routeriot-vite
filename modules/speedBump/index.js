@@ -50,6 +50,8 @@ export {
   applyProofSent as markProofSent
 };
 
+export { initSpeedBumpPlayer, teardownSpeedBumpPlayer } from '../speedBumpPlayer.js';
+
 export async function sendSpeedBump(attackerTeam, targetTeam, durationMs = 60_000, extraData = {}) {
   const normalizedAttacker = typeof attackerTeam === 'string' ? attackerTeam.trim() : '';
   const normalizedTarget = typeof targetTeam === 'string' ? targetTeam.trim() : '';

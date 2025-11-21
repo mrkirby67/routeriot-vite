@@ -1,9 +1,20 @@
 {
+  "file": "components/SpeedBumpControl/controller/actions.js",
+  "type": "component",
+  "exports": [
+    "assign",
+    "shuffle",
+    "activate",
+    "complete",
+    "cancel"
+  ],
+  "description": "Control-layer adapters that call Speed Bump service lifecycle actions for attacker→victim assignments.",
+  "lastUpdated": "2025-11-07T00:00:00.000Z",
+  "dependencies": [
+    "../../../services/speed-bump/speedBumpService.js"
+  ],
   "layer": "components",
   "name": "actions",
-  "depends_on": [
-    "teamSurpriseController"
-  ],
-  "description": "TODO",
+  "depends_on": [],
   "phase": "draft"
 }

@@ -1,11 +1,17 @@
 {
+  "file": "ui/overlays/speedBumpOverlay.js",
+  "type": "ui",
+  "exports": [
+    "ensureSpeedBumpOverlayListeners"
+  ],
+  "description": "Player Speed Bump overlay showing victim prompts and attacker release controls driven by assignment subscriptions.",
+  "lastUpdated": "2025-11-07T00:00:00.000Z",
+  "dependencies": [
+    "../../services/speed-bump/speedBumpService.js",
+    "../../features/team-surprise/teamSurpriseState.js"
+  ],
   "layer": "ui",
   "name": "speedBumpOverlay",
-  "depends_on": [
-    "teamSurpriseController",
-    "teamSurpriseState",
-    "baseOverlays"
-  ],
-  "description": "Player overlay for Speed Bump victims with live state, countdown, and chirp actions.",
-  "phase": "active"
+  "depends_on": [],
+  "phase": "draft"
 }

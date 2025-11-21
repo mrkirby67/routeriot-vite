@@ -1,7 +1,16 @@
 {
+  "file": "components/SpeedBumpControl/controller/stateSync.js",
+  "type": "component",
+  "exports": [
+    "syncAssignments"
+  ],
+  "description": "Helper to subscribe Speed Bump control to assignment changes via the service layer.",
+  "lastUpdated": "2025-11-07T00:00:00.000Z",
+  "dependencies": [
+    "../../../services/speed-bump/speedBumpService.js"
+  ],
   "layer": "components",
   "name": "stateSync",
   "depends_on": [],
-  "description": "TODO",
   "phase": "draft"
 }

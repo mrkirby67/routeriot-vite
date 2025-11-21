@@ -1,40 +1,22 @@
 // === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/controller/stateSync.js
-// PURPOSE: Synchronizes Speed Bump control state with Firestore teams and bump assignments.
-// DEPENDS_ON: https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js, /core/config.js, ../../../modules/speedBump/index.js
-// USED_BY: none
-// AUTHOR: James Kirby / Route Riot Project
-// CREATED: 2025-10-30
-// AICP_VERSION: 3.0
+// PURPOSE: Subscription helpers for Speed Bump assignments
+// DEPENDS_ON: ../../../services/speed-bump/speedBumpService.js
+// USED_BY: components/SpeedBumpControl (future wiring)
+// AUTHOR: Route Riot – Speed Bump Restoration
+// CREATED: 2025-11-06
+// AICP_VERSION: 3.1
 // ============================================================================
 // === END AICP COMPONENT HEADER ===
 
-import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from '/core/config.js';
-import { subscribeSpeedBumps } from '../../../modules/speedBump/index.js';
+import { subscribeToGameSpeedBumps } from '../../../services/speed-bump/speedBumpService.js';
 
-export function syncTeams(controller) {
-  const racersRef = collection(db, 'racers');
-  return onSnapshot(racersRef, snap => {
-    const teams = new Set();
-    snap.forEach(d => {
-      const t = d.data()?.team;
-      if (typeof t === 'string' && t.trim() && t.trim() !== '-') {
-        teams.add(t.trim());
-      }
-    });
-    controller.activeTeams = Array.from(teams).sort();
-    controller.renderTeamTable();
-  });
-}
-
-export function syncBumps(controller) {
-  return subscribeSpeedBumps((payload = {}) => {
-    if (typeof controller.handleSpeedBumpUpdate === 'function') {
-      controller.handleSpeedBumpUpdate(payload);
-    } else {
-      controller.renderRows();
+export function syncAssignments(controller) {
+  if (!controller || typeof controller.gameId !== 'string') return () => {};
+  return subscribeToGameSpeedBumps(controller.gameId, (assignments = []) => {
+    if (typeof controller.handleAssignmentUpdate === 'function') {
+      controller.handleAssignmentUpdate(assignments);
     }
   });
 }
@@ -43,15 +25,15 @@ export function syncBumps(controller) {
 // ai_origin: components/SpeedBumpControl/controller/stateSync.js
 // ai_role: UI Layer
 // aicp_category: component
-// aicp_version: 3.0
-// codex_phase: tier3_components_injection
+// aicp_version: 3.1
+// codex_phase: legacy_restore_phase1
 // export_bridge: services
-// exports: syncTeams, syncBumps
+// exports: syncAssignments
 // linked_files: []
-// owner: RouteRiot-AICP
-// phase: tier3_components_injection
+// owner: Route Riot-AICP
+// phase: legacy_restore_phase1
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
-// ui_dependency: features
+// ui_dependency: services
 // === END AICP COMPONENT FOOTER ===

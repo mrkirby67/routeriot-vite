@@ -7,6 +7,7 @@ import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs
 import ChatServiceV2 from "../../services/ChatServiceV2.js";
 import { db } from "/core/config.js";
 import { isTeamAttackable } from "../team-surprise/teamSurpriseController.js";
+import { canTeamBeAttacked } from '../../services/gameRulesManager.js';
 import {
   ensureBugStrikeEventListeners,
   registerBugStrikeHandler
@@ -73,6 +74,20 @@ async function performBugStrike(rawTargetTeam) {
   const attackable = await isTeamAttackable(targetTeam);
   if (!attackable) {
     throw new Error(`${targetTeam} is protected. Try again later.`);
+  }
+
+  const rule = await canTeamBeAttacked(attacker, targetTeam, 'bugstrike');
+  if (!rule.allowed) {
+    switch (rule.reason) {
+      case 'SHIELD':
+        throw new Error('This team is shielded and cannot be attacked.');
+      case 'ATTACKER_PROTECTED':
+        throw new Error('This team is currently attacking with a SpeedBump and cannot be targeted.');
+      case 'VICTIM_BUSY':
+        throw new Error('Victim is currently slowed by a SpeedBump.');
+      default:
+        throw new Error(rule.reason || 'Target cannot be attacked.');
+    }
   }
 
   if (!hasBugStrikeToken(attacker)) {

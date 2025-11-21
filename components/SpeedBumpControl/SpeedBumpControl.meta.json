@@ -1,10 +1,18 @@
 {
+  "file": "components/SpeedBumpControl/SpeedBumpControl.js",
+  "type": "component",
+  "exports": [
+    "SpeedBumpControlComponent",
+    "initializeSpeedBumpControl"
+  ],
+  "description": "Collapsible control panel for assigning Speed Bumps with attacker/victim selection, prompt display, and lifecycle actions.",
+  "lastUpdated": "2025-11-07T00:00:00.000Z",
+  "dependencies": [
+    "../../data.js",
+    "../../services/speed-bump/speedBumpService.js"
+  ],
   "layer": "components",
   "name": "SpeedBumpControl",
-  "depends_on": [
-    "speedBumpService",
-    "teamService"
-  ],
-  "description": "TODO",
+  "depends_on": [],
   "phase": "draft"
 }

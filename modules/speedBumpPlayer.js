@@ -1,38 +1,42 @@
 // ============================================================================
 // FILE: modules/speedBumpPlayer.js
-// PURPOSE: Player-side hooks for Speed Bump overlays and quick triggers.
+// PURPOSE: Player-side wiring for Speed Bump overlay subscriptions
 // ============================================================================
 
-import {
-  triggerSpeedBump,
-} from '../services/speed-bump/speedBumpService.js';
 import { ensureSpeedBumpOverlayListeners } from '../ui/overlays/speedBumpOverlay.js';
+import { triggerSpeedBump } from '../services/speed-bump/speedBumpService.js';
 
-let currentTeamId = null;
-let currentTeamDisplay = null;
+let teardownOverlay = null;
 
-export function initializeSpeedBumpPlayer(teamName) {
-  const normalizedTeam =
-    typeof teamName === 'string' && teamName.trim() ? teamName.trim().toLowerCase() : null;
-  const displayTeam = typeof teamName === 'string' && teamName.trim() ? teamName.trim() : null;
-  currentTeamId = normalizedTeam;
-  currentTeamDisplay = displayTeam;
+function resolveTeamName(input) {
+  if (typeof input === 'string' && input.trim()) return input.trim();
+  if (input && typeof input.teamName === 'string' && input.teamName.trim()) return input.teamName.trim();
+  if (typeof window !== 'undefined') {
+    const candidate = window.currentPlayerTeam || window.localStorage?.getItem?.('teamName');
+    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+  }
+  return '';
+}
 
-  if (!normalizedTeam) {
-    console.warn('[speedBumpPlayer] initialize called without a team name');
+export function initSpeedBumpPlayer(teamContext) {
+  const teamName = resolveTeamName(teamContext);
+  if (!teamName) {
+    console.warn('[speedBumpPlayer] No team resolved; skipping overlay init.');
     return () => {};
   }
 
-  const teardownOverlay = ensureSpeedBumpOverlayListeners({ teamName });
-
-  return (reason = 'manual') => {
-    teardownOverlay(reason);
-    if (reason !== 'handover') {
-      currentTeamId = null;
-      currentTeamDisplay = null;
-    }
-  };
+  teardownOverlay?.('handover');
+  teardownOverlay = ensureSpeedBumpOverlayListeners({ teamName });
+  return teardownOverlay;
 }
+
+export function teardownSpeedBumpPlayer(reason = 'manual') {
+  try { teardownOverlay?.(reason); } catch {}
+  teardownOverlay = null;
+}
+
+// Backward compatibility alias
+export const initializeSpeedBumpPlayer = initSpeedBumpPlayer;
 
 export async function sendSpeedBumpFromPlayer(fromTeam, targetTeam, type = 'slowdown') {
   const attacker =
@@ -41,12 +45,29 @@ export async function sendSpeedBumpFromPlayer(fromTeam, targetTeam, type = 'slow
     typeof targetTeam === 'string' && targetTeam.trim() ? targetTeam.trim().toLowerCase() : null;
 
   if (!attacker || !defender || attacker === defender) {
-    return;
+    throw new Error('Valid attacker and victim are required.');
   }
 
-  await triggerSpeedBump(defender, type, {
+  return triggerSpeedBump(defender, type, {
     teamName: typeof targetTeam === 'string' ? targetTeam.trim() : defender,
     triggeredBy: typeof fromTeam === 'string' ? fromTeam.trim() : attacker,
     origin: 'player'
   });
 }
+
+// === AICP MODULE FOOTER ===
+// ai_origin: modules/speedBumpPlayer.js
+// ai_role: Player Logic
+// aicp_category: module
+// aicp_version: 3.3
+// codex_phase: legacy_restore_phase2
+// export_bridge: ui
+// exports: initSpeedBumpPlayer, teardownSpeedBumpPlayer, initializeSpeedBumpPlayer
+// linked_files: []
+// owner: Route Riot-AICP
+// phase: legacy_restore_phase2
+// review_status: pending_alignment
+// status: stable
+// sync_state: aligned
+// ui_dependency: services
+// === END AICP MODULE FOOTER ===

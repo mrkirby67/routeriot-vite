@@ -1,7 +1,33 @@
 {
+  "file": "services/speed-bump/speedBumpService.js",
+  "type": "service",
+  "exports": [
+    "SPEEDBUMP_STATUS",
+    "getGameSpeedBumps",
+    "subscribeToGameSpeedBumps",
+    "isTeamBusyWithSpeedBump",
+    "assignSpeedBump",
+    "markSpeedBumpActive",
+    "reshuffleSpeedBumpPrompt",
+    "completeSpeedBump",
+    "cancelSpeedBump",
+    "clearGameSpeedBumps",
+    "triggerSpeedBump",
+    "clearSpeedBump",
+    "subscribeToSpeedBumpStatuses",
+    "getTeamSpeedBumpAssignments",
+    "subscribeToTeamSpeedBumps",
+    "completeSpeedBumpByTeamContext"
+  ],
+  "description": "Firestore-backed Speed Bump lifecycle service with attacker→victim assignments, prompt bank helpers, busy/ shield checks, and compatibility shims.",
+  "lastUpdated": "2025-11-07T00:00:00.000Z",
+  "dependencies": [
+    "/core/config.js",
+    "../../modules/speedBumpChallenges.js",
+    "../gameRulesManager.js"
+  ],
   "layer": "services",
   "name": "speedBumpService",
   "depends_on": [],
-  "description": "TODO",
   "phase": "draft"
 }

@@ -65,6 +65,7 @@ import ChatServiceV2 from '../../services/ChatServiceV2.js';
 import { emit } from '/core/eventBus.js';
 import { loadTeamSurpriseUI } from '@/core/lazyLoader.js';
 import { registerSurpriseTriggerHandler } from './teamSurprise.bridge.js';
+import { canTeamBeAttacked } from '../../services/gameRulesManager.js';
 
 let uiModulePromise = null;
 let unsubscribeGlobalCooldown = null;
@@ -177,6 +178,21 @@ export async function attemptSurpriseAttack({
   const label = defaultSurpriseLabel(normalizedType || type);
   const attackerName = normalizeTeamName(fromTeam) || fromTeam || 'Unknown';
   const victimName = normalizeTeamName(toTeam) || toTeam || 'Unknown';
+
+  // Global protection (shield + speedbump attacker guard + victim busy)
+  const rule = await canTeamBeAttacked(attackerName, victimName, 'surprise');
+  if (!rule.allowed) {
+    switch (rule.reason) {
+      case 'SHIELD':
+        throw new Error('This team is shielded and cannot be attacked.');
+      case 'ATTACKER_PROTECTED':
+        throw new Error('This team is currently attacking with a SpeedBump and cannot be targeted.');
+      case 'VICTIM_BUSY':
+        throw new Error('Victim is currently slowed by a SpeedBump.');
+      default:
+        throw new Error(rule.reason || 'Attack blocked.');
+    }
+  }
 
   if (fromTeam && normalizedType) {
     try {

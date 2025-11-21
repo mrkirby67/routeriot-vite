@@ -1,25 +1,28 @@
 // === AICP COMPONENT HEADER ===
 // ============================================================================
 // FILE: components/SpeedBumpControl/SpeedBumpControl.js
-// PURPOSE: Control panel UI for firing Speed Bump events.
-// DEPENDS_ON: ../../services/teamService.js, ../../services/speed-bump/speedBumpService.js
+// PURPOSE: Legacy-style Speed Bump control UI (attacker → victim) with prompt bank + lifecycle controls
+// DEPENDS_ON: ../../data.js, ../../services/speed-bump/speedBumpService.js
 // USED_BY: control.js
-// AUTHOR: Route Riot – Speed Bump Refresh
-// CREATED: 2025-10-30
+// AUTHOR: Route Riot – Speed Bump Restoration
+// CREATED: 2025-11-06
 // AICP_VERSION: 3.1
 // ============================================================================
 // === END AICP COMPONENT HEADER ===
 
-import { getAllTeams } from '../../services/teamService.js';
+import styles from './SpeedBumpControl.module.css';
 import { allTeams } from '../../data.js';
 import {
-  triggerSpeedBump,
-  subscribeToSpeedBumpStatuses
+  assignSpeedBump,
+  reshuffleSpeedBumpPrompt,
+  markSpeedBumpActive,
+  completeSpeedBump,
+  cancelSpeedBump,
+  subscribeToGameSpeedBumps,
+  SPEEDBUMP_STATUS
 } from '../../services/speed-bump/speedBumpService.js';
-import { notify } from '/core/eventBus.js';
 
-const teardownCallbacks = [];
-const statusCells = new Map();
+const DEFAULT_GAME_ID = 'global';
 
 function normalizeTeamId(value) {
   if (typeof value !== 'string') return null;
@@ -27,244 +30,358 @@ function normalizeTeamId(value) {
   return trimmed ? trimmed.toLowerCase() : null;
 }
 
-function registerTeardown(fn) {
-  if (typeof fn === 'function') teardownCallbacks.push(fn);
-}
-
-function runTeardown(reason = 'manual') {
-  while (teardownCallbacks.length) {
-    const handler = teardownCallbacks.pop();
-    try {
-      handler?.(reason);
-    } catch (err) {
-      console.error('[SpeedBumpControl] teardown handler failed:', err);
-    }
+function resolveGameId() {
+  if (typeof window === 'undefined') return DEFAULT_GAME_ID;
+  const candidates = [
+    window.__rrGameId,
+    window.__routeRiotGameId,
+    window.sessionStorage?.getItem?.('activeGameId'),
+    window.localStorage?.getItem?.('activeGameId')
+  ];
+  for (const val of candidates) {
+    if (typeof val === 'string' && val.trim()) return val.trim();
   }
-  statusCells.clear();
+  return DEFAULT_GAME_ID;
 }
 
-function formatStatus({ active, type } = {}) {
-  if (!active) return 'Idle';
-  const label = type === 'flat-tire' ? 'Flat Tire' : 'Slowdown';
-  return `Active – ${label}`;
-}
-
-function setStatus(teamId, payload) {
-  const normalized = normalizeTeamId(teamId);
-  const meta = normalized ? statusCells.get(normalized) : null;
-  if (!meta) return;
-  const { cell } = meta;
-  cell.textContent = formatStatus(payload);
-  cell.dataset.state = payload?.active ? 'active' : 'idle';
-  if (payload?.type) {
-    cell.dataset.type = payload.type;
-  } else {
-    delete cell.dataset.type;
+function formatStatus(status) {
+  switch (status) {
+    case SPEEDBUMP_STATUS.PENDING: return 'Pending';
+    case SPEEDBUMP_STATUS.ACTIVE: return 'Active';
+    case SPEEDBUMP_STATUS.COMPLETED: return 'Completed';
+    case SPEEDBUMP_STATUS.CANCELLED: return 'Cancelled';
+    default: return '—';
   }
 }
 
-function createActionButton(teamId, teamName, type, label) {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'speedbump-control__btn';
-  button.dataset.team = teamId;
-  button.dataset.teamName = teamName;
-  button.dataset.speedbump = type;
-  button.textContent = label;
-  return button;
-}
-
-function buildRow(team) {
-  const nameFromData = typeof team.name === 'string' && team.name.trim() ? team.name.trim() : '';
-  const rawId = typeof team.id === 'string' && team.id.trim() ? team.id.trim() : '';
-  const preferredId = rawId || nameFromData;
-  const normalizedId = normalizeTeamId(preferredId);
-  if (!normalizedId) return null;
-
-  const teamName = nameFromData || preferredId || 'Unknown Team';
-
-  const row = document.createElement('tr');
-  row.dataset.teamId = normalizedId;
-
-  const nameCell = document.createElement('td');
-  nameCell.textContent = teamName;
-
-  const statusCell = document.createElement('td');
-  statusCell.dataset.role = 'status';
-  statusCell.textContent = 'Idle';
-
-  const actionsCell = document.createElement('td');
-  actionsCell.className = 'speedbump-control__actions';
-  actionsCell.appendChild(createActionButton(normalizedId, teamName, 'flat-tire', 'Flat Tire'));
-  actionsCell.appendChild(createActionButton(normalizedId, teamName, 'slowdown', 'Slowdown'));
-
-  row.append(nameCell, statusCell, actionsCell);
-  statusCells.set(normalizedId, { cell: statusCell, name: teamName });
-  return row;
-}
-
-function bindButtons(root) {
-  const buttons = root.querySelectorAll('[data-speedbump]');
-  buttons.forEach((button) => {
-    const handleClick = async (event) => {
-      const current = event.currentTarget;
-      const teamId = current.dataset.team;
-      const teamName = current.dataset.teamName || teamId;
-      const type = current.dataset.speedbump;
-
-      if (!teamId || !type) return;
-
-      const normalizedId = normalizeTeamId(teamId);
-      const statusMeta = normalizedId ? statusCells.get(normalizedId) : null;
-      if (statusMeta) {
-        statusMeta.cell.textContent = 'Sending…';
-        statusMeta.cell.dataset.state = 'pending';
-      }
-
-      current.disabled = true;
-      current.classList.add('is-pending');
-
-      try {
-        await triggerSpeedBump(teamId, type, { teamName });
-        console.info(`🚧 Speed Bump sent to ${teamName} (${type})`);
-        notify({ kind: 'info', text: 'Speed Bump Sent!', timeout: 2500 });
-      } catch (err) {
-        console.error(`⚠️ Failed to trigger speed bump for ${teamName}:`, err);
-        if (statusMeta) {
-          statusMeta.cell.textContent = 'Failed';
-          statusMeta.cell.dataset.state = 'error';
-        }
-      }
-
-      setTimeout(() => {
-        current.disabled = false;
-        current.classList.remove('is-pending');
-      }, 5_000);
-    };
-
-    button.addEventListener('click', handleClick);
-    registerTeardown(() => button.removeEventListener('click', handleClick));
-  });
-}
-
-function subscribeToStatuses() {
-  const unsubscribe = subscribeToSpeedBumpStatuses((map) => {
-    if (!(map instanceof Map)) return;
-    statusCells.forEach((_, teamId) => {
-      const payload = map.get(teamId);
-      setStatus(teamId, payload);
-    });
-  });
-
-  registerTeardown(() => unsubscribe?.());
+function toTeamList() {
+  return allTeams
+    .map(team => ({
+      id: normalizeTeamId(team.name || ''),
+      name: team.name || ''
+    }))
+    .filter(t => t.id && t.name);
 }
 
 export function SpeedBumpControlComponent() {
   return `
-    <section class="speedbump-control">
-      <header class="speedbump-control__header">
-        <h2>🚧 Speed Bump Control</h2>
-        <p>Trigger quick challenges to slow teams down.</p>
-      </header>
-      <table id="speedbump-table" class="speedbump-control__table">
-        <thead>
-          <tr>
-            <th scope="col">Team</th>
-            <th scope="col">Status</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="speedbump-table-body">
-          <tr>
-            <td colspan="3">Loading teams…</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
+    <div class="${styles.controlSection}">
+      <div class="${styles.headerRow}">
+        <h2>Speed Bumps</h2>
+        <button id="toggle-speedbump-btn" class="${styles.secondaryBtn}">Expand ▼</button>
+      </div>
+      <div id="speedbump-panel" style="display:none;">
+        <div class="${styles.promptLegend}">
+          <div>
+            <p class="${styles.subhead}">Assign prompts from the shared bank. Attacker frees victim when done.</p>
+          </div>
+          <div class="${styles.legendControls}">
+            <span class="${styles.legendNote}">Attacker ≠ Victim · Pending → Active → Complete/Cancel</span>
+          </div>
+        </div>
+        <table class="${styles.dataTable}">
+          <thead>
+            <tr>
+              <th>Team Name</th>
+              <th>Assigned Prompt</th>
+              <th>Attacker</th>
+              <th>Status</th>
+              <th>Controls</th>
+            </tr>
+          </thead>
+          <tbody id="speedbump-table-body">
+            <tr><td colspan="5" class="${styles.legendNote}">Loading teams…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   `;
 }
 
-function normalizeTeamRecord(record) {
-  if (!record) return null;
-  const name = typeof record.name === 'string' && record.name.trim() ? record.name.trim() : '';
-  const id =
-    typeof record.id === 'string' && record.id.trim()
-      ? record.id.trim()
-      : name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  return id ? { ...record, id, name: name || record.id || id } : null;
+class SpeedBumpController {
+  constructor() {
+    this.gameId = resolveGameId();
+    this.teams = toTeamList();
+    this.assignments = new Map(); // victimId -> assignment
+    this.promptCache = new Map();
+    this.unsubscribe = null;
+    this.teardownFns = [];
+    this.tableBody = null;
+  }
+
+  teardown(reason = 'manual') {
+    this.unsubscribe?.(reason);
+    this.teardownFns.forEach(fn => {
+      try { fn?.(reason); } catch {}
+    });
+    this.teardownFns = [];
+  }
+
+  mount() {
+    const toggleBtn = document.getElementById('toggle-speedbump-btn');
+    const panel = document.getElementById('speedbump-panel');
+    const tableBody = document.getElementById('speedbump-table-body');
+
+    if (!toggleBtn || !panel || !tableBody) {
+      console.warn('[SpeedBumpControl] DOM not ready.');
+      return () => {};
+    }
+
+    const handleToggle = () => {
+      const isHidden = panel.style.display === 'none';
+      panel.style.display = isHidden ? 'block' : 'none';
+      toggleBtn.textContent = isHidden ? 'Collapse ▲' : 'Expand ▼';
+    };
+    toggleBtn.addEventListener('click', handleToggle);
+    this.teardownFns.push(() => toggleBtn.removeEventListener('click', handleToggle));
+
+    this.tableBody = tableBody;
+    this.renderTable();
+    this.wireTableEvents();
+
+    this.unsubscribe = subscribeToGameSpeedBumps(this.gameId, (assignments = []) => {
+      this.assignments.clear();
+      assignments.forEach((entry) => {
+        const victim = normalizeTeamId(entry.victimId || '');
+        if (!victim) return;
+        this.assignments.set(victim, entry);
+        if (entry.prompt) {
+          this.promptCache.set(victim, entry.prompt);
+        }
+      });
+      this.renderTable();
+    });
+
+    return (reason) => this.teardown(reason);
+  }
+
+  getAttackerOptions(victimId, selected) {
+    return this.teams
+      .filter(t => t.id !== victimId)
+      .map(t => {
+        const sel = selected && selected === t.id ? 'selected' : '';
+        return `<option value="${t.id}" ${sel}>${t.name}</option>`;
+      })
+      .join('');
+  }
+
+  currentStatus(victimId) {
+    return this.assignments.get(victimId)?.status || 'idle';
+  }
+
+  renderTable() {
+    if (!this.tableBody) return;
+    this.tableBody.innerHTML = '';
+
+    if (!this.teams.length) {
+      this.tableBody.innerHTML = `<tr><td colspan="5" class="${styles.legendNote}">No teams available.</td></tr>`;
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    this.teams.forEach(team => {
+      const victimId = team.id;
+      const assignment = this.assignments.get(victimId);
+      const prompt = this.promptCache.get(victimId) || assignment?.prompt || '';
+      const attackerId = assignment?.attackerId ? normalizeTeamId(assignment.attackerId) : '';
+      const status = assignment?.status || 'idle';
+
+      const row = document.createElement('tr');
+      row.dataset.team = victimId;
+      row.innerHTML = `
+        <td class="${styles.teamCell}">
+          <strong>${team.name}</strong>
+          <span>${victimId}</span>
+        </td>
+        <td class="${styles.promptCell}">
+          <input data-role="prompt" type="text" class="${styles.promptInput}" value="${prompt.replace(/"/g, '&quot;')}" placeholder="Select or shuffle a prompt">
+        </td>
+        <td>
+          <select data-role="attacker">
+            <option value="">Select attacker</option>
+            ${this.getAttackerOptions(victimId, attackerId)}
+          </select>
+        </td>
+        <td data-role="status">${formatStatus(status)}</td>
+        <td class="${styles.inlineActions}">
+          <button data-action="assign" class="${styles.primaryBtn}">Assign</button>
+          <button data-action="shuffle" class="${styles.secondaryBtn}">Shuffle</button>
+          <button data-action="activate" class="${styles.secondaryBtn}">Activate</button>
+          <button data-action="complete" class="${styles.secondaryBtn}">Complete</button>
+          <button data-action="cancel" class="${styles.secondaryBtn}">Cancel</button>
+        </td>
+      `;
+      frag.appendChild(row);
+    });
+
+    this.tableBody.appendChild(frag);
+    this.updateButtonStates();
+  }
+
+  wireTableEvents() {
+    if (!this.tableBody) return;
+    const handleClick = async (event) => {
+      const btn = event.target.closest('[data-action]');
+      if (!btn) return;
+      const row = btn.closest('tr[data-team]');
+      if (!row) return;
+      const victimId = row.dataset.team;
+      const attackerSelect = row.querySelector('[data-role="attacker"]');
+      const promptInput = row.querySelector('[data-role="prompt"]');
+      const attackerId = normalizeTeamId(attackerSelect?.value || '');
+      const prompt = promptInput?.value?.trim() || '';
+
+      switch (btn.dataset.action) {
+        case 'assign':
+          await this.handleAssign({ attackerId, victimId, prompt });
+          break;
+        case 'shuffle':
+          await this.handleShuffle({ attackerId, victimId });
+          break;
+        case 'activate':
+          await this.handleActivate({ victimId });
+          break;
+        case 'complete':
+          await this.handleComplete({ victimId });
+          break;
+        case 'cancel':
+          await this.handleCancel({ victimId });
+          break;
+        default:
+          break;
+      }
+    };
+
+    const handleInput = (event) => {
+      const input = event.target.closest('[data-role="prompt"]');
+      const attackerSel = event.target.closest('[data-role="attacker"]');
+      const row = event.target.closest('tr[data-team]');
+      if (!row) return;
+      if (input) {
+        this.promptCache.set(row.dataset.team, input.value);
+      }
+      this.updateButtonStates();
+    };
+
+    this.tableBody.addEventListener('click', handleClick);
+    this.tableBody.addEventListener('input', handleInput);
+    this.tableBody.addEventListener('change', handleInput);
+    this.teardownFns.push(() => {
+      this.tableBody.removeEventListener('click', handleClick);
+      this.tableBody.removeEventListener('input', handleInput);
+      this.tableBody.removeEventListener('change', handleInput);
+    });
+  }
+
+  updateButtonStates() {
+    if (!this.tableBody) return;
+    this.tableBody.querySelectorAll('tr[data-team]').forEach(row => {
+      const victimId = row.dataset.team;
+      const status = this.currentStatus(victimId);
+      const prompt = this.promptCache.get(victimId) || '';
+      const attacker = normalizeTeamId(row.querySelector('[data-role="attacker"]')?.value || '');
+      const assignBtn = row.querySelector('[data-action="assign"]');
+      const shuffleBtn = row.querySelector('[data-action="shuffle"]');
+      const activateBtn = row.querySelector('[data-action="activate"]');
+      const completeBtn = row.querySelector('[data-action="complete"]');
+      const cancelBtn = row.querySelector('[data-action="cancel"]');
+
+      const isPending = status === SPEEDBUMP_STATUS.PENDING;
+      const isActive = status === SPEEDBUMP_STATUS.ACTIVE;
+
+      if (assignBtn) assignBtn.disabled = !attacker || !prompt || isPending || isActive;
+      if (shuffleBtn) shuffleBtn.disabled = !isPending;
+      if (activateBtn) activateBtn.disabled = !isPending;
+      if (completeBtn) completeBtn.disabled = !(isPending || isActive);
+      if (cancelBtn) cancelBtn.disabled = !(isPending || isActive);
+    });
+  }
+
+  async handleAssign({ attackerId, victimId, prompt }) {
+    if (!attackerId || !victimId || !prompt) {
+      alert('Attacker, victim, and prompt are required.');
+      return;
+    }
+    if (attackerId === victimId) {
+      alert('Attacker cannot target themselves.');
+      return;
+    }
+    try {
+      await assignSpeedBump({
+        gameId: this.gameId,
+        attackerId,
+        victimId,
+        prompt
+      });
+    } catch (err) {
+      console.error('[SpeedBumpControl] assign failed:', err);
+      alert(err?.message || 'Failed to assign Speed Bump');
+    }
+  }
+
+  async handleShuffle({ attackerId }) {
+    if (!attackerId) {
+      alert('Select an attacker before shuffling.');
+      return;
+    }
+    try {
+      await reshuffleSpeedBumpPrompt({
+        gameId: this.gameId,
+        attackerId
+      });
+    } catch (err) {
+      console.error('[SpeedBumpControl] shuffle failed:', err);
+      alert(err?.message || 'Failed to shuffle prompt');
+    }
+  }
+
+  async handleActivate({ victimId }) {
+    const assignment = this.assignments.get(victimId);
+    if (!assignment) return;
+    try {
+      await markSpeedBumpActive({
+        gameId: this.gameId,
+        attackerId: assignment.attackerId
+      });
+    } catch (err) {
+      console.error('[SpeedBumpControl] activate failed:', err);
+      alert(err?.message || 'Failed to activate Speed Bump');
+    }
+  }
+
+  async handleComplete({ victimId }) {
+    const assignment = this.assignments.get(victimId);
+    if (!assignment) return;
+    try {
+      await completeSpeedBump({
+        gameId: this.gameId,
+        attackerId: assignment.attackerId
+      });
+    } catch (err) {
+      console.error('[SpeedBumpControl] complete failed:', err);
+      alert(err?.message || 'Failed to complete Speed Bump');
+    }
+  }
+
+  async handleCancel({ victimId }) {
+    const assignment = this.assignments.get(victimId);
+    if (!assignment) return;
+    try {
+      await cancelSpeedBump({
+        gameId: this.gameId,
+        attackerId: assignment.attackerId
+      });
+    } catch (err) {
+      console.error('[SpeedBumpControl] cancel failed:', err);
+      alert(err?.message || 'Failed to cancel Speed Bump');
+    }
+  }
 }
 
-export async function initializeSpeedBumpControl() {
-  runTeardown('reinitialize');
-
-  const tableBody = document.getElementById('speedbump-table-body');
-  if (!tableBody) {
-    console.warn('⚠️ [SpeedBumpControl] Missing #speedbump-table-body');
-    return () => {};
-  }
-
-  tableBody.innerHTML = `
-    <tr>
-      <td colspan="3">Loading teams…</td>
-    </tr>
-  `;
-
-  let teams = [];
-  try {
-    teams = await getAllTeams();
-  } catch (err) {
-    console.error('⚠️ [SpeedBumpControl] Failed to load teams:', err);
-  }
-
-  if (!Array.isArray(teams) || !teams.length) {
-    console.warn('[SpeedBumpControl] No Firestore teams found. Falling back to data.js roster.');
-    let fallbackCounter = 0;
-    teams = allTeams
-      .map((team) =>
-        normalizeTeamRecord({
-          id: team?.name || team?.email || `fallback-team-${fallbackCounter++}`,
-          name: team?.name,
-          slogan: team?.slogan,
-        }),
-      )
-      .filter(Boolean);
-  } else {
-    teams = teams.map(normalizeTeamRecord).filter(Boolean);
-  }
-
-  if (!teams.length) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="3">No teams available.</td>
-      </tr>
-    `;
-    return (reason = 'manual') => runTeardown(reason);
-  }
-
-  statusCells.clear();
-  tableBody.innerHTML = '';
-  teams
-    .map((team) => buildRow(team))
-    .filter(Boolean)
-    .forEach((row) => tableBody.appendChild(row));
-
-  if (!tableBody.children.length) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="3">No teams available.</td>
-      </tr>
-    `;
-    return (reason = 'manual') => runTeardown(reason);
-  }
-
-  bindButtons(tableBody);
-  subscribeToStatuses();
-
-  return (reason = 'manual') => runTeardown(reason);
-}
-
-export function teardownSpeedBumpControl(reason = 'manual') {
-  runTeardown(reason);
+export function initializeSpeedBumpControl() {
+  const controller = new SpeedBumpController();
+  const cleanup = controller.mount();
+  return cleanup;
 }
 
 // === AICP COMPONENT FOOTER ===
@@ -274,11 +391,12 @@ export function teardownSpeedBumpControl(reason = 'manual') {
 // aicp_version: 3.1
 // codex_phase: tier3_components_injection
 // export_bridge: services
-// exports: SpeedBumpControlComponent, initializeSpeedBumpControl, teardownSpeedBumpControl
+// exports: SpeedBumpControlComponent, initializeSpeedBumpControl
 // linked_files: []
-// owner: RouteRiot-AICP
+// owner: Route Riot-AICP
 // phase: tier3_components_injection
 // review_status: pending_alignment
 // status: stable
 // sync_state: aligned
+// ui_dependency: features
 // === END AICP COMPONENT FOOTER ===

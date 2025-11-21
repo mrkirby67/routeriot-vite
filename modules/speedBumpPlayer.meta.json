@@ -1,7 +1,20 @@
 {
+  "file": "modules/speedBumpPlayer.js",
+  "type": "module",
+  "exports": [
+    "initSpeedBumpPlayer",
+    "teardownSpeedBumpPlayer",
+    "initializeSpeedBumpPlayer",
+    "sendSpeedBumpFromPlayer"
+  ],
+  "description": "Player-side wiring for Speed Bump overlay subscriptions and optional player-triggered bumps.",
+  "lastUpdated": "2025-11-07T00:00:00.000Z",
+  "dependencies": [
+    "../ui/overlays/speedBumpOverlay.js",
+    "../services/speed-bump/speedBumpService.js"
+  ],
   "layer": "modules",
   "name": "speedBumpPlayer",
   "depends_on": [],
-  "description": "TODO",
   "phase": "draft"
 }

@@ -740,7 +740,7 @@
                         <h3>speedBumpPlayer</h3>
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
-                    <p><strong>Description:</strong> TODO</p>
+                    <p><strong>Description:</strong> Player-side wiring for Speed Bump overlay subscriptions and optional player-triggered bumps.</p>
                     <p><strong>Dependencies:</strong> None</p>
                     <p>
                         <a href="../modules/speedBumpPlayer.js">Code</a> | <a href="../modules/speedBumpPlayer.meta.json">Metadata</a>
@@ -920,7 +920,7 @@
                         <h3>speedBumpService</h3>
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
-                    <p><strong>Description:</strong> TODO</p>
+                    <p><strong>Description:</strong> Firestore-backed Speed Bump lifecycle service with attacker→victim assignments, prompt bank helpers, busy/ shield checks, and compatibility shims.</p>
                     <p><strong>Dependencies:</strong> None</p>
                     <p>
                         <a href="../services/speed-bump/speedBumpService.js">Code</a> | <a href="../services/speed-bump/speedBumpService.meta.json">Metadata</a>
@@ -1364,8 +1364,8 @@
                         <h3>SpeedBumpControl</h3>
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
-                    <p><strong>Description:</strong> TODO</p>
-                    <p><strong>Dependencies:</strong> speedBumpService, teamService</p>
+                    <p><strong>Description:</strong> Collapsible control panel for assigning Speed Bumps with attacker/victim selection, prompt display, and lifecycle actions.</p>
+                    <p><strong>Dependencies:</strong> None</p>
                     <p>
                         <a href="../components/SpeedBumpControl/SpeedBumpControl.js">Code</a> | <a href="../components/SpeedBumpControl/SpeedBumpControl.meta.json">Metadata</a>
                     </p>
@@ -1376,8 +1376,8 @@
                         <h3>actions</h3>
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
-                    <p><strong>Description:</strong> TODO</p>
-                    <p><strong>Dependencies:</strong> teamSurpriseController</p>
+                    <p><strong>Description:</strong> Control-layer adapters that call Speed Bump service lifecycle actions for attacker→victim assignments.</p>
+                    <p><strong>Dependencies:</strong> None</p>
                     <p>
                         <a href="../modules/speedBump/interactions.js">Code</a> | <a href="../modules/speedBump/interactions.meta.json">Metadata</a>
                     </p>
@@ -1388,7 +1388,7 @@
                         <h3>domHandlers</h3>
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
-                    <p><strong>Description:</strong> TODO</p>
+                    <p><strong>Description:</strong> Placeholder DOM helper module retained for compatibility with the Speed Bump control layout.</p>
                     <p><strong>Dependencies:</strong> None</p>
                     <p>
                         <a href="../components/FlatTireControl/controller/domHandlers.js">Code</a> | <a href="../components/FlatTireControl/controller/domHandlers.meta.json">Metadata</a>
@@ -1412,7 +1412,7 @@
                         <h3>stateSync</h3>
                         <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
-                    <p><strong>Description:</strong> TODO</p>
+                    <p><strong>Description:</strong> Helper to subscribe Speed Bump control to assignment changes via the service layer.</p>
                     <p><strong>Dependencies:</strong> None</p>
                     <p>
                         <a href="../components/SpeedBumpControl/controller/stateSync.js">Code</a> | <a href="../components/SpeedBumpControl/controller/stateSync.meta.json">Metadata</a>
@@ -1698,10 +1698,10 @@
                 <div class="module">
                     <div class="module-header">
                         <h3>speedBumpOverlay</h3>
-                        <span class="phase" style="background-color: #5cb85c">active</span>
+                        <span class="phase" style="background-color: #f0ad4e">draft</span>
                     </div>
-                    <p><strong>Description:</strong> Player overlay for Speed Bump victims with live state, countdown, and chirp actions.</p>
-                    <p><strong>Dependencies:</strong> teamSurpriseController, teamSurpriseState, baseOverlays</p>
+                    <p><strong>Description:</strong> Player Speed Bump overlay showing victim prompts and attacker release controls driven by assignment subscriptions.</p>
+                    <p><strong>Dependencies:</strong> None</p>
                     <p>
                         <a href="../modules/playerUI/overlays/speedBumpOverlay.js">Code</a> | <a href="../modules/playerUI/overlays/speedBumpOverlay.meta.json">Metadata</a>
                     </p>

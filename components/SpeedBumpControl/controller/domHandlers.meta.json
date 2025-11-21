@@ -1,7 +1,12 @@
 {
+  "file": "components/SpeedBumpControl/controller/domHandlers.js",
+  "type": "component",
+  "exports": [],
+  "description": "Placeholder DOM helper module retained for compatibility with the Speed Bump control layout.",
+  "lastUpdated": "2025-11-07T00:00:00.000Z",
+  "dependencies": [],
   "layer": "components",
   "name": "domHandlers",
   "depends_on": [],
-  "description": "TODO",
   "phase": "draft"
 }

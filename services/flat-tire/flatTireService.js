@@ -14,9 +14,24 @@ import {
   loadFlatTireConfig,
   subscribeFlatTireAssignments,
   subscribeFlatTireConfig,
-  assignFlatTireTeam,
+  assignFlatTireTeam as baseAssignFlatTireTeam,
   releaseFlatTireTeam,
 } from '../../modules/flatTireManager.js';
+import { canTeamBeAttacked } from '../gameRulesManager.js';
+
+function throwRuleError(rule) {
+  if (!rule || rule.allowed) return;
+  switch (rule.reason) {
+    case 'SHIELD':
+      throw new Error('This team is shielded and cannot be attacked.');
+    case 'ATTACKER_PROTECTED':
+      throw new Error('This team is currently attacking with a SpeedBump and cannot be targeted.');
+    case 'VICTIM_BUSY':
+      throw new Error('Victim is currently slowed by a SpeedBump.');
+    default:
+      throw new Error(typeof rule.reason === 'string' && rule.reason.trim() ? rule.reason : 'Attack blocked.');
+  }
+}
 
 // Added to satisfy callers until persistence is implemented
 async function saveFlatTireConfig(config) {
@@ -28,10 +43,20 @@ export {
   loadFlatTireConfig,
   subscribeFlatTireAssignments,
   subscribeFlatTireConfig,
-  assignFlatTireTeam,
   releaseFlatTireTeam,
   saveFlatTireConfig,
 };
+
+export async function assignFlatTireTeam(teamName, options = {}) {
+  const attacker = typeof options.fromTeam === 'string' && options.fromTeam.trim()
+    ? options.fromTeam.trim()
+    : 'Control';
+  const rule = await canTeamBeAttacked(attacker, teamName, 'flattire');
+  if (!rule.allowed) {
+    throwRuleError(rule);
+  }
+  return baseAssignFlatTireTeam(teamName, options);
+}
 
 // === AICP SERVICE FOOTER ===
 // ai_origin: services/flat-tire/flatTireService.js

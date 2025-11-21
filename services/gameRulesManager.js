@@ -15,9 +15,20 @@
 // ============================================================================
 
 import { db } from '/core/config.js';
-import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  getDocs,
+  query,
+  where
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { isShieldActive } from '../features/team-surprise/teamSurpriseState.js';
 
 const rulesRef = doc(db, 'config', 'gameRules');
+const SPEEDBUMP_COLLECTION = 'speedBumpAssignments';
+const LIVE_STATUSES = ['pending', 'active'];
 
 export async function saveRules(rules) {
   try {
@@ -44,4 +55,66 @@ export async function loadRules() {
     console.error('❌ Failed to load rules:', err);
     return {};
   }
+}
+
+// ---------------------------------------------------------------------------
+// Shield + SpeedBump protection helpers
+// ---------------------------------------------------------------------------
+export function isShielded(teamId) {
+  if (!teamId) return false;
+  return !!isShieldActive(teamId);
+}
+
+async function hasLiveSpeedBump(field, teamId) {
+  if (!teamId) return false;
+  const colRef = collection(db, SPEEDBUMP_COLLECTION);
+  const qy = query(colRef, where(field, '==', teamId));
+  try {
+    const snap = await getDocs(qy);
+    let live = false;
+    snap.forEach(docSnap => {
+      const status = String(docSnap.data()?.status || '').toLowerCase();
+      if (LIVE_STATUSES.includes(status)) {
+        live = true;
+      }
+    });
+    return live;
+  } catch (err) {
+    console.warn('[gameRulesManager] speed bump check failed:', err);
+    return false;
+  }
+}
+
+export async function attackerProtectedBySpeedBump(teamId) {
+  return hasLiveSpeedBump('attackerId', teamId);
+}
+
+export async function victimBusyWithSpeedBump(teamId) {
+  return hasLiveSpeedBump('victimId', teamId);
+}
+
+export async function canTeamBeAttacked(attackerId, victimId, attackType = 'attack') {
+  const attacker = typeof attackerId === 'string' ? attackerId.trim() : '';
+  const victim = typeof victimId === 'string' ? victimId.trim() : '';
+
+  if (!attacker || !victim) {
+    return { allowed: false, reason: 'INVALID' };
+  }
+  if (attacker === victim) {
+    return { allowed: false, reason: 'Cannot target self.' };
+  }
+
+  if (isShielded(victim)) {
+    return { allowed: false, reason: 'SHIELD' };
+  }
+
+  if (await attackerProtectedBySpeedBump(victim)) {
+    return { allowed: false, reason: 'ATTACKER_PROTECTED' };
+  }
+
+  if (await victimBusyWithSpeedBump(victim)) {
+    return { allowed: false, reason: 'VICTIM_BUSY' };
+  }
+
+  return { allowed: true };
 }
