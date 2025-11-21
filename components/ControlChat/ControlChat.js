@@ -37,14 +37,17 @@ function renderMessages(logEl, messages = []) {
       hour: '2-digit',
       minute: '2-digit'
     });
-    const team = typeof msg?.team === 'string' && msg.team.trim()
-      ? msg.team.trim()
-      : 'Unknown';
+    const from = typeof msg?.from === 'string' && msg.from.trim()
+      ? msg.from.trim()
+      : (typeof msg?.team === 'string' && msg.team.trim() ? msg.team.trim() : 'Unknown');
+    const to = typeof msg?.to === 'string' && msg.to.trim()
+      ? msg.to.trim()
+      : 'ALL';
     const text = typeof msg?.message === 'string' ? msg.message : '';
 
     const entry = document.createElement('div');
     entry.className = 'chat-message';
-    entry.textContent = `[${timeLabel}] ${team}: ${text}`;
+    entry.textContent = `[${timeLabel}] ${from} → ${to}: ${text}`;
     logEl.appendChild(entry);
   });
 

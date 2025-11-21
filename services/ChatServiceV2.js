@@ -253,7 +253,7 @@ export function subscribeToAllMessages(callback) {
 
   const mapDoc = (docSnap) => {
     const data = docSnap.data?.() ?? docSnap.data ?? {};
-    const team =
+    const sender =
       trimString(
         data.team ??
           data.fromTeam ??
@@ -262,6 +262,15 @@ export function subscribeToAllMessages(callback) {
           data.teamName,
         'Unknown'
       ) || 'Unknown';
+    const recipient =
+      trimString(
+        data.toTeam ??
+          data.recipient ??
+          data.target ??
+          data.channel ??
+          data.team,
+        'ALL'
+      ) || 'ALL';
     const message =
       typeof data.message === 'string'
         ? data.message
@@ -270,7 +279,9 @@ export function subscribeToAllMessages(callback) {
         : '';
     return {
       id: docSnap.id,
-      team,
+      team: sender,
+      from: sender,
+      to: recipient,
       message,
       timestamp: data.timestamp ?? data.createdAt ?? data.timestampMs ?? null
     };

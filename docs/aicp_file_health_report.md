@@ -1,10 +1,10 @@
-# AICP File Health Report — 2025-11-21T01:16:57.574Z
+# AICP File Health Report — 2025-11-21T01:24:59.932Z
 Files scanned: 145
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
 |----|------|--------|-----------|-------------|------------|
+| ✅ | services/ChatServiceV2.js | 573 | 19.2 | 119 | 5% |
 | ✅ | modules/gameStateManager.js | 570 | 18.3 | 76 | 6% |
-| ✅ | services/ChatServiceV2.js | 562 | 19.0 | 119 | 5% |
 | ✅ | components/GameControls/GameControls.js | 542 | 18.8 | 77 | 8% |
 | ✅ | services/team-surprise/teamSurpriseService.js | 525 | 17.5 | 107 | 5% |
 | ✅ | features/team-surprise/teamSurpriseController.js | 453 | 13.4 | 65 | 6% |
@@ -74,10 +74,10 @@ Files scanned: 145
 | ✅ | ui/team-surprise/teamSurpriseUI.js | 100 | 3.2 | 13 | 27% |
 | ✅ | components/SpeedBumpControl/controller/actions.js | 99 | 3.1 | 7 | 27% |
 | ✅ | modules/gameMaintenance.js | 98 | 3.2 | 13 | 18% |
+| ✅ | components/ControlChat/ControlChat.js | 92 | 2.7 | 17 | 7% |
 | ✅ | modules/chatManager/controlFeed.js | 91 | 3.6 | 13 | 4% |
 | ✅ | features/team-surprise/teamSurpriseEvents.js | 91 | 2.7 | 9 | 27% |
 | ✅ | components/ChatLog/ChatLog.js | 89 | 2.7 | 5 | 31% |
-| ✅ | components/ControlChat/ControlChat.js | 89 | 2.5 | 17 | 7% |
 | ✅ | modules/emailTeams.js | 88 | 2.9 | 15 | 9% |
 | ✅ | modules/zonesFirestore.js | 87 | 3.2 | 13 | 16% |
 | ✅ | modules/flatTire_fixGPS.js | 80 | 2.4 | 11 | 6% |
@@ -150,8 +150,8 @@ Files scanned: 145
 | ✅ | features/player-page/playerPage.bridge.js | 6 | 0.2 | 1 | 0% |
 
 ## Largest 10 Files
+- services/ChatServiceV2.js — 573 lines, 19.2 KB (Complexity: 119)
 - modules/gameStateManager.js — 570 lines, 18.3 KB (Complexity: 76)
-- services/ChatServiceV2.js — 562 lines, 19.0 KB (Complexity: 119)
 - components/GameControls/GameControls.js — 542 lines, 18.8 KB (Complexity: 77)
 - services/team-surprise/teamSurpriseService.js — 525 lines, 17.5 KB (Complexity: 107)
 - features/team-surprise/teamSurpriseController.js — 453 lines, 13.4 KB (Complexity: 65)
