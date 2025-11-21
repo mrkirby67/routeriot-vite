@@ -236,6 +236,78 @@ export async function send({ fromTeam, toTeam = 'ALL', text, kind = 'chat', meta
   return payload;
 }
 
+// ---------------------------------------------------------------------------
+// 🔭 Control-side stream: read every message in chatMessages collection
+// ---------------------------------------------------------------------------
+export function subscribeToAllMessages(callback) {
+  if (typeof callback !== 'function') return () => {};
+  let chatMessages = [];
+  let communications = [];
+
+  const emit = () => {
+    const merged = [...chatMessages, ...communications].sort(
+      (a, b) => toMillis(a?.timestamp) - toMillis(b?.timestamp)
+    );
+    callback(merged);
+  };
+
+  const mapDoc = (docSnap) => {
+    const data = docSnap.data?.() ?? docSnap.data ?? {};
+    const team =
+      trimString(
+        data.team ??
+          data.fromTeam ??
+          data.senderDisplay ??
+          data.sender ??
+          data.teamName,
+        'Unknown'
+      ) || 'Unknown';
+    const message =
+      typeof data.message === 'string'
+        ? data.message
+        : typeof data.text === 'string'
+        ? data.text
+        : '';
+    return {
+      id: docSnap.id,
+      team,
+      message,
+      timestamp: data.timestamp ?? data.createdAt ?? data.timestampMs ?? null
+    };
+  };
+
+  const unsubscribeChat = onSnapshot(
+    query(collection(db, 'chatMessages'), orderBy('timestamp', 'asc')),
+    (snapshot) => {
+      chatMessages = snapshot.docs.map(mapDoc);
+      emit();
+    },
+    (error) => {
+      console.error('[ChatServiceV2] subscribeToAllMessages failed (chatMessages):', error);
+    }
+  );
+
+  const unsubscribeComms = onSnapshot(
+    query(collection(db, CHAT_COLLECTION), orderBy('timestamp', 'asc')),
+    (snapshot) => {
+      communications = snapshot.docs.map(mapDoc);
+      emit();
+    },
+    (error) => {
+      console.error('[ChatServiceV2] subscribeToAllMessages failed (communications):', error);
+    }
+  );
+
+  return (reason) => {
+    try {
+      unsubscribeChat?.(reason);
+    } catch {}
+    try {
+      unsubscribeComms?.(reason);
+    } catch {}
+  };
+}
+
 export async function issueChirpTask({
   title,
   description,

@@ -35,6 +35,7 @@ import {
   initializeSurpriseSelector,
   initializeWildCardsCollapsible
 } from './components/SurpriseSelector/SurpriseSelector.js';
+import { mountControlChat, unmountControlChat } from './components/ControlChat/ControlChat.js';
 
 // 🧩 NEW: Zone Questions (Modular System)
 import {
@@ -98,6 +99,7 @@ async function main() {
 
   const chatCleanup = await listenToAllMessages();
   registerCleanup(chatCleanup, 'communications');
+  registerCleanup(() => unmountControlChat('teardown'), 'controlChat');
 
   let mapsAndZonesReady = false;
   try {
@@ -243,6 +245,9 @@ function renderAllSections() {
 
   // 🧩 Zone Questions UI panel
   safeSetHTML('zone-questions-container', ZoneQuestionsComponent());
+
+  // 📨 Unified control chat feed
+  mountControlChat('control-chat-container');
 }
 
 // ---------------------------------------------------------------------------
