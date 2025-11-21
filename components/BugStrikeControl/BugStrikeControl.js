@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS = Object.freeze({
 });
 
 const BUG_SETTINGS_DOC = doc(db, 'settings', 'bugStrikeSettings');
+const lastLaunchByTeam = new Map(); // { teamName -> { startedAtMs, attacker } }
 
 // ============================================================================
 // 🧱 COMPONENT MARKUP
@@ -261,7 +262,7 @@ function applyStrikeState(row, data) {
     row.statusText.textContent = 'No active attack';
     row.badge.hidden = true;
     row.badge.textContent = '🟢 Active Attack';
-    row.lastUsedCell.textContent = '--';
+    row.lastUsedCell.textContent = formatLastLaunch(row.teamName);
     row.launchBtn.disabled = false;
     row.cancelBtn.disabled = true;
     return;
@@ -269,9 +270,11 @@ function applyStrikeState(row, data) {
 
   const expiresAtMs = normalizeTimestampMs(data.expiresAt);
   const startedAtMs = normalizeTimestampMs(data.startedAt) || now;
+  rememberLaunch(row.teamName, startedAtMs, data.attacker);
+
   row.statusText.textContent = data.message || `🪰 ${data.attacker || 'Unknown team'} unleashed a swarm!`;
   row.badge.hidden = false;
-  row.lastUsedCell.textContent = formatTime(startedAtMs);
+  row.lastUsedCell.textContent = formatLastLaunch(row.teamName);
   row.launchBtn.disabled = true;
   row.cancelBtn.disabled = false;
 
@@ -316,6 +319,9 @@ async function handleLaunch({
     }
 
     const expiresAt = Date.now() + durationMs;
+    rememberLaunch(teamName, Date.now(), controlTeamName);
+    row.lastUsedCell.textContent = formatLastLaunch(teamName);
+
     await setDoc(docRef, {
       active: true,
       victim: teamName,
@@ -373,6 +379,22 @@ function formatDuration(seconds) {
   const secs = seconds % 60;
   if (mins <= 0) return `${secs}s`;
   return `${mins}m ${secs}s`;
+}
+
+function rememberLaunch(teamName, startedAtMs, attacker) {
+  if (!teamName || !startedAtMs) return;
+  lastLaunchByTeam.set(teamName, {
+    startedAtMs,
+    attacker: attacker || 'Control'
+  });
+}
+
+function formatLastLaunch(teamName) {
+  const entry = lastLaunchByTeam.get(teamName);
+  if (!entry || !entry.startedAtMs) return '--';
+  const when = formatTime(entry.startedAtMs);
+  if (!entry.attacker) return when;
+  return `${when} (${entry.attacker})`;
 }
 
 // === AICP COMPONENT FOOTER ===

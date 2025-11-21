@@ -71,6 +71,14 @@ let unsubscribeGlobalCooldown = null;
 const speedBumpEffectSubscriptions = new Map();
 const activeSpeedBumpAttackers = new Map(); // attacker -> { victim }
 
+function notifyLocal(kind, text, timeout = 10000) {
+  try {
+    emit('ui:notify', { kind, text, timeout });
+  } catch (err) {
+    console.debug('⚠️ local notify failed:', err?.message || err);
+  }
+}
+
 function loadUiModule() {
   if (!uiModulePromise) {
     uiModulePromise = loadTeamSurpriseUI();
@@ -167,6 +175,8 @@ export async function attemptSurpriseAttack({
 }) {
   const normalizedType = normalizeSurpriseKey(type);
   const label = defaultSurpriseLabel(normalizedType || type);
+  const attackerName = normalizeTeamName(fromTeam) || fromTeam || 'Unknown';
+  const victimName = normalizeTeamName(toTeam) || toTeam || 'Unknown';
 
   if (fromTeam && normalizedType) {
     try {
@@ -183,15 +193,22 @@ export async function attemptSurpriseAttack({
         ChatServiceV2.send({
           fromTeam: 'System',
           toTeam: fromTeam,
-          text: `🚫 ${toTeam} was protected by a Shield / Wax. Your ${label} was blocked.`,
+          text: `🚫 ${victimName} was protected by a Shield / Wax. Your ${label} was blocked.`,
           kind: 'system'
         });
         ChatServiceV2.send({
           fromTeam: 'System',
           toTeam: toTeam,
-          text: `✨ Your shiny wax protected you from a ${label} from ${fromTeam}.`,
+          text: `✨ Thank goodness for a good coat of wax — ${label} from ${attackerName} was blocked.`,
           kind: 'system'
         });
+        ChatServiceV2.send({
+          fromTeam: 'System',
+          toTeam: 'ALL',
+          text: `🛡️ ${attackerName} tried a ${label} on ${victimName}, but it slid off the wax.`,
+          kind: 'system'
+        });
+        notifyLocal('warning', `Ahh darn—they were freshly coated with wax. The ${label} slipped right off.`, 10000);
       } catch (err) {
         console.debug('💬 shield-block notify failed:', err?.message || err);
       }
@@ -221,13 +238,19 @@ export async function attemptSurpriseAttack({
     ChatServiceV2.send({
       fromTeam: 'System',
       toTeam: fromTeam,
-      text: `✅ ${toTeam} was successfully hit with ${label}.`,
+      text: `✅ ${victimName} was successfully hit with ${label}.`,
       kind: 'system'
     });
     ChatServiceV2.send({
       fromTeam: 'System',
       toTeam: toTeam,
-      text: `💥 You were hit by ${label} from ${fromTeam}!`,
+      text: `💥 You were hit by ${label} from ${attackerName}!`,
+      kind: 'system'
+    });
+    ChatServiceV2.send({
+      fromTeam: 'System',
+      toTeam: 'ALL',
+      text: `💥 ${attackerName} sent a ${label} to ${victimName}.`,
       kind: 'system'
     });
   } catch (err) {

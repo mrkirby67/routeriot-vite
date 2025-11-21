@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-11-21T01:24:59.932Z
+# AICP File Health Report — 2025-11-21T01:58:25.474Z
 Files scanned: 145
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -7,9 +7,9 @@ Files scanned: 145
 | ✅ | modules/gameStateManager.js | 570 | 18.3 | 76 | 6% |
 | ✅ | components/GameControls/GameControls.js | 542 | 18.8 | 77 | 8% |
 | ✅ | services/team-surprise/teamSurpriseService.js | 525 | 17.5 | 107 | 5% |
-| ✅ | features/team-surprise/teamSurpriseController.js | 453 | 13.4 | 65 | 6% |
+| ✅ | features/team-surprise/teamSurpriseController.js | 476 | 14.3 | 67 | 5% |
+| ✅ | components/BugStrikeControl/BugStrikeControl.js | 416 | 12.6 | 50 | 9% |
 | ✅ | modules/speedBump/interactions.js | 399 | 13.6 | 77 | 7% |
-| ✅ | components/BugStrikeControl/BugStrikeControl.js | 394 | 11.9 | 45 | 9% |
 | ✅ | components/SurpriseSelector/SurpriseSelector.js | 392 | 13.4 | 65 | 8% |
 | ✅ | ui/overlays/speedBumpOverlay.js | 386 | 13.0 | 65 | 7% |
 | ✅ | modules/chatManager/playerChat.state.js | 374 | 11.6 | 72 | 1% |
@@ -154,9 +154,9 @@ Files scanned: 145
 - modules/gameStateManager.js — 570 lines, 18.3 KB (Complexity: 76)
 - components/GameControls/GameControls.js — 542 lines, 18.8 KB (Complexity: 77)
 - services/team-surprise/teamSurpriseService.js — 525 lines, 17.5 KB (Complexity: 107)
-- features/team-surprise/teamSurpriseController.js — 453 lines, 13.4 KB (Complexity: 65)
+- features/team-surprise/teamSurpriseController.js — 476 lines, 14.3 KB (Complexity: 67)
+- components/BugStrikeControl/BugStrikeControl.js — 416 lines, 12.6 KB (Complexity: 50)
 - modules/speedBump/interactions.js — 399 lines, 13.6 KB (Complexity: 77)
-- components/BugStrikeControl/BugStrikeControl.js — 394 lines, 11.9 KB (Complexity: 45)
 - components/SurpriseSelector/SurpriseSelector.js — 392 lines, 13.4 KB (Complexity: 65)
 - ui/overlays/speedBumpOverlay.js — 386 lines, 13.0 KB (Complexity: 65)
 - modules/chatManager/playerChat.state.js — 374 lines, 11.6 KB (Complexity: 72)
