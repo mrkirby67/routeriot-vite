@@ -78,48 +78,74 @@ let activeCooldowns = {}; // Local cache for cooldowns
 export function SurpriseSelectorComponent() {
   return `
     <section class="${styles.surpriseSelector}">
-      <h2>🎉 Team Wild Cards Dashboard</h2>
-      <p class="${styles.subtitle}">
-        Monitor and adjust each team’s surprise inventory in real time.
-      </p>
-      <div class="${styles.masterControls}">
-        <div>
-          <label for="wildcard-dashboard-type">Apply To All Teams:</label>
-          <select id="wildcard-dashboard-type">
-            <option value="ALL">All of Them</option>
-            <option value="${SurpriseTypes.FLAT_TIRE}">Flat Tire</option>
-            <option value="${SurpriseTypes.BUG_SPLAT}">Bug Splat</option>
-            <option value="${SurpriseTypes.SPEED_BUMP}">Speed Bump</option>
-            <option value="${SurpriseTypes.WILD_CARD}">Super SHIELD Wax</option>
-          </select>
-          <input id="wildcard-dashboard-input" type="number" min="0" value="1">
-          <button type="button" id="wildcard-dashboard-apply">Apply to All Teams</button>
-        </div>
-        <div class="${styles.cooldownControl}">
-          <label for="cooldown-duration-select">Global Cooldown:</label>
-          <select id="cooldown-duration-select">
-            <option value="5">5 Minutes</option>
-            <option value="10">10 Minutes</option>
-            <option value="15">15 Minutes</option>
-            <option value="20">20 Minutes</option>
-          </select>
-        </div>
+      <div class="section-header">
+        <span class="section-title">Wild Cards</span>
+        <button class="expand-toggle" data-target="wildcards-section">+</button>
       </div>
-      <table class="${styles.surpriseTable}">
-        <thead>
-          <tr>
-            <th>Team</th>
-            <th>Flat Tire</th>
-            <th>Bug Splat</th>
-            <th>Speed Bump</th>
-            <th>Super SHIELD Wax</th>
-            <th>Cooldown Timer</th>
-          </tr>
-        </thead>
-        <tbody id="surprise-table-body"></tbody>
-      </table>
+      <div id="wildcards-section" class="collapsible-section collapsed">
+        <h2>🎉 Team Wild Cards Dashboard</h2>
+        <p class="${styles.subtitle}">
+          Monitor and adjust each team’s surprise inventory in real time.
+        </p>
+        <div class="${styles.masterControls}">
+          <div>
+            <label for="wildcard-dashboard-type">Apply To All Teams:</label>
+            <select id="wildcard-dashboard-type">
+              <option value="ALL">All of Them</option>
+              <option value="${SurpriseTypes.FLAT_TIRE}">Flat Tire</option>
+              <option value="${SurpriseTypes.BUG_SPLAT}">Bug Splat</option>
+              <option value="${SurpriseTypes.SPEED_BUMP}">Speed Bump</option>
+              <option value="${SurpriseTypes.WILD_CARD}">Super SHIELD Wax</option>
+            </select>
+            <input id="wildcard-dashboard-input" type="number" min="0" value="1">
+            <button type="button" id="wildcard-dashboard-apply">Apply to All Teams</button>
+          </div>
+          <div class="${styles.cooldownControl}">
+            <label for="cooldown-duration-select">Global Cooldown:</label>
+            <select id="cooldown-duration-select">
+              <option value="5">5 Minutes</option>
+              <option value="10">10 Minutes</option>
+              <option value="15">15 Minutes</option>
+              <option value="20">20 Minutes</option>
+            </select>
+          </div>
+        </div>
+        <table class="${styles.surpriseTable}">
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>Flat Tire</th>
+              <th>Bug Splat</th>
+              <th>Speed Bump</th>
+              <th>Super SHIELD Wax</th>
+              <th>Cooldown Timer</th>
+            </tr>
+          </thead>
+          <tbody id="surprise-table-body"></tbody>
+        </table>
+      </div>
     </section>
   `;
+}
+
+export function initializeWildCardsCollapsible() {
+  const toggleBtn = document.querySelector('[data-target="wildcards-section"]');
+  const content = document.getElementById('wildcards-section');
+
+  if (!toggleBtn || !content) {
+    return;
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    const isCollapsed = content.classList.contains('collapsed');
+    if (isCollapsed) {
+      content.classList.remove('collapsed');
+      toggleBtn.textContent = '–';
+    } else {
+      content.classList.add('collapsed');
+      toggleBtn.textContent = '+';
+    }
+  });
 }
 
 export function initializeSurpriseSelector() {

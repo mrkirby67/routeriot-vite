@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-11-13T04:08:52.384Z
+# AICP File Health Report — 2025-11-21T00:48:02.726Z
 Files scanned: 144
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -10,10 +10,10 @@ Files scanned: 144
 | ✅ | features/team-surprise/teamSurpriseController.js | 453 | 13.4 | 65 | 6% |
 | ✅ | modules/speedBump/interactions.js | 399 | 13.6 | 77 | 7% |
 | ✅ | components/BugStrikeControl/BugStrikeControl.js | 394 | 11.9 | 45 | 9% |
+| ✅ | components/SurpriseSelector/SurpriseSelector.js | 392 | 13.4 | 65 | 8% |
 | ✅ | ui/overlays/speedBumpOverlay.js | 386 | 13.0 | 65 | 7% |
 | ✅ | modules/chatManager/playerChat.state.js | 374 | 11.6 | 72 | 1% |
 | ✅ | modules/scoreboardManager.js | 374 | 11.1 | 71 | 2% |
-| ✅ | components/SurpriseSelector/SurpriseSelector.js | 366 | 12.5 | 60 | 8% |
 | ✅ | features/team-surprise/teamSurpriseState.js | 330 | 10.0 | 96 | 1% |
 | ✅ | modules/playerUI/core.js | 316 | 10.4 | 67 | 2% |
 | ✅ | modules/gameRulesManager.js | 315 | 10.6 | 50 | 9% |
@@ -156,6 +156,6 @@ Files scanned: 144
 - features/team-surprise/teamSurpriseController.js — 453 lines, 13.4 KB (Complexity: 65)
 - modules/speedBump/interactions.js — 399 lines, 13.6 KB (Complexity: 77)
 - components/BugStrikeControl/BugStrikeControl.js — 394 lines, 11.9 KB (Complexity: 45)
+- components/SurpriseSelector/SurpriseSelector.js — 392 lines, 13.4 KB (Complexity: 65)
 - ui/overlays/speedBumpOverlay.js — 386 lines, 13.0 KB (Complexity: 65)
 - modules/chatManager/playerChat.state.js — 374 lines, 11.6 KB (Complexity: 72)
-- modules/scoreboardManager.js — 374 lines, 11.1 KB (Complexity: 71)

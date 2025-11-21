@@ -32,7 +32,8 @@ import {
 import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
 import {
   SurpriseSelectorComponent,
-  initializeSurpriseSelector
+  initializeSurpriseSelector,
+  initializeWildCardsCollapsible
 } from './components/SurpriseSelector/SurpriseSelector.js';
 
 // 🧩 NEW: Zone Questions (Modular System)
@@ -93,6 +94,7 @@ async function main() {
   registerCleanup(speedBumpCleanup, 'speedBumpControl');
 
   registerCleanup(initializeSurpriseSelector() || null, 'surpriseSelector');
+  initializeWildCardsCollapsible();
 
   const chatCleanup = await listenToAllMessages();
   registerCleanup(chatCleanup, 'communications');
