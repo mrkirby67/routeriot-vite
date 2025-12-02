@@ -33,19 +33,24 @@ export function TeamLinksComponent() {
 
   return `
     <div class="${styles.controlSection}">
-      <h2>Team Links</h2>
-      <p>Share these unique URLs with each team captain.</p>
-      <table class="${styles.dataTable}" id="team-links-table">
-        <thead>
-          <tr>
-            <th>Team Name</th>
-            <th>Player Page URL</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRowsHtml}
-        </tbody>
-      </table>
+      <div class="${styles.headerRow}">
+        <h2>Team Links</h2>
+        <button id="toggle-team-links-btn" class="${styles.secondaryBtn}">Expand ▼</button>
+      </div>
+      <div id="team-links-panel" style="display:none;">
+        <p>Share these unique URLs with each team captain.</p>
+        <table class="${styles.dataTable}" id="team-links-table">
+          <thead>
+            <tr>
+              <th>Team Name</th>
+              <th>Player Page URL</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+      </div>
     </div>
   `;
 }
@@ -54,7 +59,16 @@ export function TeamLinksComponent() {
  *  Initialization Logic (optional)
  *  ------------------------------------------------------------------------ */
 export function initializeTeamLinksLogic() {
-  // Add any interactive logic here later if you need (copy buttons, filters, etc.)
+  const toggleBtn = document.getElementById('toggle-team-links-btn');
+  const panel = document.getElementById('team-links-panel');
+
+  if (toggleBtn && panel) {
+    toggleBtn.addEventListener('click', () => {
+      const isHidden = panel.style.display === 'none';
+      panel.style.display = isHidden ? 'block' : 'none';
+      toggleBtn.textContent = isHidden ? 'Collapse ▲' : 'Expand ▼';
+    });
+  }
 }
 
 // === AICP COMPONENT FOOTER ===

@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-11-21T04:12:31.539Z
+# AICP File Health Report — 2025-12-02T00:24:26.618Z
 Files scanned: 145
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -76,6 +76,7 @@ Files scanned: 145
 | ✅ | components/ControlChat/ControlChat.js | 92 | 2.7 | 17 | 7% |
 | ✅ | modules/chatManager/controlFeed.js | 91 | 3.6 | 13 | 4% |
 | ✅ | features/team-surprise/teamSurpriseEvents.js | 91 | 2.7 | 9 | 27% |
+| ✅ | components/TeamLinks/TeamLinks.js | 90 | 3.0 | 5 | 31% |
 | ✅ | components/ChatLog/ChatLog.js | 89 | 2.7 | 5 | 31% |
 | ✅ | modules/emailTeams.js | 88 | 2.9 | 15 | 9% |
 | ✅ | modules/zonesFirestore.js | 87 | 3.2 | 13 | 16% |
@@ -83,7 +84,6 @@ Files scanned: 145
 | ✅ | modules/speedBump/comms.js | 80 | 3.1 | 12 | 26% |
 | ✅ | services/flat-tire/flatTireService.js | 76 | 2.6 | 10 | 36% |
 | ✅ | features/team-surprise/teamSurprise.bridge.js | 76 | 2.1 | 18 | 7% |
-| ✅ | components/TeamLinks/TeamLinks.js | 76 | 2.5 | 4 | 38% |
 | ✅ | modules/playerUI/overlays/baseOverlays.js | 75 | 2.4 | 15 | 4% |
 | ✅ | modules/chatManager/playerChat.events.js | 74 | 2.1 | 11 | 5% |
 | ✅ | modules/speedBumpPlayer.js | 74 | 2.6 | 12 | 28% |

@@ -29,7 +29,10 @@ import {
 import {
   BroadcastComponent, initializeBroadcastLogic
 } from './components/Broadcast/Broadcast.js';
-import { TeamLinksComponent } from './components/TeamLinks/TeamLinks.js';
+import {
+  TeamLinksComponent,
+  initializeTeamLinksLogic
+} from './components/TeamLinks/TeamLinks.js';
 import {
   SurpriseSelectorComponent,
   initializeSurpriseSelector,
@@ -86,6 +89,7 @@ async function main() {
   registerCleanup(initializeScoreboardListener() || null, 'scoreboard');
 
   registerCleanup(initializeGameControlsLogic() || null, 'gameControls');
+  registerCleanup(initializeTeamLinksLogic() || null, 'teamLinks');
   registerCleanup(initializeRacerManagementLogic() || null, 'racerManagement');
   registerCleanup(initializeBroadcastLogic() || null, 'broadcast');
   const bugStrikeCleanup = await initializeBugStrikeControl();
