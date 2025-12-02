@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-12-02T02:13:07.431Z
+# AICP File Health Report — 2025-12-02T02:19:54.674Z
 Files scanned: 145
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -10,7 +10,7 @@ Files scanned: 145
 | ✅ | components/GameControls/GameControls.js | 542 | 18.8 | 77 | 8% |
 | ✅ | services/team-surprise/teamSurpriseService.js | 525 | 17.5 | 107 | 5% |
 | ✅ | features/team-surprise/teamSurpriseController.js | 499 | 15.2 | 75 | 5% |
-| ✅ | components/BugStrikeControl/BugStrikeControl.js | 416 | 12.6 | 50 | 9% |
+| ✅ | components/BugStrikeControl/BugStrikeControl.js | 417 | 12.7 | 50 | 9% |
 | ✅ | modules/speedBump/interactions.js | 399 | 13.6 | 77 | 7% |
 | ✅ | components/SurpriseSelector/SurpriseSelector.js | 392 | 13.4 | 65 | 8% |
 | ✅ | modules/scoreboardManager.js | 390 | 11.6 | 75 | 2% |
@@ -157,6 +157,6 @@ Files scanned: 145
 - components/GameControls/GameControls.js — 542 lines, 18.8 KB (Complexity: 77)
 - services/team-surprise/teamSurpriseService.js — 525 lines, 17.5 KB (Complexity: 107)
 - features/team-surprise/teamSurpriseController.js — 499 lines, 15.2 KB (Complexity: 75)
-- components/BugStrikeControl/BugStrikeControl.js — 416 lines, 12.6 KB (Complexity: 50)
+- components/BugStrikeControl/BugStrikeControl.js — 417 lines, 12.7 KB (Complexity: 50)
 - modules/speedBump/interactions.js — 399 lines, 13.6 KB (Complexity: 77)
 - components/SurpriseSelector/SurpriseSelector.js — 392 lines, 13.4 KB (Complexity: 65)

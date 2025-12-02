@@ -21,7 +21,7 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { isTeamAttackable } from '../../features/team-surprise/teamSurpriseController.js';
+import { canTeamBeAttacked } from '../../services/gameRulesManager.js';
 import { allTeams } from '../../data.js';
 import styles from './BugStrikeControl.module.css';
 
@@ -311,9 +311,10 @@ async function handleLaunch({
 
   row.launchBtn.disabled = true;
   try {
-    const attackable = await isTeamAttackable(teamName);
-    if (!attackable) {
-      alert(`🚫 ${teamName} is protected and cannot be attacked!`);
+    const rule = await canTeamBeAttacked(controlTeamName, teamName, 'bugstrike');
+    if (!rule.allowed) {
+      const reason = rule.reason === 'SHIELD' ? 'is shielded by wax' : 'is otherwise protected';
+      alert(`🚫 ${teamName} ${reason} and cannot be attacked!`);
       row.launchBtn.disabled = false;
       return;
     }
