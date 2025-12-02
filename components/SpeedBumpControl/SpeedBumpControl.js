@@ -393,6 +393,10 @@ class SpeedBumpController {
       });
       return true;
     } catch (err) {
+      if (err?.message?.includes('No Speed Bump found for this attacker')) {
+        console.warn('[SpeedBumpControl] Skipping shuffle; no Speed Bump for attacker:', attackerId);
+        return false;
+      }
       console.error('[SpeedBumpControl] shuffle failed:', err);
       if (!suppressAlert) alert(err?.message || 'Failed to shuffle prompt');
       return false;
@@ -400,18 +404,28 @@ class SpeedBumpController {
   }
 
   async handleGlobalShuffle() {
-    const pending = Array.from(this.assignments.values()).filter(
-      entry => entry?.status === SPEEDBUMP_STATUS.PENDING
+    const pending = Array.from(this.assignments.values()).filter(entry =>
+      entry?.status === SPEEDBUMP_STATUS.PENDING &&
+      entry?.prompt &&
+      entry?.attackerId
     );
     if (!pending.length) {
       alert('No pending Speed Bumps to shuffle.');
       return;
     }
 
-    for (const assignment of pending) {
-      const attackerId = normalizeTeamId(assignment.attackerId || '');
-      if (!attackerId) continue;
-      await this.handleShuffle(attackerId, { suppressAlert: true });
+    const uniqueAttackers = Array.from(new Set(pending.map(a => normalizeTeamId(a.attackerId || '')).filter(Boolean)));
+
+    for (const attackerId of uniqueAttackers) {
+      try {
+        await this.handleShuffle(attackerId, { suppressAlert: true });
+      } catch (err) {
+        if (err?.message?.includes('No Speed Bump found for this attacker')) {
+          console.warn('[SpeedBumpControl] Skipping shuffle; no Speed Bump for attacker:', attackerId);
+          continue;
+        }
+        throw err;
+      }
     }
   }
 
