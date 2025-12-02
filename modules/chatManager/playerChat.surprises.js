@@ -14,6 +14,7 @@ import {
 } from '../teamSurpriseManager.js';
 import { sendPrivateSystemMessage } from './messageService.js';
 import ChatServiceV2 from '../../services/ChatServiceV2.js';
+import { canTeamBeAttacked } from '../../services/gameRulesManager.js';
 
 const SURPRISE_LABELS = {
   [SurpriseTypes.FLAT_TIRE]: 'Flat Tire',
@@ -76,6 +77,30 @@ export async function dispatchFlatTireAttack(attacker, defender) {
   if (!fromTeam) throw new Error('Missing attacking team.');
   if (!targetTeam || targetTeam === fromTeam) {
     throw new Error('Choose a different team to receive the Flat Tire.');
+  }
+
+  const rule = await canTeamBeAttacked(fromTeam, targetTeam, 'flattire');
+  if (!rule.allowed) {
+    if (rule.reason === 'SHIELD') {
+      try {
+        await ChatServiceV2.send({
+          fromTeam: 'System',
+          toTeam: fromTeam,
+          text: `🚫 Your Flat Tire was thwarted — ${targetTeam}'s tires are shiny with Super Shield Wax and turtle wax.`,
+          kind: 'system'
+        });
+        await ChatServiceV2.send({
+          fromTeam: 'System',
+          toTeam: targetTeam,
+          text: `🛡️ Your shield blocked a Flat Tire from ${fromTeam}. Those self-healing tires held strong.`,
+          kind: 'system'
+        });
+      } catch (err) {
+        console.debug('💬 flat tire shield notify failed:', err?.message || err);
+      }
+      return { ok: false, blocked: true, reason: 'shield' };
+    }
+    throw new Error(rule.reason || 'Target cannot be attacked.');
   }
 
   const result = await sendSurpriseToTeam(fromTeam, targetTeam, SurpriseTypes.FLAT_TIRE);

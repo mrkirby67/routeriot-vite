@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-12-02T03:51:48.074Z
+# AICP File Health Report — 2025-12-02T04:09:27.536Z
 Files scanned: 145
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -34,13 +34,13 @@ Files scanned: 145
 | ✅ | ui/flat-tire/flatTireUI.js | 244 | 9.8 | 43 | 11% |
 | ✅ | components/ZoneManagement/zoneRender.js | 243 | 9.5 | 17 | 14% |
 | ✅ | modules/flatTireManager.js | 239 | 8.6 | 42 | 2% |
+| ✅ | modules/chatManager/playerChat.surprises.js | 211 | 6.7 | 31 | 2% |
 | ✅ | ui/overlays/speedBumpOverlay.js | 207 | 6.9 | 33 | 13% |
 | ✅ | modules/playerUI/overlays/speedBumpOverlay.js | 199 | 5.9 | 42 | 2% |
 | ✅ | modules/bugStrikeManager.js | 198 | 6.5 | 16 | 16% |
 | ✅ | modules/controlUI.js | 198 | 6.8 | 27 | 6% |
 | ✅ | modules/gameUI.js | 195 | 6.3 | 29 | 12% |
 | ✅ | components/ZoneQuestions/ZoneQuestionsUI.js | 192 | 6.9 | 21 | 21% |
-| ✅ | modules/chatManager/playerChat.surprises.js | 186 | 5.8 | 29 | 2% |
 | ✅ | modules/zonesUtils.js | 186 | 5.9 | 42 | 3% |
 | ✅ | modules/chatManager/playerChat.handlers.js | 184 | 5.8 | 35 | 2% |
 | ✅ | modules/playerBugStrike.js | 184 | 5.3 | 39 | 2% |
@@ -73,6 +73,7 @@ Files scanned: 145
 | ✅ | components/RacerManagement/RacerManagement.js | 100 | 4.2 | 11 | 27% |
 | ✅ | ui/team-surprise/teamSurpriseUI.js | 100 | 3.2 | 13 | 27% |
 | ✅ | modules/gameMaintenance.js | 98 | 3.2 | 13 | 18% |
+| ✅ | services/flat-tire/flatTireService.js | 95 | 3.3 | 11 | 28% |
 | ✅ | components/ControlChat/ControlChat.js | 92 | 2.7 | 17 | 7% |
 | ✅ | modules/chatManager/controlFeed.js | 91 | 3.6 | 13 | 4% |
 | ✅ | features/team-surprise/teamSurpriseEvents.js | 91 | 2.7 | 9 | 27% |
@@ -82,7 +83,6 @@ Files scanned: 145
 | ✅ | modules/zonesFirestore.js | 87 | 3.2 | 13 | 16% |
 | ✅ | modules/flatTire_fixGPS.js | 80 | 2.4 | 11 | 6% |
 | ✅ | modules/speedBump/comms.js | 80 | 3.1 | 12 | 26% |
-| ✅ | services/flat-tire/flatTireService.js | 76 | 2.6 | 10 | 36% |
 | ✅ | features/team-surprise/teamSurprise.bridge.js | 76 | 2.1 | 18 | 7% |
 | ✅ | modules/playerUI/overlays/baseOverlays.js | 75 | 2.4 | 15 | 4% |
 | ✅ | modules/chatManager/playerChat.events.js | 74 | 2.1 | 11 | 5% |

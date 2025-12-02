@@ -18,6 +18,7 @@ import {
   releaseFlatTireTeam,
 } from '../../modules/flatTireManager.js';
 import { canTeamBeAttacked } from '../gameRulesManager.js';
+import ChatServiceV2 from '../ChatServiceV2.js';
 
 function throwRuleError(rule) {
   if (!rule || rule.allowed) return;
@@ -53,6 +54,24 @@ export async function assignFlatTireTeam(teamName, options = {}) {
     : 'Control';
   const rule = await canTeamBeAttacked(attacker, teamName, 'flattire');
   if (!rule.allowed) {
+    if (rule.reason === 'SHIELD') {
+      try {
+        await ChatServiceV2.send({
+          fromTeam: 'System',
+          toTeam: attacker,
+          text: `🚫 Your Flat Tire was thwarted — ${teamName}'s tires are shining with Super Shield Wax and turtle wax.`,
+          kind: 'system'
+        });
+        await ChatServiceV2.send({
+          fromTeam: 'System',
+          toTeam: teamName,
+          text: `🛡️ Your shield blocked a Flat Tire from ${attacker}. Self-healing tires stayed intact.`,
+          kind: 'system'
+        });
+      } catch (err) {
+        console.debug('💬 flat tire shield notify failed:', err?.message || err);
+      }
+    }
     throwRuleError(rule);
   }
   return baseAssignFlatTireTeam(teamName, options);
