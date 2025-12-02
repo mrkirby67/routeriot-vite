@@ -17,9 +17,9 @@ import styles from './RacerManagement.module.css';
 export function RacerManagementComponent() {
     const componentHtml = `
         <div class="${styles.controlSection}">
-            <div class="${styles.header}">
+            <div class="${styles.headerRow}">
                 <h2>Racer Management</h2>
-                <button id="toggle-racers-btn" class="${styles.expandBtn}">Expand ▼</button>
+                <button id="toggle-racers-btn" class="${styles.secondaryBtn}">Expand ▼</button>
             </div>
             <div id="racers-table-container" style="display: none;">
                 <table class="${styles.dataTable}" id="racers-table">
