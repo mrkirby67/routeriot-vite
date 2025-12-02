@@ -11,6 +11,7 @@ import {
   getDoc,
   getDocs,
   query,
+  orderBy,
   where,
   setDoc,
   updateDoc,
@@ -22,6 +23,7 @@ import {
   getRandomSpeedBumpPrompt,
   getSpeedBumpPromptBank
 } from '../../modules/speedBumpChallenges.js';
+import ChatServiceV2 from '../ChatServiceV2.js';
 import { canTeamBeAttacked } from '../gameRulesManager.js';
 
 // ----------------------------------------------------------------------------
@@ -29,20 +31,27 @@ import { canTeamBeAttacked } from '../gameRulesManager.js';
 // ----------------------------------------------------------------------------
 
 export const SPEEDBUMP_STATUS = Object.freeze({
-  PENDING: 'pending',    // assigned, victim not yet acknowledged
-  ACTIVE: 'active',      // victim overlay shown / in progress
+  PENDING: 'pending',           // assigned, victim not yet acknowledged
+  ACTIVE: 'active',             // victim overlay shown / in progress
+  WAITING_RELEASE: 'waiting_release', // victim requested release / completed; 5-min window
   COMPLETED: 'completed',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'cancelled',
+  EXPIRED: 'expired'
 });
 
-// Root collection for assignments. One document per (game, attacker).
+// Durations
+export const BLOCK_DURATION_MS = 20 * 60 * 1000;   // 20 minutes
+export const RELEASE_DURATION_MS = 5 * 60 * 1000;  // 5 minutes
+
+// Root collection for assignments. One document per (game, attacker, victim).
 const ROOT_COLLECTION = 'speedBumpAssignments';
 
 // ----------------------------------------------------------------------------
 // 🧩 Helpers
 // ----------------------------------------------------------------------------
 
-function makeDocId(gameId, attackerId) {
+function makeDocId(gameId, attackerId, victimId) {
+  if (victimId) return `${gameId}__${attackerId}__${victimId}`;
   return `${gameId}__${attackerId}`;
 }
 
@@ -61,6 +70,26 @@ function normalizeStatus(value) {
   if (!v) return null;
   const match = Object.values(SPEEDBUMP_STATUS).find(s => s === v);
   return match || null;
+}
+
+function toMillis(value) {
+  if (typeof value === 'number') return value;
+  if (value?.toMillis) return value.toMillis();
+  return null;
+}
+
+async function fetchLatestByAttacker(gameId, attacker) {
+  const colRef = collection(db, ROOT_COLLECTION);
+  const q = query(
+    colRef,
+    where('gameId', '==', gameId),
+    where('attackerId', '==', attacker),
+    orderBy('createdAt', 'desc')
+  );
+  const snap = await getDocs(q);
+  const docs = [];
+  snap.forEach(docSnap => docs.push(docSnap));
+  return docs[0] || null;
 }
 
 async function assertAttackerFree(gameId, attacker) {
@@ -145,8 +174,39 @@ async function fetchAssignmentsForGame(gameId) {
 function filterActiveLike(assignments) {
   return assignments.filter(a =>
     a.status === SPEEDBUMP_STATUS.PENDING ||
-    a.status === SPEEDBUMP_STATUS.ACTIVE
+    a.status === SPEEDBUMP_STATUS.ACTIVE ||
+    a.status === SPEEDBUMP_STATUS.WAITING_RELEASE
   );
+}
+
+async function autoAdvanceIfExpired(docId, data) {
+  const now = Date.now();
+  const status = normalizeStatus(data?.status);
+  const blockEndsAt = toMillis(data?.blockEndsAt);
+  const releaseEndsAt = toMillis(data?.releaseEndsAt);
+
+  if (status === SPEEDBUMP_STATUS.ACTIVE && Number.isFinite(blockEndsAt) && blockEndsAt <= now) {
+    try {
+      await updateDoc(doc(db, ROOT_COLLECTION, docId), {
+        status: SPEEDBUMP_STATUS.EXPIRED,
+        updatedAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.debug('⚠️ autoAdvanceIfExpired (block) failed:', err?.message || err);
+    }
+  }
+
+  if (status === SPEEDBUMP_STATUS.WAITING_RELEASE && Number.isFinite(releaseEndsAt) && releaseEndsAt <= now) {
+    try {
+      await updateDoc(doc(db, ROOT_COLLECTION, docId), {
+        status: SPEEDBUMP_STATUS.COMPLETED,
+        updatedAt: serverTimestamp(),
+        completedAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.debug('⚠️ autoAdvanceIfExpired (release) failed:', err?.message || err);
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -174,7 +234,9 @@ export function subscribeToGameSpeedBumps(gameId, callback) {
   return onSnapshot(q, (snap) => {
     const results = [];
     snap.forEach(docSnap => {
-      results.push({ id: docSnap.id, ...docSnap.data() });
+      const data = docSnap.data();
+      autoAdvanceIfExpired(docSnap.id, data);
+      results.push({ id: docSnap.id, ...data });
     });
     callback(results);
   });
@@ -210,8 +272,13 @@ export async function assignSpeedBump({
   attackerId,
   victimId,
   prompt,
+  promptId,
   exclusions = [],
-  type = 'slowdown'
+  type = 'slowdown',
+  contactName = null,
+  contactPhone = null,
+  contactEmail = null,
+  status = SPEEDBUMP_STATUS.ACTIVE
 }) {
   assertNonEmpty(gameId, 'gameId');
   assertNonEmpty(attackerId, 'attackerId');
@@ -227,6 +294,19 @@ export async function assignSpeedBump({
   // Global attack rules (shield / attacker protected / victim busy)
   const rule = await canTeamBeAttacked(attacker, victim, 'speedbump');
   if (!rule.allowed) {
+    if (rule.reason === 'SHIELD') {
+      try {
+        await ChatServiceV2.send({
+          fromTeam: 'System',
+          toTeam: attacker || 'Control',
+          text: `🚫 Your Speed Bump was thwarted — ${victim} is shiny with Super Shield Wax.`,
+          kind: 'system',
+          meta: { origin: 'speedbump_shield_block' }
+        });
+      } catch (err) {
+        console.debug('⚠️ speedbump shield chat failed:', err?.message || err);
+      }
+    }
     throwRuleError(rule);
   }
 
@@ -234,7 +314,7 @@ export async function assignSpeedBump({
   await assertVictimFree(gameId, victim);
 
   // 1) Check if attacker already has a live Speed Bump
-  const docId = makeDocId(gameId, attacker);
+  const docId = makeDocId(gameId, attacker, victim);
   const ref = doc(db, ROOT_COLLECTION, docId);
   const existingSnap = await getDoc(ref);
 
@@ -274,17 +354,26 @@ export async function assignSpeedBump({
   }
 
   // 4) Persist assignment
-  const nowStatus = SPEEDBUMP_STATUS.PENDING;
-
-
+  const nowStatus = status || SPEEDBUMP_STATUS.ACTIVE;
+  const now = Date.now();
   const payload = {
     gameId,
     attackerId: attacker,
     victimId: victim,
     prompt: chosenPrompt,
+    promptText: chosenPrompt,
+    promptId: promptId || chosenPrompt,
     type,
     status: nowStatus,
+    blockEndsAt: nowStatus === SPEEDBUMP_STATUS.ACTIVE ? now + BLOCK_DURATION_MS : null,
+    releaseEndsAt: null,
+    releaseRequestedAt: null,
+    chirpCount: 0,
+    attackerContactName: contactName,
+    attackerContactPhone: contactPhone,
+    attackerContactEmail: contactEmail,
     createdAt: serverTimestamp(),
+    activatedAt: nowStatus === SPEEDBUMP_STATUS.ACTIVE ? serverTimestamp() : null,
     updatedAt: serverTimestamp(),
     completedAt: null
   };
@@ -301,17 +390,20 @@ export async function assignSpeedBump({
  * Mark an assignment as ACTIVE.
  * Typically called when the victim’s overlay actually shows up.
  */
-export async function markSpeedBumpActive({ gameId, attackerId }) {
+export async function markSpeedBumpActive({ gameId, attackerId, victimId }) {
   assertNonEmpty(gameId, 'gameId');
   assertNonEmpty(attackerId, 'attackerId');
 
   const attacker = normalizeTeamId(attackerId);
-  const docId = makeDocId(gameId, attacker);
-  const ref = doc(db, ROOT_COLLECTION, docId);
-  const snap = await getDoc(ref);
+  const docId = makeDocId(gameId, attacker, victimId);
+  let ref = doc(db, ROOT_COLLECTION, docId);
+  let snap = await getDoc(ref);
 
   if (!snap.exists()) {
-    throw new Error('No Speed Bump found for this attacker.');
+    const latest = await fetchLatestByAttacker(gameId, attacker);
+    if (!latest) throw new Error('No Speed Bump found for this attacker.');
+    ref = latest.ref;
+    snap = latest;
   }
 
   const data = snap.data();
@@ -327,8 +419,15 @@ export async function markSpeedBumpActive({ gameId, attackerId }) {
     throw new Error(`Cannot mark Speed Bump active from status "${data.status}".`);
   }
 
+  const now = Date.now();
+  const blockEndsAt = now + BLOCK_DURATION_MS;
+
   await updateDoc(ref, {
     status: SPEEDBUMP_STATUS.ACTIVE,
+    activatedAt: serverTimestamp(),
+    blockEndsAt,
+    releaseRequestedAt: null,
+    releaseEndsAt: null,
     updatedAt: serverTimestamp()
   });
 
@@ -399,17 +498,18 @@ export async function reshuffleSpeedBumpPrompt({
  * Canonical use: the **attacking team** frees the victim
  * from control UI or via some validation flow.
  */
-export async function completeSpeedBump({ gameId, attackerId }) {
+export async function completeSpeedBump({ gameId, attackerId, victimId, assignmentId }) {
   assertNonEmpty(gameId, 'gameId');
   assertNonEmpty(attackerId, 'attackerId');
 
   const attacker = normalizeTeamId(attackerId);
-  const docId = makeDocId(gameId, attacker);
-  const ref = doc(db, ROOT_COLLECTION, docId);
-  const snap = await getDoc(ref);
-
+  let ref = doc(db, ROOT_COLLECTION, assignmentId || makeDocId(gameId, attacker, victimId));
+  let snap = await getDoc(ref);
   if (!snap.exists()) {
-    throw new Error('No Speed Bump found for this attacker.');
+    const latest = await fetchLatestByAttacker(gameId, attacker);
+    if (!latest) throw new Error('No Speed Bump found for this attacker.');
+    ref = latest.ref;
+    snap = latest;
   }
 
   const data = snap.data();
@@ -440,17 +540,18 @@ export async function completeSpeedBump({ gameId, attackerId }) {
  * Cancel a Speed Bump entirely.
  * Control-panel-only tool: use for admin cleanup.
  */
-export async function cancelSpeedBump({ gameId, attackerId }) {
+export async function cancelSpeedBump({ gameId, attackerId, victimId, assignmentId }) {
   assertNonEmpty(gameId, 'gameId');
   assertNonEmpty(attackerId, 'attackerId');
 
   const attacker = normalizeTeamId(attackerId);
-  const docId = makeDocId(gameId, attacker);
-  const ref = doc(db, ROOT_COLLECTION, docId);
-  const snap = await getDoc(ref);
-
+  let ref = doc(db, ROOT_COLLECTION, assignmentId || makeDocId(gameId, attacker, victimId));
+  let snap = await getDoc(ref);
   if (!snap.exists()) {
-    throw new Error('No Speed Bump found for this attacker.');
+    const latest = await fetchLatestByAttacker(gameId, attacker);
+    if (!latest) throw new Error('No Speed Bump found for this attacker.');
+    ref = latest.ref;
+    snap = latest;
   }
 
   const data = snap.data();
@@ -656,6 +757,7 @@ export function subscribeToTeamSpeedBumps(teamId, callback, options = {}) {
     const arr = [];
     snap.forEach(docSnap => {
       const data = docSnap.data() || {};
+      autoAdvanceIfExpired(docSnap.id, data);
       arr.push({
         id: docSnap.id,
         ...data,
@@ -686,6 +788,91 @@ export function subscribeToTeamSpeedBumps(teamId, callback, options = {}) {
     try { unsubAttacker?.(reason); } catch {}
     try { unsubVictim?.(reason); } catch {}
   };
+}
+
+// ---------------------------------------------------------------------------
+// Victim-side helpers
+// ---------------------------------------------------------------------------
+
+export async function requestSpeedBumpRelease({ gameId, assignmentId, attackerId, victimId }) {
+  const docId = assignmentId || makeDocId(gameId || DEFAULT_GAME_ID, attackerId || '', victimId || '');
+  const ref = doc(db, ROOT_COLLECTION, docId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Speed Bump not found.');
+  const data = snap.data();
+  const now = Date.now();
+  const hasRequested = !!data.releaseRequestedAt;
+  const releaseEndsAt = now + RELEASE_DURATION_MS;
+
+  await updateDoc(ref, {
+    status: SPEEDBUMP_STATUS.WAITING_RELEASE,
+    releaseRequestedAt: hasRequested ? data.releaseRequestedAt : serverTimestamp(),
+    releaseEndsAt,
+    updatedAt: serverTimestamp()
+  });
+
+  try {
+    if (data.attackerId) {
+      await ChatServiceV2.send({
+        fromTeam: data.victimId || victimId || 'Unknown',
+        toTeam: data.attackerId,
+        text: `✅ ${data.victimId || victimId || 'A team'} finished the Speed Bump and requests release.`,
+        kind: 'system',
+        meta: { origin: 'speedbump_release_request', assignmentId: docId }
+      });
+    }
+  } catch (err) {
+    console.debug('⚠️ Speed Bump release request chat failed:', err?.message || err);
+  }
+
+  return { id: docId, releaseEndsAt };
+}
+
+export async function markSpeedBumpCompletedByVictim({ gameId, assignmentId, attackerId, victimId }) {
+  return requestSpeedBumpRelease({ gameId, assignmentId, attackerId, victimId });
+}
+
+export async function sendSpeedBumpChirp({ assignmentId, message, attackerId, victimId }) {
+  if (!assignmentId) throw new Error('Missing assignment id for chirp.');
+  const ref = doc(db, ROOT_COLLECTION, assignmentId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Speed Bump not found.');
+  const data = snap.data();
+  const currentCount = Number(data.chirpCount || 0);
+  if (currentCount >= 3) return { ok: false, reason: 'limit_reached' };
+
+  await updateDoc(ref, {
+    chirpCount: currentCount + 1,
+    updatedAt: serverTimestamp()
+  });
+
+  try {
+    const toTeam = data.attackerId || attackerId || 'Control';
+    const fromTeam = data.victimId || victimId || 'Unknown';
+    await ChatServiceV2.send({
+      fromTeam,
+      toTeam,
+      text: message || 'Chirp! We are working on it.',
+      kind: 'system',
+      meta: { origin: 'speedbump_chirp', assignmentId }
+    });
+  } catch (err) {
+    console.debug('⚠️ Speed Bump chirp chat failed:', err?.message || err);
+  }
+
+  return { ok: true, chirpCount: currentCount + 1 };
+}
+
+export async function expireSpeedBump({ assignmentId }) {
+  if (!assignmentId) return;
+  try {
+    await updateDoc(doc(db, ROOT_COLLECTION, assignmentId), {
+      status: SPEEDBUMP_STATUS.EXPIRED,
+      updatedAt: serverTimestamp()
+    });
+  } catch (err) {
+    console.debug('⚠️ expireSpeedBump failed:', err?.message || err);
+  }
 }
 
 /**

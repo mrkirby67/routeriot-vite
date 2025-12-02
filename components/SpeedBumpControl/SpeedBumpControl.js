@@ -61,10 +61,18 @@ function formatStatus(status) {
   switch (status) {
     case SPEEDBUMP_STATUS.PENDING: return 'Pending';
     case SPEEDBUMP_STATUS.ACTIVE: return 'Active';
+    case SPEEDBUMP_STATUS.WAITING_RELEASE: return 'Release';
     case SPEEDBUMP_STATUS.COMPLETED: return 'Completed';
     case SPEEDBUMP_STATUS.CANCELLED: return 'Cancelled';
+    case SPEEDBUMP_STATUS.EXPIRED: return 'Expired';
     default: return '—';
   }
+}
+
+function toMillis(value) {
+  if (typeof value === 'number') return value;
+  if (value?.toMillis) return value.toMillis();
+  return null;
 }
 
 function pickRandomPrompt(promptBank = [], exclusions = []) {
@@ -282,6 +290,27 @@ class SpeedBumpController {
     return this.assignments.get(victimId)?.status || 'idle';
   }
 
+  remainingLabel(assignment) {
+    if (!assignment) return '';
+    const status = assignment.status || '';
+    const targetTs = status === SPEEDBUMP_STATUS.WAITING_RELEASE
+      ? assignment.releaseEndsAt
+      : assignment.blockEndsAt;
+    const ts = toMillis(targetTs);
+    if (!Number.isFinite(ts)) return '';
+    const diff = Math.max(0, ts - Date.now());
+    const mins = Math.floor(diff / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  formatLastLaunch(assignment) {
+    if (!assignment) return '—';
+    const when = toMillis(assignment.createdAt || assignment.activatedAt);
+    const timeLabel = Number.isFinite(when) ? new Date(when).toLocaleTimeString() : '';
+    return [assignment.attackerId || '—', timeLabel].filter(Boolean).join(' · ');
+  }
+
   renderTable() {
     if (!this.tableBody) return;
     this.tableBody.innerHTML = '';
@@ -297,7 +326,7 @@ class SpeedBumpController {
       const assignment = this.assignments.get(victimId);
       const prompt = this.promptCache.get(victimId) || assignment?.prompt || '';
       const promptOptions = this.getSpeedBumpOptions(prompt);
-      const lastLaunch = this.lastLaunchByTeam.get(victimId) || '—';
+      const lastLaunch = this.formatLastLaunch(assignment);
       const status = assignment?.status || 'idle';
 
       const row = document.createElement('tr');
@@ -314,7 +343,7 @@ class SpeedBumpController {
           </select>
         </td>
         <td data-role="last-launch">${this.escapeHtml(lastLaunch)}</td>
-        <td data-role="status">${formatStatus(status)}</td>
+        <td data-role="status">${formatStatus(status)} ${this.remainingLabel(assignment)}</td>
         <td class="${styles.inlineActions}">
           <button data-action="activate" class="${styles.primaryBtn}">Activate</button>
           <button data-action="complete" class="${styles.secondaryBtn}">Complete</button>
@@ -386,10 +415,11 @@ class SpeedBumpController {
 
       const isPending = status === SPEEDBUMP_STATUS.PENDING;
       const isActive = status === SPEEDBUMP_STATUS.ACTIVE;
+      const isWaiting = status === SPEEDBUMP_STATUS.WAITING_RELEASE;
 
-      if (activateBtn) activateBtn.disabled = isActive || !prompt;
-      if (completeBtn) completeBtn.disabled = !(isPending || isActive);
-      if (cancelBtn) cancelBtn.disabled = !(isPending || isActive);
+      if (activateBtn) activateBtn.disabled = isActive || isWaiting || !prompt;
+      if (completeBtn) completeBtn.disabled = !(isPending || isActive || isWaiting);
+      if (cancelBtn) cancelBtn.disabled = !(isPending || isActive || isWaiting);
     });
   }
 
@@ -461,12 +491,14 @@ class SpeedBumpController {
           gameId: this.gameId,
           attackerId: controlAttacker,
           victimId,
-          prompt: chosenPrompt
+          prompt: chosenPrompt,
+          status: 'active'
         });
       }
       await markSpeedBumpActive({
         gameId: this.gameId,
-        attackerId: attackerToUse
+        attackerId: attackerToUse,
+        victimId
       });
       this.lastLaunchByTeam.set(victimId, attackerToUse);
       this.applyPromptSelectionToDom(victimId, this.promptCache.get(victimId) || '');
@@ -482,7 +514,9 @@ class SpeedBumpController {
     try {
       await completeSpeedBump({
         gameId: this.gameId,
-        attackerId: assignment.attackerId
+        attackerId: assignment.attackerId,
+        victimId: assignment.victimId,
+        assignmentId: assignment.id
       });
     } catch (err) {
       console.error('[SpeedBumpControl] complete failed:', err);
@@ -496,7 +530,9 @@ class SpeedBumpController {
     try {
       await cancelSpeedBump({
         gameId: this.gameId,
-        attackerId: assignment.attackerId
+        attackerId: assignment.attackerId,
+        victimId: assignment.victimId,
+        assignmentId: assignment.id
       });
     } catch (err) {
       console.error('[SpeedBumpControl] cancel failed:', err);

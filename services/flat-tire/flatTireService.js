@@ -74,7 +74,12 @@ export async function assignFlatTireTeam(teamName, options = {}) {
     }
     throwRuleError(rule);
   }
-  return baseAssignFlatTireTeam(teamName, options);
+  const enriched = {
+    ...options,
+    attackerId: attacker,
+    victimId: teamName
+  };
+  return baseAssignFlatTireTeam(teamName, enriched);
 }
 
 // === AICP SERVICE FOOTER ===

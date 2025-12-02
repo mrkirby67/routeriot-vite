@@ -149,7 +149,9 @@ async function launchBugStrikeDoc({
     {
       active: true,
       victim: targetTeam,
+      victimId: targetTeam,
       attacker,
+      attackerId: attacker,
       bugs,
       durationMs,
       startedAt: serverTimestamp(),
@@ -163,19 +165,19 @@ async function launchBugStrikeDoc({
 
 async function announceBugStrike(attacker, targetTeam) {
   await ChatServiceV2.send({
-    fromTeam: attacker,
-    toTeam: 'ALL',
-    text: `🪰 ${attacker} splatted ${targetTeam} with a Bug Strike!`,
+    fromTeam: 'System',
+    toTeam: attacker,
+    text: `💥 Your Bug Splat hit ${targetTeam}!`,
     kind: 'system',
-    meta: {
-      effect: 'bugStrike',
-      targetTeam,
-      origin: 'player'
-    },
-    extra: {
-      type: 'bugStrike',
-      from: attacker,
-      to: targetTeam
-    }
+    meta: { effect: 'bugStrike', targetTeam, origin: 'player' },
+    extra: { type: 'bugStrike', from: attacker, to: targetTeam }
+  });
+  await ChatServiceV2.send({
+    fromTeam: 'System',
+    toTeam: targetTeam,
+    text: `💥 ${attacker} hit you with Bug Splat. Enjoy the bugs!`,
+    kind: 'system',
+    meta: { effect: 'bugStrike', targetTeam, origin: 'player' },
+    extra: { type: 'bugStrike', from: attacker, to: targetTeam }
   });
 }

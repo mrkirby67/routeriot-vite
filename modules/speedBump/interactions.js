@@ -2,15 +2,6 @@
 // INTERACTIONS – send/release logic, subscriptions, notify, and attack flow 
 // ============================================================================ 
 
-import { broadcastEvent } from '../zonesFirestore.js'; 
-import { db } from '/core/config.js';
-import {
-  doc,
-  setDoc,
-  deleteDoc,
-  onSnapshot,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { 
   findTeamByName, 
   sanitize, 
@@ -42,6 +33,12 @@ import {
 import { handleReversal } from './reversals.js'; 
 import { getRandomTaunt } from '../messages/taunts.js'; 
 import { sendPrivateMessage } from '../chatManager/messageService.js'; 
+import {
+  assignSpeedBump,
+  markSpeedBumpActive,
+  BLOCK_DURATION_MS,
+  RELEASE_DURATION_MS
+} from '../../services/speed-bump/speedBumpService.js';
 
 let tickerId = null; 
 
@@ -245,7 +242,7 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
   const reversal = findActiveBumpByAttacker(defender);
   const successPayload = { ok: true };
 
-  const result = await attemptSurpriseAttack({
+  const rule = await attemptSurpriseAttack({
     fromTeam: attacker,
     toTeam: defender,
     type: 'speedBump',
@@ -264,74 +261,48 @@ export async function sendSpeedBump(fromTeam, toTeam, challengeText, { override 
       const sanitizedEmail = contactEmail ? sanitize(contactEmail) : '';
       const sanitizedPhone = contactPhone ? sanitize(contactPhone) : '';
 
-      const messageLines = [
-        `🚧 Speed Bump: ${sanitizedAttacker} challenged ${sanitizedDefender}!`,
-        '',
-        `Challenge: ${sanitizedChallenge}`
-      ];
-      if (sanitizedEmail) messageLines.push('', `Contact Email: ${sanitizedEmail}`);
-      if (sanitizedPhone) messageLines.push('', `Contact Phone: ${sanitizedPhone}`);
-      messageLines.push('', 'Reply with a proof photo/video to clear your Speed Bump!');
-
-      await broadcastEvent('Game Master', messageLines.join('\n'), true);
-
-      applySpeedBump(defender, {
-        by: attacker,
-        challenge: sanitizedChallenge,
-        startedAt: Date.now(),
-        contactEmail: sanitizedEmail || null,
-        contactPhone: sanitizedPhone || null
-      });
-
       const contactInfoParts = [];
       if (sanitizedEmail) contactInfoParts.push(`Email: ${sanitizedEmail}`);
       if (sanitizedPhone) contactInfoParts.push(`Phone: ${sanitizedPhone}`);
 
-      await assignSpeedBumpToTeam(defender, {
-        fromTeam: attacker,
-        contactInfo: contactInfoParts.join(' | '),
-        task: sanitizedChallenge,
-        expiresAt: Date.now() + VALIDATION_MS
+      await assignSpeedBump({
+        gameId: 'global',
+        attackerId: sanitizedAttacker,
+        victimId: sanitizedDefender,
+        prompt: sanitizedChallenge,
+        promptId: sanitizedChallenge,
+        contactName: sanitizedAttacker,
+        contactPhone: sanitizedPhone || null,
+        contactEmail: sanitizedEmail || null,
+        status: 'active'
       });
+      await markSpeedBumpActive({ gameId: 'global', attackerId: sanitizedAttacker, victimId: sanitizedDefender });
 
       startCooldown(attacker, 'bump', override ? 0 : COOLDOWN_MS);
     }
   });
 
-  if (result?.ok === false) {
-    return result;
+  if (rule?.ok === false) {
+    return rule;
   }
 
   return successPayload;
 }
 
 /* Assign a Speed Bump to a victim team. */
-export async function assignSpeedBumpToTeam(victimTeam, payload = {}) {
-  if (!victimTeam) return;
-  const ref = doc(db, 'speedBumpAssignments', victimTeam);
-  await setDoc(ref, {
-    active: true,
-    attacker: payload.fromTeam || 'Unknown',
-    contactInfo: payload.contactInfo || '',
-    task: payload.task || 'Complete your challenge!',
-    expiresAt: payload.expiresAt || (Date.now() + 5 * 60 * 1000),
-    assignedAt: serverTimestamp()
-  }, { merge: true });
-  console.log(`🚧 Speed Bump assigned → ${victimTeam}`);
+// LEGACY: direct writes/listeners kept for reference but no longer used by live flows.
+// TODO: remove once all callers are migrated.
+export async function assignSpeedBumpToTeam() {
+  console.warn('[SpeedBump][LEGACY] assignSpeedBumpToTeam is deprecated; use service API.');
+  return { ok: false, reason: 'legacy_disabled' };
 }
-
-/* Clear the victim’s Speed Bump entry. */
-export async function clearSpeedBumpForTeam(victimTeam) {
-  if (!victimTeam) return;
-  await deleteDoc(doc(db, 'speedBumpAssignments', victimTeam)).catch(() => {});
-  console.log(`✅ Speed Bump cleared for ${victimTeam}`);
+export async function clearSpeedBumpForTeam() {
+  console.warn('[SpeedBump][LEGACY] clearSpeedBumpForTeam is deprecated; use service API.');
+  return { ok: false, reason: 'legacy_disabled' };
 }
-
-/* Simple listener wrapper so the player page can subscribe. */
-export function subscribeSpeedBumpAssignments(teamName, callback) {
-  if (!teamName || typeof callback !== 'function') return () => {};
-  const ref = doc(db, 'speedBumpAssignments', teamName);
-  return onSnapshot(ref, (snap) => callback(snap.exists() ? snap.data() : null));
+export function subscribeSpeedBumpAssignments() {
+  console.warn('[SpeedBump][LEGACY] subscribeSpeedBumpAssignments is deprecated; use service API.');
+  return () => {};
 }
 
 // ---------------------------------------------------------------------------- 
