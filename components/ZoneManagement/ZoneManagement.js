@@ -37,6 +37,17 @@ export { ZoneManagementComponent };
  */
 
 export async function initializeZoneManagementLogic(googleMapsApiLoaded) {
+  const toggleBtn = document.getElementById('toggle-zone-management-btn');
+  const panel = document.getElementById('zone-management-panel');
+
+  if (toggleBtn && panel) {
+    toggleBtn.addEventListener('click', () => {
+      const isHidden = panel.style.display === 'none';
+      panel.style.display = isHidden ? 'block' : 'none';
+      toggleBtn.textContent = isHidden ? 'Collapse ▲' : 'Expand ▼';
+    });
+  }
+
   const tableBody = document.getElementById('zones-table-body');
   const banner = document.getElementById('zone-status-banner');
   if (!tableBody || !banner) {

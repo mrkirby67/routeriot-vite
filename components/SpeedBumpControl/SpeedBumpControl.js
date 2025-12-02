@@ -21,6 +21,16 @@ import {
   subscribeToGameSpeedBumps,
   SPEEDBUMP_STATUS
 } from '../../services/speed-bump/speedBumpService.js';
+import {
+  getDefaultPrompts,
+  getSpeedBumpPromptBank,
+  setSpeedBumpPromptBank
+} from '../../modules/speedBumpChallenges.js';
+import {
+  loadBank,
+  saveBankLocal,
+  saveBankToFirestore
+} from './controller/promptBank.js';
 
 const DEFAULT_GAME_ID = 'global';
 
@@ -72,18 +82,20 @@ export function SpeedBumpControlComponent() {
       </div>
       <div id="speedbump-panel" style="display:none;">
         <div class="${styles.promptLegend}">
-          <div>
-            <p class="${styles.subhead}">Assign prompts from the shared bank. Attacker frees victim when done.</p>
+          <div class="${styles.legendCopy}">
+            <p class="${styles.subhead}">Pick a Speed Bump and attacker for each team.</p>
+            <span class="${styles.legendNote}">Attacker ≠ Victim · Pending → Active → Complete/Cancel</span>
           </div>
           <div class="${styles.legendControls}">
-            <span class="${styles.legendNote}">Attacker ≠ Victim · Pending → Active → Complete/Cancel</span>
+            <button id="speedbump-shuffle-all-btn" class="${styles.secondaryBtn}">Shuffle</button>
+            <button id="speedbump-edit-bank-btn" class="${styles.secondaryBtn}">Edit Speed Bumps</button>
           </div>
         </div>
         <table class="${styles.dataTable}">
           <thead>
             <tr>
               <th>Team Name</th>
-              <th>Assigned Prompt</th>
+              <th>Speed Bump</th>
               <th>Attacker</th>
               <th>Status</th>
               <th>Controls</th>
@@ -93,6 +105,20 @@ export function SpeedBumpControlComponent() {
             <tr><td colspan="5" class="${styles.legendNote}">Loading teams…</td></tr>
           </tbody>
         </table>
+        <div id="speedbump-bank-modal" class="${styles.modalBackdrop}" style="display:none;">
+          <div class="${styles.modalCard}">
+            <div class="${styles.modalHeader}">
+              <h3>Speed Bump Bank</h3>
+              <button type="button" id="speedbump-bank-close" class="${styles.secondaryBtn}">Close</button>
+            </div>
+            <p class="${styles.modalHint}">One Speed Bump per line. Updates apply to the shared bank used for shuffling.</p>
+            <textarea id="speedbump-bank-editor" class="${styles.bankTextarea}" rows="8" placeholder="Enter one Speed Bump per line"></textarea>
+            <div class="${styles.modalFooter}">
+              <button type="button" id="speedbump-bank-reset" class="${styles.secondaryBtn}">Reset to defaults</button>
+              <button type="button" id="speedbump-bank-save" class="${styles.primaryBtn}">Save</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -104,9 +130,12 @@ class SpeedBumpController {
     this.teams = toTeamList();
     this.assignments = new Map(); // victimId -> assignment
     this.promptCache = new Map();
+    this.promptBank = getSpeedBumpPromptBank();
     this.unsubscribe = null;
     this.teardownFns = [];
     this.tableBody = null;
+    this.bankModal = null;
+    this.bankTextarea = null;
   }
 
   teardown(reason = 'manual') {
@@ -121,6 +150,13 @@ class SpeedBumpController {
     const toggleBtn = document.getElementById('toggle-speedbump-btn');
     const panel = document.getElementById('speedbump-panel');
     const tableBody = document.getElementById('speedbump-table-body');
+    const shuffleAllBtn = document.getElementById('speedbump-shuffle-all-btn');
+    const editBankBtn = document.getElementById('speedbump-edit-bank-btn');
+    const bankModal = document.getElementById('speedbump-bank-modal');
+    const bankTextarea = document.getElementById('speedbump-bank-editor');
+    const bankCloseBtn = document.getElementById('speedbump-bank-close');
+    const bankSaveBtn = document.getElementById('speedbump-bank-save');
+    const bankResetBtn = document.getElementById('speedbump-bank-reset');
 
     if (!toggleBtn || !panel || !tableBody) {
       console.warn('[SpeedBumpControl] DOM not ready.');
@@ -135,9 +171,41 @@ class SpeedBumpController {
     toggleBtn.addEventListener('click', handleToggle);
     this.teardownFns.push(() => toggleBtn.removeEventListener('click', handleToggle));
 
+    if (shuffleAllBtn) {
+      const handleShuffleAll = () => this.handleGlobalShuffle();
+      shuffleAllBtn.addEventListener('click', handleShuffleAll);
+      this.teardownFns.push(() => shuffleAllBtn.removeEventListener('click', handleShuffleAll));
+    }
+
+    if (editBankBtn && bankModal && bankTextarea) {
+      this.bankModal = bankModal;
+      this.bankTextarea = bankTextarea;
+      const handleOpenEditor = () => this.openBankModal();
+      const handleCloseEditor = () => this.closeBankModal();
+      editBankBtn.addEventListener('click', handleOpenEditor);
+      bankCloseBtn?.addEventListener('click', handleCloseEditor);
+      this.teardownFns.push(() => {
+        editBankBtn.removeEventListener('click', handleOpenEditor);
+        bankCloseBtn?.removeEventListener('click', handleCloseEditor);
+      });
+
+      if (bankSaveBtn) {
+        const handleSave = () => this.saveBankEdits();
+        bankSaveBtn.addEventListener('click', handleSave);
+        this.teardownFns.push(() => bankSaveBtn.removeEventListener('click', handleSave));
+      }
+
+      if (bankResetBtn) {
+        const handleReset = () => this.resetBankToDefault();
+        bankResetBtn.addEventListener('click', handleReset);
+        this.teardownFns.push(() => bankResetBtn.removeEventListener('click', handleReset));
+      }
+    }
+
     this.tableBody = tableBody;
     this.renderTable();
     this.wireTableEvents();
+    this.hydratePromptBank();
 
     this.unsubscribe = subscribeToGameSpeedBumps(this.gameId, (assignments = []) => {
       this.assignments.clear();
@@ -165,6 +233,27 @@ class SpeedBumpController {
       .join('');
   }
 
+  escapeHtml(value = '') {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  getSpeedBumpOptions(selectedPrompt) {
+    const bank = Array.isArray(this.promptBank) ? [...this.promptBank] : [];
+    const selected = selectedPrompt || '';
+    if (selected && !bank.includes(selected)) {
+      bank.unshift(selected);
+    }
+    return bank.map(prompt => {
+      const sel = prompt === selected ? 'selected' : '';
+      const safePrompt = this.escapeHtml(prompt);
+      return `<option value="${safePrompt}" ${sel}>${safePrompt}</option>`;
+    }).join('');
+  }
+
   currentStatus(victimId) {
     return this.assignments.get(victimId)?.status || 'idle';
   }
@@ -183,6 +272,7 @@ class SpeedBumpController {
       const victimId = team.id;
       const assignment = this.assignments.get(victimId);
       const prompt = this.promptCache.get(victimId) || assignment?.prompt || '';
+      const promptOptions = this.getSpeedBumpOptions(prompt);
       const attackerId = assignment?.attackerId ? normalizeTeamId(assignment.attackerId) : '';
       const status = assignment?.status || 'idle';
 
@@ -194,7 +284,10 @@ class SpeedBumpController {
           <span>${victimId}</span>
         </td>
         <td class="${styles.promptCell}">
-          <input data-role="prompt" type="text" class="${styles.promptInput}" value="${prompt.replace(/"/g, '&quot;')}" placeholder="Select or shuffle a prompt">
+          <select data-role="speedbump" class="${styles.promptSelect}">
+            <option value="">Select Speed Bump</option>
+            ${promptOptions}
+          </select>
         </td>
         <td>
           <select data-role="attacker">
@@ -204,9 +297,7 @@ class SpeedBumpController {
         </td>
         <td data-role="status">${formatStatus(status)}</td>
         <td class="${styles.inlineActions}">
-          <button data-action="assign" class="${styles.primaryBtn}">Assign</button>
-          <button data-action="shuffle" class="${styles.secondaryBtn}">Shuffle</button>
-          <button data-action="activate" class="${styles.secondaryBtn}">Activate</button>
+          <button data-action="activate" class="${styles.primaryBtn}">Activate</button>
           <button data-action="complete" class="${styles.secondaryBtn}">Complete</button>
           <button data-action="cancel" class="${styles.secondaryBtn}">Cancel</button>
         </td>
@@ -227,19 +318,13 @@ class SpeedBumpController {
       if (!row) return;
       const victimId = row.dataset.team;
       const attackerSelect = row.querySelector('[data-role="attacker"]');
-      const promptInput = row.querySelector('[data-role="prompt"]');
+      const promptSelect = row.querySelector('[data-role="speedbump"]');
       const attackerId = normalizeTeamId(attackerSelect?.value || '');
-      const prompt = promptInput?.value?.trim() || '';
+      const prompt = promptSelect?.value?.trim() || '';
 
       switch (btn.dataset.action) {
-        case 'assign':
-          await this.handleAssign({ attackerId, victimId, prompt });
-          break;
-        case 'shuffle':
-          await this.handleShuffle({ attackerId, victimId });
-          break;
         case 'activate':
-          await this.handleActivate({ victimId });
+          await this.handleActivate({ victimId, attackerId, prompt });
           break;
         case 'complete':
           await this.handleComplete({ victimId });
@@ -253,12 +338,10 @@ class SpeedBumpController {
     };
 
     const handleInput = (event) => {
-      const input = event.target.closest('[data-role="prompt"]');
-      const attackerSel = event.target.closest('[data-role="attacker"]');
       const row = event.target.closest('tr[data-team]');
       if (!row) return;
-      if (input) {
-        this.promptCache.set(row.dataset.team, input.value);
+      if (event.target.closest('[data-role="speedbump"]')) {
+        this.promptCache.set(row.dataset.team, event.target.value);
       }
       this.updateButtonStates();
     };
@@ -277,11 +360,14 @@ class SpeedBumpController {
     if (!this.tableBody) return;
     this.tableBody.querySelectorAll('tr[data-team]').forEach(row => {
       const victimId = row.dataset.team;
+      const assignment = this.assignments.get(victimId);
       const status = this.currentStatus(victimId);
-      const prompt = this.promptCache.get(victimId) || '';
-      const attacker = normalizeTeamId(row.querySelector('[data-role="attacker"]')?.value || '');
-      const assignBtn = row.querySelector('[data-action="assign"]');
-      const shuffleBtn = row.querySelector('[data-action="shuffle"]');
+      const prompt = this.promptCache.get(victimId) || assignment?.prompt || '';
+      const attacker = normalizeTeamId(
+        row.querySelector('[data-role="attacker"]')?.value ||
+        assignment?.attackerId ||
+        ''
+      );
       const activateBtn = row.querySelector('[data-action="activate"]');
       const completeBtn = row.querySelector('[data-action="complete"]');
       const cancelBtn = row.querySelector('[data-action="cancel"]');
@@ -289,59 +375,76 @@ class SpeedBumpController {
       const isPending = status === SPEEDBUMP_STATUS.PENDING;
       const isActive = status === SPEEDBUMP_STATUS.ACTIVE;
 
-      if (assignBtn) assignBtn.disabled = !attacker || !prompt || isPending || isActive;
-      if (shuffleBtn) shuffleBtn.disabled = !isPending;
-      if (activateBtn) activateBtn.disabled = !isPending;
+      if (activateBtn) activateBtn.disabled = isActive || !attacker || !prompt;
       if (completeBtn) completeBtn.disabled = !(isPending || isActive);
       if (cancelBtn) cancelBtn.disabled = !(isPending || isActive);
     });
   }
 
-  async handleAssign({ attackerId, victimId, prompt }) {
-    if (!attackerId || !victimId || !prompt) {
-      alert('Attacker, victim, and prompt are required.');
-      return;
-    }
-    if (attackerId === victimId) {
-      alert('Attacker cannot target themselves.');
-      return;
-    }
-    try {
-      await assignSpeedBump({
-        gameId: this.gameId,
-        attackerId,
-        victimId,
-        prompt
-      });
-    } catch (err) {
-      console.error('[SpeedBumpControl] assign failed:', err);
-      alert(err?.message || 'Failed to assign Speed Bump');
-    }
-  }
-
-  async handleShuffle({ attackerId }) {
+  async handleShuffle(attackerId, { suppressAlert = false } = {}) {
     if (!attackerId) {
-      alert('Select an attacker before shuffling.');
-      return;
+      if (!suppressAlert) alert('Select an attacker before shuffling.');
+      return false;
     }
     try {
       await reshuffleSpeedBumpPrompt({
         gameId: this.gameId,
         attackerId
       });
+      return true;
     } catch (err) {
       console.error('[SpeedBumpControl] shuffle failed:', err);
-      alert(err?.message || 'Failed to shuffle prompt');
+      if (!suppressAlert) alert(err?.message || 'Failed to shuffle prompt');
+      return false;
     }
   }
 
-  async handleActivate({ victimId }) {
+  async handleGlobalShuffle() {
+    const pending = Array.from(this.assignments.values()).filter(
+      entry => entry?.status === SPEEDBUMP_STATUS.PENDING
+    );
+    if (!pending.length) {
+      alert('No pending Speed Bumps to shuffle.');
+      return;
+    }
+
+    for (const assignment of pending) {
+      const attackerId = normalizeTeamId(assignment.attackerId || '');
+      if (!attackerId) continue;
+      await this.handleShuffle(attackerId, { suppressAlert: true });
+    }
+  }
+
+  async handleActivate({ victimId, attackerId, prompt }) {
+    if (!victimId) return;
     const assignment = this.assignments.get(victimId);
-    if (!assignment) return;
+    const chosenPrompt = prompt || assignment?.prompt || '';
+    const attacker = normalizeTeamId(attackerId || assignment?.attackerId || '');
+
+    if (!attacker || !chosenPrompt) {
+      alert('Select an attacker and Speed Bump before activating.');
+      return;
+    }
+
+    const status = assignment?.status || 'idle';
+    const isTerminal = status === SPEEDBUMP_STATUS.CANCELLED || status === SPEEDBUMP_STATUS.COMPLETED;
+    const promptChanged = assignment?.prompt && assignment.prompt !== chosenPrompt;
+
     try {
+      if (!assignment || isTerminal || promptChanged) {
+        if (assignment && promptChanged && status === SPEEDBUMP_STATUS.PENDING) {
+          await cancelSpeedBump({ gameId: this.gameId, attackerId: attacker }).catch(() => {});
+        }
+        await assignSpeedBump({
+          gameId: this.gameId,
+          attackerId: attacker,
+          victimId,
+          prompt: chosenPrompt
+        });
+      }
       await markSpeedBumpActive({
         gameId: this.gameId,
-        attackerId: assignment.attackerId
+        attackerId: attacker
       });
     } catch (err) {
       console.error('[SpeedBumpControl] activate failed:', err);
@@ -374,6 +477,68 @@ class SpeedBumpController {
     } catch (err) {
       console.error('[SpeedBumpControl] cancel failed:', err);
       alert(err?.message || 'Failed to cancel Speed Bump');
+    }
+  }
+
+  async hydratePromptBank() {
+    try {
+      const bank = await loadBank();
+      this.promptBank = bank;
+      this.renderTable();
+    } catch (err) {
+      console.warn('[SpeedBumpControl] Failed to load Speed Bump bank from storage.', err);
+      this.promptBank = getSpeedBumpPromptBank();
+      this.renderTable();
+    }
+  }
+
+  openBankModal() {
+    if (!this.bankModal || !this.bankTextarea) return;
+    const bank = Array.isArray(this.promptBank) && this.promptBank.length
+      ? this.promptBank
+      : getSpeedBumpPromptBank();
+    this.bankTextarea.value = bank.join('\n');
+    this.bankModal.style.display = 'block';
+  }
+
+  closeBankModal() {
+    if (!this.bankModal) return;
+    this.bankModal.style.display = 'none';
+  }
+
+  async saveBankEdits() {
+    if (!this.bankTextarea) return;
+    const lines = this.bankTextarea.value
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean);
+    try {
+      const updated = setSpeedBumpPromptBank(lines);
+      this.promptBank = updated;
+      saveBankLocal(updated);
+      await saveBankToFirestore(updated);
+      this.renderTable();
+      this.closeBankModal();
+    } catch (err) {
+      console.error('[SpeedBumpControl] Failed to save Speed Bump bank.', err);
+      alert(err?.message || 'Failed to save Speed Bump bank');
+    }
+  }
+
+  async resetBankToDefault() {
+    try {
+      const defaults = getDefaultPrompts();
+      const updated = setSpeedBumpPromptBank(defaults);
+      this.promptBank = updated;
+      saveBankLocal(updated);
+      await saveBankToFirestore(updated);
+      if (this.bankTextarea) {
+        this.bankTextarea.value = updated.join('\n');
+      }
+      this.renderTable();
+    } catch (err) {
+      console.error('[SpeedBumpControl] Failed to reset Speed Bump bank.', err);
+      alert(err?.message || 'Failed to reset Speed Bump bank');
     }
   }
 }
