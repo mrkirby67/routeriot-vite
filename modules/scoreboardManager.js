@@ -91,6 +91,7 @@ function ensureScoreboardListeners() {
         next.set(docSnap.id, {
           lastKnownLocation: data.lastKnownLocation || '',
           timestamp: data.timestamp || null,
+          shieldExpiresAt: data.shieldExpiresAt || null,
         });
       });
       teamStatusCache = next;
@@ -158,8 +159,23 @@ function buildTeamEntry(teamName) {
     score: scoreInfo.score ?? 0,
     zonesControlled: scoreInfo.zonesControlled || '—',
     lastKnownLocation: statusInfo.lastKnownLocation || '',
+    shieldExpiresAt: statusInfo.shieldExpiresAt || null,
     timestamp: statusInfo.timestamp || scoreInfo.updatedAt || null,
   };
+}
+
+export function isTeamShielded(teamId) {
+  if (!teamId || !teamStatusCache.has(teamId)) return false;
+
+  const status = teamStatusCache.get(teamId);
+  const expiresAt = status?.shieldExpiresAt; // This could be a Firestore Timestamp
+
+  if (!expiresAt) return false;
+
+  // Convert Firestore Timestamp to JS Date if necessary
+  const expiresMs = typeof expiresAt.toMillis === 'function' ? expiresAt.toMillis() : new Date(expiresAt).getTime();
+
+  return expiresMs > Date.now();
 }
 
 export function getScoreboardState() {

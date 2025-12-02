@@ -12,6 +12,8 @@
 
 import styles from './SpeedBumpControl.module.css';
 import { allTeams } from '../../data.js';
+import { db } from '/core/config.js';
+import { doc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import {
   assignSpeedBump,
   reshuffleSpeedBumpPrompt,
@@ -64,13 +66,24 @@ function formatStatus(status) {
   }
 }
 
-function toTeamList() {
-  return allTeams
-    .map(team => ({
-      id: normalizeTeamId(team.name || ''),
-      name: team.name || ''
-    }))
-    .filter(t => t.id && t.name);
+function toTeamList(activeNames = []) {
+  const nameLookup = new Map(
+    allTeams
+      .map(team => [normalizeTeamId(team.name || ''), team.name || ''])
+      .filter(([id, name]) => id && name)
+  );
+
+  if (!Array.isArray(activeNames)) return [];
+
+  return activeNames
+    .map(rawName => {
+      const id = normalizeTeamId(rawName);
+      if (!id) return null;
+      const display = nameLookup.get(id) || rawName || '';
+      if (!display) return null;
+      return { id, name: display };
+    })
+    .filter(Boolean);
 }
 
 export function SpeedBumpControlComponent() {
@@ -127,7 +140,7 @@ export function SpeedBumpControlComponent() {
 class SpeedBumpController {
   constructor() {
     this.gameId = resolveGameId();
-    this.teams = toTeamList();
+    this.teams = [];
     this.assignments = new Map(); // victimId -> assignment
     this.promptCache = new Map();
     this.promptBank = getSpeedBumpPromptBank();
@@ -136,10 +149,12 @@ class SpeedBumpController {
     this.tableBody = null;
     this.bankModal = null;
     this.bankTextarea = null;
+    this.activeTeamsUnsub = null;
   }
 
   teardown(reason = 'manual') {
     this.unsubscribe?.(reason);
+    this.activeTeamsUnsub?.();
     this.teardownFns.forEach(fn => {
       try { fn?.(reason); } catch {}
     });
@@ -206,6 +221,7 @@ class SpeedBumpController {
     this.renderTable();
     this.wireTableEvents();
     this.hydratePromptBank();
+    this.listenToActiveTeams();
 
     this.unsubscribe = subscribeToGameSpeedBumps(this.gameId, (assignments = []) => {
       this.assignments.clear();
@@ -491,6 +507,49 @@ class SpeedBumpController {
     } catch (err) {
       console.error('[SpeedBumpControl] cancel failed:', err);
       alert(err?.message || 'Failed to cancel Speed Bump');
+    }
+  }
+
+  async listenToActiveTeams() {
+    const applyList = (list = []) => {
+      const deduped = [];
+      const seen = new Set();
+      list.forEach(name => {
+        const id = normalizeTeamId(name || '');
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        deduped.push(name);
+      });
+
+      this.teams = toTeamList(deduped);
+
+      const allowed = new Set(this.teams.map(t => t.id));
+      Array.from(this.promptCache.keys()).forEach(key => {
+        if (!allowed.has(key)) this.promptCache.delete(key);
+      });
+
+      this.renderTable();
+    };
+
+    try {
+      const snap = await getDoc(doc(db, 'game', 'activeTeams'));
+      const list = snap.exists() && Array.isArray(snap.data()?.list) ? snap.data().list : [];
+      applyList(list);
+    } catch (err) {
+      console.warn('[SpeedBumpControl] Failed to load active teams once.', err);
+    }
+
+    try {
+      this.activeTeamsUnsub = onSnapshot(
+        doc(db, 'game', 'activeTeams'),
+        (docSnap) => {
+          const list = docSnap.exists() && Array.isArray(docSnap.data()?.list) ? docSnap.data().list : [];
+          applyList(list);
+        },
+        (err) => console.error('[SpeedBumpControl] activeTeams listener failed:', err)
+      );
+    } catch (err) {
+      console.error('[SpeedBumpControl] Unable to subscribe to active teams.', err);
     }
   }
 

@@ -3,12 +3,39 @@
 // tracking. Extracted from the event module to avoid circular dependencies.
 // ============================================================================
 
+import { db } from '/core/config.js';
+import { doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   SurpriseTypes,
   SHIELD_DURATION_STORAGE_KEY,
   DEFAULT_SHIELD_MINUTES,
   DEFAULT_COOLDOWN_MINUTES
 } from '/services/team-surprise/teamSurpriseTypes.js';
+
+let shieldStateUnsub = null;
+
+export function initializeShieldStateFromFirestore(teamName) {
+  if (shieldStateUnsub) {
+    shieldStateUnsub();
+  }
+
+  const teamStatusRef = doc(db, "teamStatus", teamName);
+  shieldStateUnsub = onSnapshot(teamStatusRef, (docSnap) => {
+    const data = docSnap.data() || {};
+    const expiresAt = data.shieldExpiresAt ? data.shieldExpiresAt.toMillis() : 0;
+
+    if (expiresAt > Date.now()) {
+      activeShields[teamName] = expiresAt;
+    } else {
+      if (activeShields[teamName]) {
+        delete activeShields[teamName];
+      }
+    }
+    emitShieldState();
+  });
+
+  return shieldStateUnsub;
+}
 
 export const activeShields = Object.create(null);   // { [teamName]: expiresAtMs }
 export const activeWildCards = Object.create(null); // { [teamName]: { type, expires } }
@@ -34,12 +61,21 @@ export function getShieldDurationMs() {
   return minutes * 60 * 1000;
 }
 
-export function activateShield(teamName, expiresAtMs) {
+export async function activateShield(teamName, expiresAtMs) {
   if (!teamName) return null;
   const durationMs = getShieldDurationMs();
   const candidate = Number(expiresAtMs);
   const expiresAt = Number.isFinite(candidate) ? candidate : Date.now() + durationMs;
   activeShields[teamName] = expiresAt;
+
+  try {
+    await setDoc(doc(db, "teamStatus", teamName), {
+      shieldExpiresAt: new Date(expiresAt)
+    }, { merge: true });
+  } catch (err) {
+    console.error(`[teamSurpriseState] Failed to write shield status for ${teamName}:`, err);
+  }
+
   console.log(`🛡️ Shield active for ${teamName} until ${new Date(expiresAt).toLocaleTimeString()}`);
   emitShieldState();
   return expiresAt;
@@ -49,16 +85,26 @@ export function isShieldActive(teamName) {
   if (!teamName) return false;
   const expiresAt = activeShields[teamName];
   if (!expiresAt) return false;
+
   if (expiresAt <= Date.now()) {
-    delete activeShields[teamName];
+    deactivateShield(teamName); // This will handle both local and firestore updates
     return false;
   }
   return true;
 }
 
-export function deactivateShield(teamName) {
+export async function deactivateShield(teamName) {
   if (!teamName) return;
   delete activeShields[teamName];
+
+  try {
+    await setDoc(doc(db, "teamStatus", teamName), {
+      shieldExpiresAt: null
+    }, { merge: true });
+  } catch (err) {
+    console.error(`[teamSurpriseState] Failed to write shield deactivation for ${teamName}:`, err);
+  }
+
   emitShieldState();
 }
 

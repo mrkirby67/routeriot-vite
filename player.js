@@ -22,6 +22,7 @@ import { initializeFlatTireUI } from './modules/flatTireUI.js';
 import { initializeChirpResponder } from './modules/chirpResponder.js';
 import { initializeBugStrikeController } from './features/bug-strike/bugStrikeController.js';
 import { ensureSpeedBumpOverlayListeners } from './features/team-surprise/teamSurprise.bridge.js';
+import { initializeTeamSurpriseController } from './features/team-surprise/teamSurpriseController.js';
 
 
 let gameStatusUnsub = null;
@@ -33,6 +34,7 @@ let chirpCleanup = null;
 let unloadHandler = null;
 let bugStrikeCleanup = null;
 let playerScoreboardCleanup = null;
+let teamSurpriseCleanup = null;
 
 function teardownPlayerListeners(reason = 'manual') {
   chatCleanup?.(reason);
@@ -55,6 +57,9 @@ function teardownPlayerListeners(reason = 'manual') {
 
   playerScoreboardCleanup?.(reason);
   playerScoreboardCleanup = null;
+
+  teamSurpriseCleanup?.(reason);
+  teamSurpriseCleanup = null;
 
   gameStatusUnsub?.(reason);
   gameStatusUnsub = null;
@@ -112,6 +117,7 @@ export async function initializePlayerPage() {
     flatTireCleanup = initializeFlatTireUI(currentTeamName);
     chirpCleanup = initializeChirpResponder(currentTeamName);
     bugStrikeCleanup = await initializeBugStrikeController(currentTeamName);
+    teamSurpriseCleanup = initializeTeamSurpriseController(currentTeamName);
   } catch (err) {
     console.error('🔥 Error initializing player modules:', err);
     alert('Error initializing player. Check console.');

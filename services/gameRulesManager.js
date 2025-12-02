@@ -24,7 +24,7 @@ import {
   query,
   where
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { isShieldActive } from '../features/team-surprise/teamSurpriseState.js';
+import { isTeamShielded } from '../modules/scoreboardManager.js';
 
 const rulesRef = doc(db, 'config', 'gameRules');
 const SPEEDBUMP_COLLECTION = 'speedBumpAssignments';
@@ -62,7 +62,7 @@ export async function loadRules() {
 // ---------------------------------------------------------------------------
 export function isShielded(teamId) {
   if (!teamId) return false;
-  return !!isShieldActive(teamId);
+  return isTeamShielded(teamId);
 }
 
 async function hasLiveSpeedBump(field, teamId) {

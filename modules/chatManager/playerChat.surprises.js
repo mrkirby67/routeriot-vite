@@ -135,7 +135,7 @@ async function handleShieldActivation(teamName) {
   }
 
   const expiresAt = Date.now() + getShieldDurationMs();
-  activateShield(normalizedTeam, expiresAt);
+  await activateShield(normalizedTeam, expiresAt);
   await auditUse(normalizedTeam, SurpriseTypes.WILD_CARD, { expiresAt });
 
   await sendPrivateSystemMessage(normalizedTeam, '🛡️ Shield active! You are protected for a short time.');

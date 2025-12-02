@@ -66,11 +66,18 @@ import { emit } from '/core/eventBus.js';
 import { loadTeamSurpriseUI } from '@/core/lazyLoader.js';
 import { registerSurpriseTriggerHandler } from './teamSurprise.bridge.js';
 import { canTeamBeAttacked } from '../../services/gameRulesManager.js';
+import { initializeShieldStateFromFirestore } from './teamSurpriseState.js';
 
 let uiModulePromise = null;
 let unsubscribeGlobalCooldown = null;
 const speedBumpEffectSubscriptions = new Map();
 const activeSpeedBumpAttackers = new Map(); // attacker -> { victim }
+
+export function initializeTeamSurpriseController(teamName) {
+  if (!teamName) return () => {};
+  const unsub = initializeShieldStateFromFirestore(teamName);
+  return unsub;
+}
 
 function notifyLocal(kind, text, timeout = 10000) {
   try {
