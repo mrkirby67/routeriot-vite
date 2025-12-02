@@ -11,7 +11,6 @@
 // === END AICP COMPONENT HEADER ===
 
 import styles from './SurpriseSelector.module.css';
-import { allTeams } from '../../data.js';
 import { SurpriseTypes } from '/services/team-surprise/teamSurpriseTypes.js';
 import {
   subscribeTeamSurprises,
@@ -21,7 +20,7 @@ import {
   setGlobalCooldown
 } from '../../services/team-surprise/teamSurpriseService.js';
 import { escapeHtml } from '../../modules/utils.js';
-import { getDocs, collection, writeBatch, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getDocs, collection, writeBatch, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '/core/config.js';
 
 /* Apply the selected wild-card values to every team in Firestore. */
@@ -74,6 +73,8 @@ const COOLDOWN_DURATION_STORAGE_KEY = 'cooldownDuration';
 
 let cleanupHandle = null;
 let activeCooldowns = {}; // Local cache for cooldowns
+let activeTeams = [];
+let teamSurpriseCounts = new Map();
 
 export function SurpriseSelectorComponent() {
   return `
@@ -157,6 +158,8 @@ export function initializeSurpriseSelector() {
     return () => {};
   }
 
+  const render = () => renderTable(tbody, teamSurpriseCounts, activeTeams);
+
   // Master controls for setting all wildcards
   const masterInput = document.getElementById('wildcard-dashboard-input');
   const masterTypeSelect = document.getElementById('wildcard-dashboard-type');
@@ -207,13 +210,19 @@ export function initializeSurpriseSelector() {
   tbody.addEventListener('click', handleClick);
 
   const unsubscribeSurprises = subscribeTeamSurprises((entries = [], byTeam = {}) => {
-    const teamCounts = buildTeamCounts(entries, byTeam);
-    renderTable(tbody, teamCounts);
+    teamSurpriseCounts = buildTeamCounts(entries, byTeam);
+    render();
   });
 
   const unsubscribeCooldowns = subscribeAllCooldowns((cooldowns) => {
     activeCooldowns = cooldowns;
     refreshCooldownTimers(tbody);
+  });
+
+  const activeTeamsRef = doc(db, 'game', 'activeTeams');
+  const unsubscribeActiveTeams = onSnapshot(activeTeamsRef, (docSnap) => {
+    activeTeams = docSnap.exists() ? docSnap.data().list || [] : [];
+    render();
   });
 
   const timerId = window.setInterval(() => {
@@ -223,13 +232,14 @@ export function initializeSurpriseSelector() {
   cleanupHandle = (reason = 'manual') => {
     unsubscribeSurprises?.();
     unsubscribeCooldowns?.();
+    unsubscribeActiveTeams?.();
     tbody.removeEventListener('click', handleClick);
     clearInterval(timerId);
     cleanupHandle = null;
     console.info(`🧹 [SurpriseSelector] cleaned up (${reason})`);
   };
 
-  renderTable(tbody, new Map());
+  render();
   refreshCooldownTimers(tbody);
 
   return cleanupHandle;
@@ -291,14 +301,14 @@ function buildTeamCounts(entries, byTeam) {
   return countsMap;
 }
 
-function renderTable(tbody, countsMap) {
+function renderTable(tbody, countsMap, teams) {
   const fragment = document.createDocumentFragment();
 
-  allTeams.forEach(team => {
+  teams.forEach(teamName => {
     const row = document.createElement('tr');
-    row.dataset.team = team.name;
+    row.dataset.team = teamName;
 
-    const counts = countsMap.get(team.name) || {};
+    const counts = countsMap.get(teamName) || {};
     const shield = normalizeCount(counts[SurpriseTypes.WILD_CARD] ?? counts.superShieldWax ?? counts.wildCard);
 
     const hasShieldStock = shield > 0;
@@ -306,11 +316,10 @@ function renderTable(tbody, countsMap) {
 
     row.innerHTML = `
       <td class="${styles.teamCell}">
-        <strong>${escapeHtml(team.name)}</strong>
-        <small>${escapeHtml(team.slogan || '')}</small>
+        <strong>${escapeHtml(teamName)}</strong>
       </td>
-      ${TYPE_CONFIG.map(cfg => renderCounterCell(team.name, cfg, counts)).join('')}
-      <td data-role="cooldown-timer">${renderCooldownTimer(team.name)}</td>
+      ${TYPE_CONFIG.map(cfg => renderCounterCell(teamName, cfg, counts)).join('')}
+      <td data-role="cooldown-timer">${renderCooldownTimer(teamName)}</td>
     `;
 
     fragment.appendChild(row);

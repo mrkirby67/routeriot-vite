@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-12-02T02:19:54.674Z
+# AICP File Health Report — 2025-12-02T03:51:48.074Z
 Files scanned: 145
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -9,10 +9,10 @@ Files scanned: 145
 | ✅ | modules/gameStateManager.js | 570 | 18.3 | 76 | 6% |
 | ✅ | components/GameControls/GameControls.js | 542 | 18.8 | 77 | 8% |
 | ✅ | services/team-surprise/teamSurpriseService.js | 525 | 17.5 | 107 | 5% |
-| ✅ | features/team-surprise/teamSurpriseController.js | 499 | 15.2 | 75 | 5% |
-| ✅ | components/BugStrikeControl/BugStrikeControl.js | 417 | 12.7 | 50 | 9% |
+| ✅ | features/team-surprise/teamSurpriseController.js | 509 | 15.6 | 74 | 5% |
+| ✅ | components/BugStrikeControl/BugStrikeControl.js | 441 | 13.6 | 57 | 9% |
+| ✅ | components/SurpriseSelector/SurpriseSelector.js | 401 | 13.6 | 67 | 8% |
 | ✅ | modules/speedBump/interactions.js | 399 | 13.6 | 77 | 7% |
-| ✅ | components/SurpriseSelector/SurpriseSelector.js | 392 | 13.4 | 65 | 8% |
 | ✅ | modules/scoreboardManager.js | 390 | 11.6 | 75 | 2% |
 | ✅ | features/team-surprise/teamSurpriseState.js | 376 | 11.3 | 104 | 1% |
 | ✅ | modules/chatManager/playerChat.state.js | 374 | 11.6 | 72 | 1% |
@@ -39,17 +39,17 @@ Files scanned: 145
 | ✅ | modules/bugStrikeManager.js | 198 | 6.5 | 16 | 16% |
 | ✅ | modules/controlUI.js | 198 | 6.8 | 27 | 6% |
 | ✅ | modules/gameUI.js | 195 | 6.3 | 29 | 12% |
-| ✅ | modules/chatManager/playerChat.surprises.js | 193 | 6.0 | 30 | 2% |
 | ✅ | components/ZoneQuestions/ZoneQuestionsUI.js | 192 | 6.9 | 21 | 21% |
+| ✅ | modules/chatManager/playerChat.surprises.js | 186 | 5.8 | 29 | 2% |
 | ✅ | modules/zonesUtils.js | 186 | 5.9 | 42 | 3% |
 | ✅ | modules/chatManager/playerChat.handlers.js | 184 | 5.8 | 35 | 2% |
 | ✅ | modules/playerBugStrike.js | 184 | 5.3 | 39 | 2% |
 | ✅ | components/Scoreboard/Scoreboard.js | 184 | 6.2 | 31 | 15% |
+| ✅ | features/bug-strike/bugStrikeController.js | 182 | 5.1 | 18 | 2% |
 | ✅ | modules/chatManager.js | 174 | 5.2 | 34 | 0% |
 | ✅ | modules/zoneManager.js | 170 | 5.0 | 41 | 2% |
 | ✅ | modules/chatManager/playerChat.renderers.js | 169 | 5.4 | 15 | 2% |
 | ✅ | components/FlatTireControl/controller/domHandlers.js | 169 | 6.9 | 31 | 16% |
-| ✅ | features/bug-strike/bugStrikeController.js | 166 | 4.5 | 18 | 2% |
 | ✅ | components/FlatTireControl/FlatTireControl.js | 159 | 6.9 | 12 | 17% |
 | ✅ | modules/chatManager/playerChat.ui.js | 153 | 5.2 | 23 | 10% |
 | ✅ | modules/gameTimer.js | 152 | 3.6 | 31 | 3% |
@@ -156,7 +156,7 @@ Files scanned: 145
 - modules/gameStateManager.js — 570 lines, 18.3 KB (Complexity: 76)
 - components/GameControls/GameControls.js — 542 lines, 18.8 KB (Complexity: 77)
 - services/team-surprise/teamSurpriseService.js — 525 lines, 17.5 KB (Complexity: 107)
-- features/team-surprise/teamSurpriseController.js — 499 lines, 15.2 KB (Complexity: 75)
-- components/BugStrikeControl/BugStrikeControl.js — 417 lines, 12.7 KB (Complexity: 50)
+- features/team-surprise/teamSurpriseController.js — 509 lines, 15.6 KB (Complexity: 74)
+- components/BugStrikeControl/BugStrikeControl.js — 441 lines, 13.6 KB (Complexity: 57)
+- components/SurpriseSelector/SurpriseSelector.js — 401 lines, 13.6 KB (Complexity: 67)
 - modules/speedBump/interactions.js — 399 lines, 13.6 KB (Complexity: 77)
-- components/SurpriseSelector/SurpriseSelector.js — 392 lines, 13.4 KB (Complexity: 65)

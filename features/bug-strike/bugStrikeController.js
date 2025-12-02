@@ -80,6 +80,22 @@ async function performBugStrike(rawTargetTeam) {
   if (!rule.allowed) {
     switch (rule.reason) {
       case 'SHIELD':
+        try {
+          await ChatServiceV2.send({
+            fromTeam: 'System',
+            toTeam: attacker,
+            text: `🚫 Your Bug Splat was thwarted — ${targetTeam}'s ride is gleaming with Super Shield Wax and turtle wax.`,
+            kind: 'system'
+          });
+          await ChatServiceV2.send({
+            fromTeam: 'System',
+            toTeam: targetTeam,
+            text: `🛡️ Your shield blocked a Bug Splat from ${attacker}. That wax is paying off.`,
+            kind: 'system'
+          });
+        } catch (err) {
+          console.debug('💬 bugstrike shield notify failed:', err?.message || err);
+        }
         throw new Error('This team is shielded and cannot be attacked.');
       case 'ATTACKER_PROTECTED':
         throw new Error('This team is currently attacking with a SpeedBump and cannot be targeted.');

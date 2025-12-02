@@ -191,6 +191,22 @@ export async function attemptSurpriseAttack({
   if (!rule.allowed) {
     switch (rule.reason) {
       case 'SHIELD':
+        try {
+          ChatServiceV2.send({
+            fromTeam: 'System',
+            toTeam: attackerName,
+            text: `🚫 Your ${label} was thwarted — ${victimName}'s ride is too shiny with Super Shield Wax and turtle wax.`,
+            kind: 'system'
+          });
+          ChatServiceV2.send({
+            fromTeam: 'System',
+            toTeam: victimName,
+            text: `🛡️ Your shield blocked a ${label} from ${attackerName}. That wax is paying off.`,
+            kind: 'system'
+          });
+        } catch (err) {
+          console.debug('💬 shield-block notify failed (rule gate):', err?.message || err);
+        }
         throw new Error('This team is shielded and cannot be attacked.');
       case 'ATTACKER_PROTECTED':
         throw new Error('This team is currently attacking with a SpeedBump and cannot be targeted.');
@@ -215,23 +231,17 @@ export async function attemptSurpriseAttack({
       try {
         ChatServiceV2.send({
           fromTeam: 'System',
-          toTeam: fromTeam,
-          text: `🚫 ${victimName} was protected by a Shield / Wax. Your ${label} was blocked.`,
+          toTeam: attackerName,
+          text: `🚫 Your ${label} was thwarted — ${victimName}'s ride is too shiny with Super Shield Wax and turtle wax.`,
           kind: 'system'
         });
         ChatServiceV2.send({
           fromTeam: 'System',
-          toTeam: toTeam,
-          text: `✨ Thank goodness for a good coat of wax — ${label} from ${attackerName} was blocked.`,
+          toTeam: victimName,
+          text: `🛡️ Your shield blocked a ${label} from ${attackerName}. That wax is paying off.`,
           kind: 'system'
         });
-        ChatServiceV2.send({
-          fromTeam: 'System',
-          toTeam: 'ALL',
-          text: `🛡️ ${attackerName} tried a ${label} on ${victimName}, but it slid off the wax.`,
-          kind: 'system'
-        });
-        notifyLocal('warning', `Ahh darn—they were freshly coated with wax. The ${label} slipped right off.`, 10000);
+        notifyLocal('warning', `🚫 Your ${label} was thwarted — ${victimName}'s ride is too shiny with wax.`, 10000);
       } catch (err) {
         console.debug('💬 shield-block notify failed:', err?.message || err);
       }

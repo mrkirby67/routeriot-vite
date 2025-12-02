@@ -22,7 +22,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { canTeamBeAttacked } from '../../services/gameRulesManager.js';
-import { allTeams } from '../../data.js';
 import styles from './BugStrikeControl.module.css';
 
 const DEFAULT_SETTINGS = Object.freeze({
@@ -121,11 +120,52 @@ export async function initializeBugStrikeControl(controlTeamName = 'Game Master'
     }
   });
 
-  tbody.innerHTML = '';
-  allTeams.forEach((team) => {
-    const row = buildTeamRow(team.name, tbody);
-    rowRegistry.set(team.name, row);
+  const activeTeamsRef = doc(db, 'game', 'activeTeams');
+  const unsubscribeActiveTeams = onSnapshot(activeTeamsRef, (docSnap) => {
+    const activeTeams = docSnap.exists() ? docSnap.data().list || [] : [];
+    const activeTeamSet = new Set(activeTeams);
+
+    // Remove teams that are no longer active
+    rowRegistry.forEach((row, teamName) => {
+      if (!activeTeamSet.has(teamName)) {
+        if (row.timerId) window.clearInterval(row.timerId);
+        row.rowEl.remove();
+        rowRegistry.delete(teamName);
+      }
+    });
+
+    // Add new teams
+    activeTeams.forEach((teamName) => {
+      if (!rowRegistry.has(teamName)) {
+        const row = buildTeamRow(teamName, tbody);
+        rowRegistry.set(teamName, row);
+
+        // Apply initial strike state if any exists
+        const strikesRef = collection(db, 'bugStrikes');
+        getDoc(doc(strikesRef, teamName)).then(docSnap => {
+          if (docSnap.exists()) {
+            applyStrikeState(row, docSnap.data());
+          }
+        });
+
+        row.launchBtn.addEventListener('click', () => {
+          handleLaunch({
+            row,
+            teamName,
+            bugInput,
+            durationInput,
+            controlTeamName,
+            currentSettings
+          });
+        });
+
+        row.cancelBtn.addEventListener('click', () => {
+          handleCancel({ row, teamName });
+        });
+      }
+    });
   });
+  cleanupFns.push(unsubscribeActiveTeams);
 
   const strikesRef = collection(db, 'bugStrikes');
   const unsubscribeStrikes = onSnapshot(strikesRef, (snapshot) => {
@@ -138,6 +178,7 @@ export async function initializeBugStrikeControl(controlTeamName = 'Game Master'
       applyStrikeState(row, docSnap.data());
     });
 
+    // Ensure teams no longer under attack are reset
     rowRegistry.forEach((row, teamName) => {
       if (!seenVictims.has(teamName)) {
         applyStrikeState(row, null);
@@ -148,23 +189,6 @@ export async function initializeBugStrikeControl(controlTeamName = 'Game Master'
     alert('⚠️ Live Bug Strike updates unavailable. Check console for details.');
   });
   cleanupFns.push(unsubscribeStrikes);
-
-  rowRegistry.forEach((row, teamName) => {
-    row.launchBtn.addEventListener('click', () => {
-      handleLaunch({
-        row,
-        teamName,
-        bugInput,
-        durationInput,
-        controlTeamName,
-        currentSettings
-      });
-    });
-
-    row.cancelBtn.addEventListener('click', () => {
-      handleCancel({ row, teamName });
-    });
-  });
 
   return (reason = 'manual') => {
     cleanupFns.forEach((fn) => {

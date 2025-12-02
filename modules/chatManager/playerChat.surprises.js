@@ -138,14 +138,7 @@ async function handleShieldActivation(teamName) {
   await activateShield(normalizedTeam, expiresAt);
   await auditUse(normalizedTeam, SurpriseTypes.WILD_CARD, { expiresAt });
 
-  await sendPrivateSystemMessage(normalizedTeam, '🛡️ Shield active! You are protected for a short time.');
-  await broadcast({
-    teamName: normalizedTeam,
-    sender: normalizedTeam,
-    senderDisplay: normalizedTeam,
-    message: `🛡️ ${normalizedTeam} activated Super Shield Wax.`,
-    isBroadcast: false
-  });
+  await sendPrivateSystemMessage(normalizedTeam, '🛡️ Shield active! Your ride has a fresh shine of Super Shield Wax.');
 
   return { ok: true, message: 'Shield activated!' };
 }
