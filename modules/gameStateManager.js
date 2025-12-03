@@ -32,6 +32,14 @@ import {
 } from './gameTimer.js';
 
 let cachedGameState = null;
+const ALLOWED_STATUSES = new Set(['waiting', 'active', 'paused', 'finished', 'ended', 'over', 'idle']);
+
+function sanitizeStatus(rawStatus) {
+  const normalized = typeof rawStatus === 'string'
+    ? rawStatus.trim().toLowerCase().replace(/:/g, '')
+    : '';
+  return ALLOWED_STATUSES.has(normalized) ? normalized : 'waiting';
+}
 
 function publishStateDiagnostics(state) {
   if (!state) return;
@@ -413,21 +421,30 @@ export async function releaseZones() {
 // ---------------------------------------------------------------------------
 // 🧠 Local handler: UI + timer reactions
 // ---------------------------------------------------------------------------
-function handleGameStateUpdate({
-// status sanitized (no colon) = 'waiting',
-  zonesReleased = false,
-  startTime = null,
-  endTime = null,
-  durationMinutes = null,
-  remainingMs = null,
-  pausedRemainingMs = null,
-}, previousStatus = null) {
+function handleGameStateUpdate(state = {}, previousStatus = null) {
+  const {
+    status,
+    zonesReleased = false,
+    startTime = null,
+    endTime = null,
+    durationMinutes = null,
+    remainingMs = null,
+    pausedRemainingMs = null,
+  } = state || {};
+
+  const normalizedStatus = typeof status === 'string' ? status : null;
+  if (!normalizedStatus) {
+    console.warn('[GameState] Ignoring update without a valid status', state);
+    clearCountdownTimer();
+    return { status: 'waiting', remainingMs: null, endTime: null };
+  }
+
   const statusEl = document.getElementById('game-status');
-  if (statusEl) statusEl.textContent = status.toUpperCase();
+  if (statusEl) statusEl.textContent = normalizedStatus.toUpperCase();
 
-  window.zonesEnabled = status === 'active' && zonesReleased;
+  window.zonesEnabled = normalizedStatus === 'active' && zonesReleased;
 
-  switch (status) {
+  switch (normalizedStatus) {
     case 'waiting':
       return handleWaitingState();
     case 'active':
@@ -437,12 +454,12 @@ function handleGameStateUpdate({
     case 'finished':
     case 'ended':
     case 'over':
-      return handleOverState(status);
+      return handleOverState(normalizedStatus);
     default:
-      console.warn(`⚠️ Unknown status "${status}"`);
+      console.warn(`⚠️ Unknown status "${normalizedStatus}"`);
       clearCountdownTimer();
-      console.debug('[GameState]', 'unknown', { status, remainingMs: null, endTime: null });
-      return { status, remainingMs: null, endTime: null };
+      console.debug('[GameState]', 'unknown', { status: normalizedStatus, remainingMs: null, endTime: null });
+      return { status: normalizedStatus, remainingMs: null, endTime: null };
   }
 }
 
@@ -463,29 +480,40 @@ export function listenForGameStatus(callback) {
 
     if (!docSnap.exists()) {
       clearCountdownTimer();
-      const derived = handleGameStateUpdate(fallbackState, lastKnownStatus);
-      publishStateDiagnostics(derived);
+      let derived = null;
+      try {
+        derived = handleGameStateUpdate(fallbackState, lastKnownStatus);
+      } catch (err) {
+        console.error('handleGameStateUpdate error', err);
+      }
+      publishStateDiagnostics(derived || fallbackState);
       callback?.(fallbackState);
       lastKnownStatus = fallbackState.status;
       return;
     }
 
-    const data = docSnap.data();
-    const nextStatus = data?.status || 'waiting';
+    const data = docSnap.data() || {};
+    const nextStatus = sanitizeStatus(data.status);
     const previousStatus = lastKnownStatus;
 
     const state = {
+      ...data,
       status: nextStatus,
       zonesReleased: !!data.zonesReleased,
       startTime: data.startTime || null,
       endTime: data.endTime || null,
       durationMinutes: data.durationMinutes || null,
-      remainingMs: data.remainingMs || null,
-      pausedRemainingMs: data.pausedRemainingMs || null,
+      remainingMs: data.remainingMs ?? null,
+      pausedRemainingMs: data.pausedRemainingMs ?? null,
     };
 
-    const derived = handleGameStateUpdate(state, previousStatus);
-    publishStateDiagnostics(derived);
+    let derived = null;
+    try {
+      derived = handleGameStateUpdate(state, previousStatus);
+    } catch (err) {
+      console.error('handleGameStateUpdate error', err);
+    }
+    publishStateDiagnostics(derived || state);
     callback?.(state);
 
     if (typeof window !== 'undefined' && previousStatus === 'paused' && nextStatus === 'active') {

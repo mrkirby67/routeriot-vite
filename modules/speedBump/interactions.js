@@ -2,6 +2,13 @@
 // INTERACTIONS – send/release logic, subscriptions, notify, and attack flow 
 // ============================================================================ 
 
+import { db } from '/core/config.js';
+import {
+  collection,
+  onSnapshot,
+  query,
+  where
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { 
   findTeamByName, 
   sanitize, 
@@ -300,9 +307,96 @@ export async function clearSpeedBumpForTeam() {
   console.warn('[SpeedBump][LEGACY] clearSpeedBumpForTeam is deprecated; use service API.');
   return { ok: false, reason: 'legacy_disabled' };
 }
-export function subscribeSpeedBumpAssignments() {
-  console.warn('[SpeedBump][LEGACY] subscribeSpeedBumpAssignments is deprecated; use service API.');
-  return () => {};
+export function subscribeSpeedBumpAssignments(teamName, callback) {
+  if (typeof callback !== 'function') return () => {};
+  const rawTeam = typeof teamName === 'string' ? teamName.trim() : '';
+  const variants = new Set();
+  if (rawTeam) variants.add(rawTeam);
+  const lower = rawTeam.toLowerCase();
+  if (lower && lower !== rawTeam) variants.add(lower);
+  const victimFilters = Array.from(variants).filter(Boolean);
+  if (!victimFilters.length) return () => {};
+
+  const colRef = collection(db, 'speedBumpAssignments');
+  const q = victimFilters.length === 1
+    ? query(colRef, where('victimId', '==', victimFilters[0]))
+    : query(colRef, where('victimId', 'in', victimFilters));
+
+  const toMillis = (value) => {
+    if (typeof value === 'number') return value;
+    if (value?.toMillis) return value.toMillis();
+    if (value?.seconds != null) return value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1e6);
+    return null;
+  };
+
+  const normalizeAssignment = (entry = {}) => {
+    const status = typeof entry.status === 'string' ? entry.status.trim().toLowerCase() : '';
+    const attacker = entry.attackerId || entry.attacker || entry.by || '';
+    const contactParts = [];
+    if (entry.contactName) contactParts.push(entry.contactName);
+    if (entry.contactPhone || entry.attackerContactPhone) contactParts.push(entry.contactPhone || entry.attackerContactPhone);
+    if (entry.contactEmail || entry.attackerContactEmail) contactParts.push(entry.contactEmail || entry.attackerContactEmail);
+    const contactInfo = contactParts.filter(Boolean).join(' • ');
+    const prompt = entry.prompt || entry.promptText || entry.challenge || entry.message || '';
+    const expiresAt =
+      toMillis(entry.blockEndsAt) ??
+      toMillis(entry.releaseEndsAt) ??
+      toMillis(entry.expiresAt) ??
+      (typeof entry.countdownMs === 'number' ? Date.now() + entry.countdownMs : null);
+
+    return {
+      ...entry,
+      status,
+      attacker,
+      contactInfo,
+      task: prompt,
+      expiresAt
+    };
+  };
+
+  const emit = (assignments = []) => {
+    const activeStatuses = new Set(['active']);
+    const activeList = assignments.filter(a => activeStatuses.has(a.status));
+    const current = activeList
+      .slice()
+      .sort((a, b) => {
+        const aTs = toMillis(a.updatedAt) ?? toMillis(a.activatedAt) ?? toMillis(a.createdAt) ?? 0;
+        const bTs = toMillis(b.updatedAt) ?? toMillis(b.activatedAt) ?? toMillis(b.createdAt) ?? 0;
+        return bTs - aTs;
+      })[0] || null;
+
+    const payload = current
+      ? { active: true, ...current }
+      : { active: false, assignments };
+
+    try {
+      callback(payload);
+    } catch (err) {
+      console.warn('[SpeedBump] subscriber callback failed:', err);
+    }
+  };
+
+  const unsub = onSnapshot(q, (snap) => {
+    const entries = [];
+    snap.forEach(docSnap => {
+      const raw = { id: docSnap.id, ...(docSnap.data() || {}) };
+      try {
+        entries.push(normalizeAssignment(raw));
+      } catch (err) {
+        console.warn('[SpeedBump] skipped malformed assignment doc', docSnap.id, err);
+      }
+    });
+    emit(entries);
+  }, (err) => {
+    console.error('[SpeedBump] assignment subscription error:', err);
+    emit([]);
+  });
+
+  return () => {
+    try { unsub(); } catch (err) {
+      console.warn('[SpeedBump] failed to detach assignment listener:', err);
+    }
+  };
 }
 
 // ---------------------------------------------------------------------------- 

@@ -78,13 +78,12 @@ let teamSurpriseCounts = new Map();
 
 export function SurpriseSelectorComponent() {
   return `
-    <section class="${styles.surpriseSelector}">
-      <div class="section-header">
-        <span class="section-title">Wild Cards</span>
-        <button class="expand-toggle" data-target="wildcards-section">+</button>
-      </div>
-      <div id="wildcards-section" class="collapsible-section collapsed">
+    <div class="${styles.controlSection}">
+      <div class="${styles.headerRow}">
         <h2>🎉 Team Wild Cards Dashboard</h2>
+        <button id="toggle-wildcards-btn" class="${styles.secondaryBtn}">Expand ▼</button>
+      </div>
+      <div id="wildcards-section" style="display: none;">
         <p class="${styles.subtitle}">
           Monitor and adjust each team’s surprise inventory in real time.
         </p>
@@ -129,25 +128,7 @@ export function SurpriseSelectorComponent() {
   `;
 }
 
-export function initializeWildCardsCollapsible() {
-  const toggleBtn = document.querySelector('[data-target="wildcards-section"]');
-  const content = document.getElementById('wildcards-section');
 
-  if (!toggleBtn || !content) {
-    return;
-  }
-
-  toggleBtn.addEventListener('click', () => {
-    const isCollapsed = content.classList.contains('collapsed');
-    if (isCollapsed) {
-      content.classList.remove('collapsed');
-      toggleBtn.textContent = '–';
-    } else {
-      content.classList.add('collapsed');
-      toggleBtn.textContent = '+';
-    }
-  });
-}
 
 export function initializeSurpriseSelector() {
   teardownSurpriseSelector('reinitialize');

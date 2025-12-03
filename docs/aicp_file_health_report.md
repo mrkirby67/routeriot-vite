@@ -1,21 +1,21 @@
-# AICP File Health Report — 2025-12-03T01:04:24.160Z
-Files scanned: 145
+# AICP File Health Report — 2025-12-03T02:15:34.517Z
+Files scanned: 146
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
 |----|------|--------|-----------|-------------|------------|
 | ⚠️ | services/speed-bump/speedBumpService.js | 908 | 27.9 | 149 | 4% |
 | ⚠️ | components/SpeedBumpControl/SpeedBumpControl.js | 711 | 24.4 | 121 | 4% |
+| ✅ | modules/gameStateManager.js | 598 | 19.3 | 78 | 6% |
 | ✅ | services/ChatServiceV2.js | 573 | 19.2 | 119 | 5% |
-| ✅ | modules/gameStateManager.js | 570 | 18.4 | 76 | 6% |
 | ✅ | components/GameControls/GameControls.js | 542 | 18.8 | 77 | 8% |
 | ✅ | services/team-surprise/teamSurpriseService.js | 525 | 17.5 | 107 | 5% |
 | ✅ | features/team-surprise/teamSurpriseController.js | 509 | 15.6 | 74 | 5% |
+| ✅ | modules/speedBump/interactions.js | 464 | 15.9 | 90 | 7% |
 | ✅ | components/BugStrikeControl/BugStrikeControl.js | 441 | 13.6 | 57 | 9% |
-| ✅ | components/SurpriseSelector/SurpriseSelector.js | 401 | 13.6 | 67 | 8% |
 | ✅ | modules/scoreboardManager.js | 390 | 11.6 | 75 | 2% |
+| ✅ | components/SurpriseSelector/SurpriseSelector.js | 382 | 13.0 | 62 | 8% |
 | ✅ | features/team-surprise/teamSurpriseState.js | 376 | 11.3 | 104 | 1% |
 | ✅ | modules/chatManager/playerChat.state.js | 374 | 11.6 | 72 | 1% |
-| ✅ | modules/speedBump/interactions.js | 370 | 12.6 | 70 | 8% |
 | ✅ | modules/playerUI/core.js | 316 | 10.4 | 67 | 2% |
 | ✅ | modules/gameRulesManager.js | 315 | 10.6 | 50 | 9% |
 | ✅ | ui/overlays/speedBumpOverlay.js | 312 | 10.4 | 49 | 9% |
@@ -106,6 +106,7 @@ Files scanned: 145
 | ✅ | features/player-page/playerPageController.js | 56 | 1.7 | 4 | 50% |
 | ✅ | ui/overlays/FlatTireOverlay.js | 56 | 1.4 | 6 | 48% |
 | ✅ | modules/speedBumpChallenges.js | 55 | 1.9 | 10 | 7% |
+| ✅ | components/WildCards/WildCards.js | 54 | 1.8 | 6 | 41% |
 | ✅ | components/SpeedBumpControl/speedBumpControlController.js | 53 | 1.7 | 4 | 49% |
 | ✅ | components/TeamSurpriseManager/TeamSurpriseManager.js | 53 | 1.9 | 6 | 51% |
 | ✅ | features/flat-tire/controller/autoScheduler.js | 52 | 2.1 | 11 | 21% |
@@ -152,11 +153,11 @@ Files scanned: 145
 ## Largest 10 Files
 - services/speed-bump/speedBumpService.js — 908 lines, 27.9 KB (Complexity: 149)
 - components/SpeedBumpControl/SpeedBumpControl.js — 711 lines, 24.4 KB (Complexity: 121)
+- modules/gameStateManager.js — 598 lines, 19.3 KB (Complexity: 78)
 - services/ChatServiceV2.js — 573 lines, 19.2 KB (Complexity: 119)
-- modules/gameStateManager.js — 570 lines, 18.4 KB (Complexity: 76)
 - components/GameControls/GameControls.js — 542 lines, 18.8 KB (Complexity: 77)
 - services/team-surprise/teamSurpriseService.js — 525 lines, 17.5 KB (Complexity: 107)
 - features/team-surprise/teamSurpriseController.js — 509 lines, 15.6 KB (Complexity: 74)
+- modules/speedBump/interactions.js — 464 lines, 15.9 KB (Complexity: 90)
 - components/BugStrikeControl/BugStrikeControl.js — 441 lines, 13.6 KB (Complexity: 57)
-- components/SurpriseSelector/SurpriseSelector.js — 401 lines, 13.6 KB (Complexity: 67)
 - modules/scoreboardManager.js — 390 lines, 11.6 KB (Complexity: 75)
