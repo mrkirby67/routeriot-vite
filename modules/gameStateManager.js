@@ -209,7 +209,7 @@ export async function setGameStatus(status, zonesReleased = false, durationMinut
   try {
     const now = Date.now();
     const payload = {
-// status sanitized (no colon),
+      status: typeof status === 'string' ? status.trim().replace(/:/g, '') : status,
       zonesReleased,
       updatedAt: serverTimestamp(),
     };

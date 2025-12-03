@@ -334,7 +334,6 @@ class SpeedBumpController {
       row.innerHTML = `
         <td class="${styles.teamCell}">
           <strong>${team.name}</strong>
-          <span>${victimId}</span>
         </td>
         <td class="${styles.promptCell}">
           <select data-role="speedbump" class="${styles.promptSelect}">
