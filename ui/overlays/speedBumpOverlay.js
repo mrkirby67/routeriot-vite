@@ -93,7 +93,11 @@ function ensureOverlay() {
   chirpBtn?.addEventListener('click', handleChirp);
   completeBtn?.addEventListener('click', handleComplete);
 
-  document.body.appendChild(el);
+  const mountTarget =
+    document.getElementById('player-app') ||
+    document.querySelector('.container') ||
+    document.body;
+  mountTarget.appendChild(el);
   overlayEl = el;
   return el;
 }
@@ -191,7 +195,7 @@ function renderOverlay(assignments = []) {
       return bCreated - aCreated;
     });
 
-  const victimEntry = live.find(a => a.role === 'victim') || live[0] || null;
+  const victimEntry = live.find(a => a.role === 'victim') || null;
   currentAssignment = victimEntry || null;
 
   if (!victimEntry) {

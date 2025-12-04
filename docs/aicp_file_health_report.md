@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-12-04T12:34:45.698Z
+# AICP File Health Report — 2025-12-04T12:51:24.258Z
 Files scanned: 146
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -18,7 +18,7 @@ Files scanned: 146
 | ✅ | features/team-surprise/teamSurpriseState.js | 376 | 11.3 | 104 | 1% |
 | ✅ | modules/playerUI/core.js | 316 | 10.4 | 67 | 2% |
 | ✅ | modules/gameRulesManager.js | 315 | 10.6 | 50 | 9% |
-| ✅ | ui/overlays/speedBumpOverlay.js | 311 | 10.3 | 53 | 9% |
+| ✅ | ui/overlays/speedBumpOverlay.js | 315 | 10.4 | 53 | 9% |
 | ✅ | components/ZoneManagement/zoneHandlers.js | 301 | 10.3 | 45 | 14% |
 | ✅ | modules/chirpResponder.js | 296 | 9.7 | 38 | 1% |
 | ✅ | components/ZoneManagement/ZoneManagement.js | 295 | 9.7 | 58 | 15% |
@@ -26,7 +26,6 @@ Files scanned: 146
 | ✅ | components/ZoneQuestions/ZoneQuestionsEditor.js | 286 | 9.4 | 39 | 16% |
 | ✅ | features/flat-tire/flatTireController.js | 282 | 10.1 | 52 | 10% |
 | ✅ | modules/controlStatus.js | 275 | 9.4 | 37 | 14% |
-| ✅ | modules/chatManager/playerChat.renderers.js | 272 | 9.3 | 30 | 1% |
 | ✅ | features/flat-tire/flatTireEvents.js | 267 | 9.1 | 71 | 5% |
 | ✅ | modules/flatTireUI.js | 265 | 8.4 | 39 | 2% |
 | ✅ | modules/playerBugStrikeUI.js | 259 | 8.5 | 42 | 17% |
@@ -42,6 +41,7 @@ Files scanned: 146
 | ✅ | modules/bugStrikeManager.js | 205 | 6.7 | 17 | 15% |
 | ✅ | modules/playerUI/overlays/speedBumpOverlay.js | 199 | 5.9 | 42 | 2% |
 | ✅ | modules/gameUI.js | 195 | 6.3 | 29 | 12% |
+| ✅ | modules/chatManager/playerChat.renderers.js | 194 | 6.4 | 18 | 2% |
 | ✅ | components/ZoneQuestions/ZoneQuestionsUI.js | 192 | 6.9 | 21 | 21% |
 | ✅ | modules/zonesUtils.js | 186 | 5.9 | 42 | 3% |
 | ✅ | modules/chatManager/playerChat.handlers.js | 184 | 5.8 | 35 | 2% |

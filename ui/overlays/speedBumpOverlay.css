@@ -9,11 +9,6 @@
   z-index: 11000;
 }
 
-.speedbump-overlay #speedbump-overlay,
-#speedbump-overlay {
-  display: flex;
-}
-
 .speedbump-overlay__panel {
   width: min(520px, 100%);
   background: #ffffff;
