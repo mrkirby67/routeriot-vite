@@ -32,7 +32,7 @@ import {
   clearChatsAndScores
 } from '../../modules/gameMaintenance.js'; // 🧹 new imports
 import { clearAllCollectionsAndReset } from '../../modules/gameRulesManager.js';
-import { saveRules, loadRules } from '../../services/gameRulesManager.js';
+import { saveRules, loadRules, runPreRaceMarksSequence } from '../../services/gameRulesManager.js';
 import { getGameStatus, setGameStatus, listenToGameStateUpdates } from '../../features/game-state/gameStateController.js';
 import { announceTopThree } from '../../modules/scoreboardManager.js';
 import { notify, subscribe } from '/core/eventBus.js';
@@ -323,6 +323,7 @@ export function initializeGameControlsLogic() {
   const clearChatBtn = document.getElementById('clear-chat-btn');
   const resetBtn = document.getElementById('reset-game-btn');
   const clearScoresBtn = document.getElementById('clear-scores-btn');
+  const sendLinksBtn = document.getElementById('send-links-btn');
   const rulesBtn = document.getElementById('toggle-rules-btn');
   const rulesSection = document.getElementById('rules-section');
   const rulesText = document.getElementById('rules-text');
@@ -421,26 +422,23 @@ export function initializeGameControlsLogic() {
     });
   }
 
-  startBtn.addEventListener('click', async (event) => {
-    const currentStatus = isGameActive ? 'active' : await getGameStatus().catch(() => 'idle');
-    if (currentStatus === 'active') {
+  if (sendLinksBtn) {
+    sendLinksBtn.addEventListener('click', async (event) => {
       event?.preventDefault?.();
-      notify({ kind: 'info', text: 'Game already in progress!' });
-      applyStatus('active');
-      return;
-    }
-
-    console.log('🎬 Starting game...');
-    try {
-      await setGameStatus('active');
-      applyStatus('active');
-      notify({ kind: 'info', text: 'Game start requested.' });
-    } catch (err) {
-      console.error('❌ Failed to set game status to active:', err);
-      notify({ kind: 'info', text: 'Unable to update game status.' });
-      applyStatus(currentStatus);
-    }
-  });
+      try {
+        notify({ kind: 'info', text: 'Marks sequence started…' });
+        const result = await runPreRaceMarksSequence('global');
+        if (result?.ok !== false) {
+          notify({ kind: 'info', text: 'Marks sequence triggered.' });
+        } else {
+          notify({ kind: 'info', text: 'Marks ignored — game not active.' });
+        }
+      } catch (err) {
+        console.error('❌ Marks sequence failed:', err);
+        notify({ kind: 'info', text: 'Marks sequence failed. Check console.' });
+      }
+    });
+  }
 
   endBtn.addEventListener('click', async (event) => {
     const status = isGameActive ? 'active' : await getGameStatus().catch(() => 'idle');

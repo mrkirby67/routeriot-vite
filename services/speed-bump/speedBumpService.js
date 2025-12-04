@@ -24,7 +24,7 @@ import {
   getSpeedBumpPromptBank
 } from '../../modules/speedBumpChallenges.js';
 import ChatServiceV2 from '../ChatServiceV2.js';
-import { canTeamBeAttacked } from '../gameRulesManager.js';
+import { canTeamBeAttacked, canUseWildCards } from '../gameRulesManager.js';
 
 // ----------------------------------------------------------------------------
 // 🔢 Constants
@@ -283,6 +283,12 @@ export async function assignSpeedBump({
   assertNonEmpty(gameId, 'gameId');
   assertNonEmpty(attackerId, 'attackerId');
   assertNonEmpty(victimId, 'victimId');
+
+  const gameAllowed = await canUseWildCards(gameId);
+  if (!gameAllowed) {
+    console.warn('[SpeedBump] Ignoring assignment — game not active.');
+    return { ok: false, reason: 'inactive_game' };
+  }
 
   const attacker = normalizeTeamId(attackerId);
   const victim = normalizeTeamId(victimId);

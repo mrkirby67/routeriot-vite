@@ -127,16 +127,13 @@ export async function safelyEndGameAndResetZones(options = {}) {
     }
     console.log(`🧭 ${teamStatusSnap.size} teamStatus docs wiped`);
 
-    // 4️⃣ Clear scoreboard
-    await clearAllScores(true);
-
-    // 4b️⃣ Remove transient power-ups & assignments
+    // 4️⃣ Remove transient power-ups & assignments (scores are frozen for post-game review)
     await clearTransientGameCollections();
 
     // 5️⃣ Broadcast end message
     await addDoc(collection(db, "communications"), {
       teamName: "Game Master",
-      message: "🏁 Game ended — zones & scoreboard reset.",
+      message: "🏁 Game ended — zones reset and final scores locked in.",
       isBroadcast: true,
       timestamp: serverTimestamp(),
     });
@@ -172,54 +169,6 @@ export async function resetFullGameState() {
     console.error("❌ Error resetting game:", e);
     showFlashMessage('Reset failed.', '#c62828', 2500);
   }
-}
-
-// ---------------------------------------------------------------------------
-// 🃏 Apply Wild Cards to every teamStatus document
-// ---------------------------------------------------------------------------
-export async function applyWildCardsToAllTeams(count) {
-  const target = Number.isFinite(Number(count)) && Number(count) >= 0
-    ? Math.floor(Number(count))
-    : 0;
-
-  const batch = writeBatch(db);
-  const surprisesCollection = collection(db, 'teamSurprises');
-  const teamStatusCollection = collection(db, 'teamStatus');
-
-  allTeams.forEach(team => {
-    const teamName = team.name;
-
-    // Update teamStatus document
-    const statusRef = doc(teamStatusCollection, teamName);
-    batch.set(statusRef, {
-      wildCards: target,
-      flatTireCount: target,
-      bugSplatCount: target,
-      shieldWaxCount: target,
-    }, { merge: true });
-
-    // Update teamSurprises document
-    const sanitizedId = teamName.replace(/[\\/#?]/g, '_');
-    const surpriseRef = doc(surprisesCollection, sanitizedId);
-    batch.set(surpriseRef, {
-      counts: {
-        flatTire: target,
-        bugSplat: target,
-        wildCard: target,
-      },
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-  });
-
-  await batch.commit();
-
-  showFlashMessage(`🃏 Wild cards set to ${target} for all teams.`, '#512da8', 2500);
-  console.log(`🃏 Wild cards set to ${target} for ${allTeams.length} teams.`);
-  return target;
-}
-
-if (typeof window !== 'undefined') {
-  window.applyWildCardsToAllTeams = applyWildCardsToAllTeams;
 }
 
 // ---------------------------------------------------------------------------

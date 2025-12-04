@@ -16,6 +16,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import ChatServiceV2 from '../services/ChatServiceV2.js';
+import { canUseWildCards } from '../services/gameRulesManager.js';
 
 // ---------------------------------------------------------------------------
 // 🧮 Firestore References
@@ -105,6 +106,12 @@ export async function grantBugStrike(teamName, source = 'manual') {
 // 💥 Use Strike (Control-triggered → attack another team)
 // ---------------------------------------------------------------------------
 export async function useBugStrike(fromTeam, targetTeam) {
+  const gameAllowed = await canUseWildCards('global');
+  if (!gameAllowed) {
+    console.warn('[BugStrike] Ignoring strike — game not active.');
+    return { success: false, reason: 'inactive_game' };
+  }
+
   try {
     const settings = await getBugStrikeSettings();
     const cooldownMs = (settings.cooldownMinutes ?? 30) * 60000;

@@ -17,7 +17,7 @@ import {
   assignFlatTireTeam as baseAssignFlatTireTeam,
   releaseFlatTireTeam,
 } from '../../modules/flatTireManager.js';
-import { canTeamBeAttacked } from '../gameRulesManager.js';
+import { canTeamBeAttacked, canUseWildCards } from '../gameRulesManager.js';
 import ChatServiceV2 from '../ChatServiceV2.js';
 
 function throwRuleError(rule) {
@@ -49,6 +49,12 @@ export {
 };
 
 export async function assignFlatTireTeam(teamName, options = {}) {
+  const gameAllowed = await canUseWildCards('global');
+  if (!gameAllowed) {
+    console.warn('[FlatTire] Ignoring assignment — game not active.');
+    return { ok: false, reason: 'inactive_game' };
+  }
+
   const attacker = typeof options.fromTeam === 'string' && options.fromTeam.trim()
     ? options.fromTeam.trim()
     : 'Control';

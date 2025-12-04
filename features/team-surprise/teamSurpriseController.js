@@ -65,7 +65,7 @@ import ChatServiceV2 from '../../services/ChatServiceV2.js';
 import { emit } from '/core/eventBus.js';
 import { loadTeamSurpriseUI } from '@/core/lazyLoader.js';
 import { registerSurpriseTriggerHandler } from './teamSurprise.bridge.js';
-import { canTeamBeAttacked } from '../../services/gameRulesManager.js';
+import { canTeamBeAttacked, canUseWildCards } from '../../services/gameRulesManager.js';
 import { initializeShieldStateFromFirestore } from './teamSurpriseState.js';
 
 let uiModulePromise = null;
@@ -181,6 +181,12 @@ export async function attemptSurpriseAttack({
   type,
   onSuccess
 }) {
+  const gameAllowed = await canUseWildCards('global');
+  if (!gameAllowed) {
+    notifyLocal('info', 'Game is not active — surprise blocked.');
+    return { ok: false, reason: 'inactive_game' };
+  }
+
   const normalizedType = normalizeSurpriseKey(type);
   const label = defaultSurpriseLabel(normalizedType || type);
   const attackerName = normalizeTeamName(fromTeam) || fromTeam || 'Unknown';
