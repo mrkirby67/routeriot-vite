@@ -93,11 +93,7 @@ function ensureOverlay() {
   chirpBtn?.addEventListener('click', handleChirp);
   completeBtn?.addEventListener('click', handleComplete);
 
-  const mountTarget =
-    document.getElementById('player-app') ||
-    document.querySelector('.container') ||
-    document.body;
-  mountTarget.appendChild(el);
+  document.body.appendChild(el);
   overlayEl = el;
   return el;
 }

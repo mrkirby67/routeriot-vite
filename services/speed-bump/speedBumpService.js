@@ -564,22 +564,35 @@ export async function completeSpeedBump({ gameId, attackerId, victimId, assignme
  */
 export async function cancelSpeedBump({ gameId, attackerId, victimId, assignmentId }) {
   assertNonEmpty(gameId, 'gameId');
-  assertNonEmpty(attackerId, 'attackerId');
 
-  const attacker = normalizeTeamId(attackerId);
-  const computedId = assignmentId || makeDocId(gameId, attacker, victimId);
-  let ref = doc(db, ROOT_COLLECTION, computedId);
-  let snap = await getDoc(ref);
-  if (!snap.exists()) {
-    const latest = await fetchLatestByAttacker(gameId, attacker);
-    if (!latest) throw new Error('No Speed Bump found for this attacker.');
-    ref = latest.ref;
-    snap = latest;
+  let ref = null;
+  let snap = null;
+  let data = null;
+
+  if (assignmentId) {
+    ref = doc(db, ROOT_COLLECTION, assignmentId);
+    snap = await getDoc(ref);
+    if (!snap.exists()) {
+      throw new Error('Speed Bump not found.');
+    }
+    data = snap.data();
+  } else {
+    assertNonEmpty(attackerId, 'attackerId');
+    const attacker = normalizeTeamId(attackerId);
+    const computedId = makeDocId(gameId, attacker, victimId);
+    ref = doc(db, ROOT_COLLECTION, computedId);
+    snap = await getDoc(ref);
+    if (!snap.exists()) {
+      const latest = await fetchLatestByAttacker(gameId, attacker);
+      if (!latest) throw new Error('No Speed Bump found for this attacker.');
+      ref = latest.ref;
+      snap = latest;
+    }
+    data = snap.data();
   }
 
-  const data = snap.data();
   const resolvedId = ref.id;
-  if (data.gameId !== gameId) {
+  if (data.gameId && data.gameId !== gameId) {
     throw new Error('Speed Bump belongs to a different game.');
   }
 

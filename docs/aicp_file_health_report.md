@@ -1,9 +1,9 @@
-# AICP File Health Report — 2025-12-04T12:51:24.258Z
+# AICP File Health Report — 2025-12-04T13:03:05.491Z
 Files scanned: 146
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
 |----|------|--------|-----------|-------------|------------|
-| ⚠️ | services/speed-bump/speedBumpService.js | 978 | 30.7 | 153 | 5% |
+| ⚠️ | services/speed-bump/speedBumpService.js | 991 | 31.0 | 156 | 5% |
 | ⚠️ | components/SpeedBumpControl/SpeedBumpControl.js | 711 | 24.4 | 121 | 4% |
 | ✅ | modules/gameStateManager.js | 598 | 19.3 | 78 | 6% |
 | ✅ | components/GameControls/GameControls.js | 590 | 20.9 | 93 | 7% |
@@ -18,7 +18,7 @@ Files scanned: 146
 | ✅ | features/team-surprise/teamSurpriseState.js | 376 | 11.3 | 104 | 1% |
 | ✅ | modules/playerUI/core.js | 316 | 10.4 | 67 | 2% |
 | ✅ | modules/gameRulesManager.js | 315 | 10.6 | 50 | 9% |
-| ✅ | ui/overlays/speedBumpOverlay.js | 315 | 10.4 | 53 | 9% |
+| ✅ | ui/overlays/speedBumpOverlay.js | 311 | 10.3 | 53 | 9% |
 | ✅ | components/ZoneManagement/zoneHandlers.js | 301 | 10.3 | 45 | 14% |
 | ✅ | modules/chirpResponder.js | 296 | 9.7 | 38 | 1% |
 | ✅ | components/ZoneManagement/ZoneManagement.js | 295 | 9.7 | 58 | 15% |
@@ -151,7 +151,7 @@ Files scanned: 146
 | ✅ | features/player-page/playerPage.bridge.js | 6 | 0.2 | 1 | 0% |
 
 ## Largest 10 Files
-- services/speed-bump/speedBumpService.js — 978 lines, 30.7 KB (Complexity: 153)
+- services/speed-bump/speedBumpService.js — 991 lines, 31.0 KB (Complexity: 156)
 - components/SpeedBumpControl/SpeedBumpControl.js — 711 lines, 24.4 KB (Complexity: 121)
 - modules/gameStateManager.js — 598 lines, 19.3 KB (Complexity: 78)
 - components/GameControls/GameControls.js — 590 lines, 20.9 KB (Complexity: 93)
