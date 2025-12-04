@@ -62,7 +62,7 @@ function assertNonEmpty(value, fieldName) {
 }
 
 function normalizeTeamId(id) {
-  return typeof id === 'string' ? id.trim() : '';
+  return typeof id === 'string' ? id.trim().toLowerCase() : '';
 }
 
 function normalizeStatus(value) {

@@ -83,7 +83,7 @@ export function SurpriseSelectorComponent() {
         <h2>🎉 Team Wild Cards Dashboard</h2>
         <button id="toggle-wildcards-btn" class="${styles.secondaryBtn}">Expand ▼</button>
       </div>
-      <div id="wildcards-section" style="display: none;">
+      <div id="wildcards-section" style="display: block;">
         <p class="${styles.subtitle}">
           Monitor and adjust each team’s surprise inventory in real time.
         </p>

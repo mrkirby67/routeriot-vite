@@ -18,7 +18,7 @@ export function initializeWildCardsCollapsible() {
   };
 
   // Initialize to the current display state (defaults to collapsed via inline style)
-  const initialExpanded = panel.style.display !== 'none';
+  const initialExpanded = true;
   applyState(initialExpanded);
 
   const handleToggle = () => {

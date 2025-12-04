@@ -36,6 +36,13 @@ let bugStrikeCleanup = null;
 let playerScoreboardCleanup = null;
 let teamSurpriseCleanup = null;
 
+function setHomeBase(value) {
+  const el = document.getElementById('home-base-display');
+  if (!el) return;
+  const clean = typeof value === 'string' && value.trim() ? value.trim() : '--';
+  el.textContent = `Home Base: ${clean}`;
+}
+
 function teardownPlayerListeners(reason = 'manual') {
   chatCleanup?.(reason);
   chatCleanup = null;
@@ -133,6 +140,10 @@ export async function initializePlayerPage() {
     const gameDoc = await getDoc(doc(db, 'game', 'gameState'));
     const gameData = gameDoc.exists() ? gameDoc.data() : null;
 
+    if (gameData) {
+      setHomeBase(gameData.homeBase);
+    }
+
     if (gameData?.status === 'active') {
       removeWaitingBanner();
       const endTimestamp = getEndTimestampMs(gameData);
@@ -189,7 +200,9 @@ let pausedAt = null;
 let lastRemainingMs = null;
 
 function handleLiveGameState(state) {
-  const { status, endTime, startTime, durationMinutes, remainingMs } = state || {};
+  const { status, endTime, startTime, durationMinutes, remainingMs, homeBase } = state || {};
+
+  setHomeBase(homeBase);
 
   switch (status) {
     case 'waiting':

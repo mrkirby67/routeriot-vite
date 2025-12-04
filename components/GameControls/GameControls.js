@@ -18,6 +18,7 @@ import {
   setDoc,
   writeBatch,
   getDocs,
+  getDoc,
   collection,
   deleteDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -266,6 +267,13 @@ export function GameControlsComponent() {
     <div class="${styles.controlSection}">
       <h2>Game Controls & Setup</h2>
 
+      <div class="${styles.timerSetup}" style="margin-bottom:12px;">
+        <label for="home-base-input"><strong>Home Base:</strong></label>
+        <input type="text" id="home-base-input" placeholder="Enter Home Base location" style="margin-left:8px;max-width:360px;">
+        <button id="home-base-save-btn" class="${styles.controlButton} ${styles.pause}" style="margin-left:8px;">Save</button>
+        <span id="home-base-status" style="margin-left:10px;font-size:0.9em;color:#9baec8;"></span>
+      </div>
+
       <div class="${styles.gameControls}">
         <button id="start-btn" class="${styles.controlButton} ${styles.start}">▶️ Start Game</button>
         <button id="pause-btn" class="${styles.controlButton} ${styles.pause}">⏸️ Pause Game</button>
@@ -324,6 +332,9 @@ export function initializeGameControlsLogic() {
   const resetBtn = document.getElementById('reset-game-btn');
   const clearScoresBtn = document.getElementById('clear-scores-btn');
   const sendLinksBtn = document.getElementById('send-links-btn');
+  const homeBaseInput = document.getElementById('home-base-input');
+  const homeBaseSaveBtn = document.getElementById('home-base-save-btn');
+  const homeBaseStatus = document.getElementById('home-base-status');
   const rulesBtn = document.getElementById('toggle-rules-btn');
   const rulesSection = document.getElementById('rules-section');
   const rulesText = document.getElementById('rules-text');
@@ -389,6 +400,10 @@ export function initializeGameControlsLogic() {
   });
 
   detachLegacyStatus = listenForGameStatus((state) => {
+    if (homeBaseInput && typeof state?.homeBase === 'string') {
+      homeBaseInput.value = state.homeBase;
+      if (homeBaseStatus) homeBaseStatus.textContent = 'Saved';
+    }
     applyStatus(state?.status ?? 'idle');
   });
 
@@ -436,6 +451,41 @@ export function initializeGameControlsLogic() {
       } catch (err) {
         console.error('❌ Marks sequence failed:', err);
         notify({ kind: 'info', text: 'Marks sequence failed. Check console.' });
+      }
+    });
+  }
+
+  if (homeBaseSaveBtn && homeBaseInput) {
+    // Prefill from Firestore
+    getDoc(doc(db, 'game', 'gameState')).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data() || {};
+        if (typeof data.homeBase === 'string') {
+          homeBaseInput.value = data.homeBase;
+          if (homeBaseStatus) homeBaseStatus.textContent = 'Saved';
+        }
+      }
+    }).catch((err) => console.warn('⚠️ Failed to load Home Base:', err));
+
+    const saveHomeBase = async () => {
+      const value = homeBaseInput.value?.trim() || '';
+      try {
+        await setDoc(doc(db, 'game', 'gameState'), { homeBase: value }, { merge: true });
+        if (homeBaseStatus) {
+          homeBaseStatus.textContent = value ? 'Saved' : 'Cleared';
+          setTimeout(() => { homeBaseStatus.textContent = ''; }, 2500);
+        }
+      } catch (err) {
+        console.error('❌ Failed to save Home Base:', err);
+        if (homeBaseStatus) homeBaseStatus.textContent = 'Save failed';
+      }
+    };
+
+    homeBaseSaveBtn.addEventListener('click', saveHomeBase);
+    homeBaseInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveHomeBase();
       }
     });
   }
