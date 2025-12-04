@@ -13,7 +13,11 @@ import {
   subscribeSurprisesForTeam,
   isShieldActive
 } from '../teamSurpriseManager.js';
-import { subscribeSpeedBumpsForAttacker } from '../speedBump/index.js';
+import {
+  subscribeToTeamSpeedBumps,
+  releaseSpeedBumpEarly,
+  SPEEDBUMP_STATUS
+} from '../../services/speed-bump/speedBumpService.js';
 import { updateSpeedBumpOverlay } from '../playerUI/overlays/speedBumpOverlay.js';
 import { initializePlayerBugStrike } from '../playerBugStrike.js';
 
@@ -27,6 +31,20 @@ function toMillis(timestamp) {
     return base + nanos;
   }
   return Date.now();
+}
+
+function resolveGameId() {
+  if (typeof window === 'undefined') return 'global';
+  const candidates = [
+    window.__rrGameId,
+    window.__routeRiotGameId,
+    window.sessionStorage?.getItem?.('activeGameId'),
+    window.localStorage?.getItem?.('activeGameId')
+  ];
+  for (const val of candidates) {
+    if (typeof val === 'string' && val.trim()) return val.trim();
+  }
+  return 'global';
 }
 
 function normalizeMessage(raw) {
@@ -300,8 +318,9 @@ export function setupPlayerChat(teamName, options = {}) {
     }
   });
 
-  initSpeedBumpListeners(normalizedTeamName, (entries = []) => {
-    ui.renderOutgoing?.(Array.isArray(entries) ? entries : []);
+  initSpeedBumpListeners(normalizedTeamName, (entries = [], meta = {}) => {
+    const list = Array.isArray(entries) ? entries : [];
+    ui.renderOutgoing?.(list, meta);
   });
   teardownCallbacks.push(() => teardownSpeedBumpListeners());
 
@@ -341,23 +360,75 @@ export function setupPlayerChat(teamName, options = {}) {
   };
 }
 export function initSpeedBumpListeners(teamName, onUpdate) {
-  const normalized = typeof teamName === 'string' ? teamName.trim() : '';
+  const normalized = typeof teamName === 'string' ? teamName.trim().toLowerCase() : '';
   if (!normalized) return;
+  const gameId = resolveGameId();
 
   if (typeof unsubscribeSpeedBump === 'function') {
     unsubscribeSpeedBump();
     unsubscribeSpeedBump = null;
   }
 
-  unsubscribeSpeedBump = subscribeSpeedBumpsForAttacker(normalized, (assignments = []) => {
-    console.log(`🎯 [SpeedBump][Attacker] snapshot for ${normalized}:`, assignments);
-    updateSpeedBumpOverlay(assignments);
+  const resolveTargetTs = (entry = {}) => {
+    const status = String(entry.status || '').toLowerCase();
+    const releaseMs = entry.releaseEndsAtMs ?? toMillis(entry.releaseEndsAt);
+    const blockMs = entry.blockEndsAtMs ?? toMillis(entry.blockEndsAt);
+    if (status === SPEEDBUMP_STATUS.WAITING_RELEASE && Number.isFinite(releaseMs)) {
+      return releaseMs;
+    }
+    if (Number.isFinite(blockMs)) return blockMs;
+    if (Number.isFinite(releaseMs)) return releaseMs;
+    return null;
+  };
+
+  const handleRelease = async ({ assignmentId, victimId }) => {
+    if (!assignmentId) return;
     try {
-      onUpdate?.(assignments);
+      await releaseSpeedBumpEarly({
+        assignmentId,
+        attackerId: normalized,
+        victimId,
+        gameId
+      });
+    } catch (err) {
+      console.warn('⚠️ Failed to release Speed Bump early:', err);
+    }
+  };
+
+  unsubscribeSpeedBump = subscribeToTeamSpeedBumps(normalized, (assignments = []) => {
+    const attackerEntries = (assignments || []).filter(
+      (entry) =>
+        entry.role === 'attacker' &&
+        [SPEEDBUMP_STATUS.ACTIVE, SPEEDBUMP_STATUS.WAITING_RELEASE].includes(entry.status)
+    );
+
+    const mappedForList = attackerEntries.map((entry) => {
+      const targetTs = resolveTargetTs(entry);
+      return {
+        id: entry.id,
+        victimId: entry.victimId || entry.victim || '',
+        remainingMs: Number.isFinite(targetTs) ? Math.max(0, targetTs - Date.now()) : 0,
+        status: entry.status,
+        prompt: entry.promptText || entry.prompt || entry.challenge || '',
+        targetTs
+      };
+    });
+
+    updateSpeedBumpOverlay(
+      attackerEntries.map((entry) => ({
+        status: entry.status,
+        attacker: entry.attackerId || entry.attacker,
+        challenge: entry.promptText || entry.prompt || entry.challenge || '',
+        expiresAt: resolveTargetTs(entry)
+      }))
+    );
+
+    try {
+      onUpdate?.(mappedForList, { onRelease: handleRelease });
     } catch (err) {
       console.warn('[SpeedBump][Attacker] render callback failed:', err);
     }
-  });
+  }, { role: 'attacker', statuses: [SPEEDBUMP_STATUS.ACTIVE, SPEEDBUMP_STATUS.WAITING_RELEASE], gameId });
 }
 
 export function teardownSpeedBumpListeners() {

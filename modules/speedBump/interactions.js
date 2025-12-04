@@ -1,3 +1,15 @@
+// === AICP MODULE HEADER ===
+// ============================================================================
+// FILE: modules/speedBump/interactions.js
+// PURPOSE: Control/player Speed Bump interaction logic (apply, release, subscribe)
+// LAYER: modules (gameplay)
+// DEPENDS_ON: services/speed-bump/speedBumpService.js, teamSurpriseManager, firestore
+// AUTHOR: Route Riot – Speed Bump
+// CREATED: 2025-01-01
+// AICP_VERSION: 1.0
+// ============================================================================
+// === END AICP MODULE HEADER ===
+
 // ============================================================================ 
 // INTERACTIONS – send/release logic, subscriptions, notify, and attack flow 
 // ============================================================================ 

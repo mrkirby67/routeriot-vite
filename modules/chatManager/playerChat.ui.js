@@ -130,8 +130,8 @@ export function initializeTeamSurprisesPanel(teamName) {
     renderInventory(byTeam = {}, options = {}) {
       renderTeamInventory(byTeam, options);
     },
-    renderOutgoing(entries = []) {
-      renderOutgoingList(entries);
+    renderOutgoing(entries = [], options = {}) {
+      renderOutgoingList(teamSurprisesPanelState, entries, options);
     },
     renderPlayerInventory(counts = {}) {
       renderMyInventory(counts);
@@ -142,6 +142,10 @@ export function initializeTeamSurprisesPanel(teamName) {
     teardown() {
       stopShieldTicker();
       hideShieldTimer();
+      if (teamSurprisesPanelState.outgoingList?.__timer) {
+        clearInterval(teamSurprisesPanelState.outgoingList.__timer);
+        teamSurprisesPanelState.outgoingList.__timer = null;
+      }
       teamSurprisesPanelState.teamName = null;
       teamSurprisesPanelState.section = null;
       teamSurprisesPanelState.inventoryList = null;

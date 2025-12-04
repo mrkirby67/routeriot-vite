@@ -1,18 +1,14 @@
 // === AICP SERVICE HEADER ===
 // ============================================================================
 // FILE: services/gameRulesManager.js
-// PURPOSE: Persists game rule settings to Firestore and reloads them for control clients.
-// DEPENDS_ON: /core/config.js, https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js
-// USED_BY: components/GameControls/GameControls.js
-// AUTHOR: James Kirby / Route Riot Project
-// CREATED: 2025-10-30
-// AICP_VERSION: 3.0
+// PURPOSE: Persisted game rules and cross-feature orchestration helpers
+// LAYER: services
+// DEPENDS_ON: /core/config.js, firebase-firestore, modules/emailTeams.js
+// AUTHOR: Route Riot – Game Rules
+// CREATED: 2025-01-01
+// AICP_VERSION: 1.0
 // ============================================================================
 // === END AICP SERVICE HEADER ===
-
-// ============================================================================
-// PATCH: gameRulesManager.js — Persistent Game Rules
-// ============================================================================
 
 import { db } from '/core/config.js';
 import {

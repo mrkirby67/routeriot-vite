@@ -5,6 +5,7 @@
 
 import { ensureSpeedBumpOverlayListeners } from '../ui/overlays/speedBumpOverlay.js';
 import { triggerSpeedBump } from '../services/speed-bump/speedBumpService.js';
+import { formatSenderContact } from './speedBump/interactions.js';
 
 let teardownOverlay = null;
 
@@ -16,6 +17,20 @@ function resolveTeamName(input) {
     if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
   }
   return '';
+}
+
+function resolveGameId() {
+  if (typeof window === 'undefined') return 'global';
+  const candidates = [
+    window.__rrGameId,
+    window.__routeRiotGameId,
+    window.sessionStorage?.getItem?.('activeGameId'),
+    window.localStorage?.getItem?.('activeGameId')
+  ];
+  for (const val of candidates) {
+    if (typeof val === 'string' && val.trim()) return val.trim();
+  }
+  return 'global';
 }
 
 export function initSpeedBumpPlayer(teamContext) {
@@ -43,6 +58,8 @@ export async function sendSpeedBumpFromPlayer(fromTeam, targetTeam, type = 'slow
     typeof fromTeam === 'string' && fromTeam.trim() ? fromTeam.trim().toLowerCase() : null;
   const defender =
     typeof targetTeam === 'string' && targetTeam.trim() ? targetTeam.trim().toLowerCase() : null;
+  const gameId = resolveGameId();
+  const { email: contactEmail, phone: contactPhone } = formatSenderContact(fromTeam);
 
   if (!attacker || !defender || attacker === defender) {
     throw new Error('Valid attacker and victim are required.');
@@ -51,7 +68,12 @@ export async function sendSpeedBumpFromPlayer(fromTeam, targetTeam, type = 'slow
   return triggerSpeedBump(defender, type, {
     teamName: typeof targetTeam === 'string' ? targetTeam.trim() : defender,
     triggeredBy: typeof fromTeam === 'string' ? fromTeam.trim() : attacker,
-    origin: 'player'
+    origin: 'player',
+    attackerId: attacker,
+    gameId,
+    contactName: typeof fromTeam === 'string' ? fromTeam.trim() : attacker,
+    contactPhone: contactPhone || null,
+    contactEmail: contactEmail || null
   });
 }
 

@@ -1,3 +1,15 @@
+// === AICP MODULE HEADER ===
+// ============================================================================
+// FILE: modules/controlUI.js
+// PURPOSE: Wire up Control page buttons and delegate game lifecycle actions
+// LAYER: modules (control)
+// DEPENDS_ON: gameStateManager, controlActions, controlStatus, firestore
+// AUTHOR: Route Riot / Control UI
+// CREATED: 2025-01-01
+// AICP_VERSION: 1.0
+// ============================================================================
+// === END AICP MODULE HEADER ===
+
 // ============================================================================
 // MODULE: controlUI.js (UPDATED)
 // Purpose: Wire up UI buttons and trigger controlActions

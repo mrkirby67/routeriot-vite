@@ -1,3 +1,15 @@
+// === AICP MODULE HEADER ===
+// ============================================================================
+// FILE: modules/controlActions.js
+// PURPOSE: Admin-side game control actions (reset, end game, clear data)
+// LAYER: modules (control)
+// DEPENDS_ON: firestore, scoreboardManager, teamSurpriseManager, control UI helpers
+// AUTHOR: Route Riot / Control
+// CREATED: 2025-01-01
+// AICP_VERSION: 1.0
+// ============================================================================
+// === END AICP MODULE HEADER ===
+
 // ============================================================================
 // MODULE: controlActions.js (FIXED + VERIFIED FULL RESET)
 // Purpose: Admin-side game control (resets scoreboard, zones, and teams safely)

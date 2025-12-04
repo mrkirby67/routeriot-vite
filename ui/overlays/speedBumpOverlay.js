@@ -15,8 +15,8 @@ import {
   subscribeToTeamSpeedBumps,
   requestSpeedBumpRelease,
   sendSpeedBumpChirp,
-  markSpeedBumpCompletedByVictim,
-  SPEEDBUMP_STATUS
+  SPEEDBUMP_STATUS,
+  SPEEDBUMP_CHIRP_LIMIT
 } from '../../services/speed-bump/speedBumpService.js';
 import { isShieldActive } from '../../features/team-surprise/teamSurpriseState.js';
 
@@ -37,6 +37,20 @@ function resolveTeamName(candidate) {
     if (found) return found.trim();
   }
   return '';
+}
+
+function resolveGameId() {
+  if (typeof window === 'undefined') return 'global';
+  const candidates = [
+    window.__rrGameId,
+    window.__routeRiotGameId,
+    window.sessionStorage?.getItem?.('activeGameId'),
+    window.localStorage?.getItem?.('activeGameId')
+  ];
+  for (const val of candidates) {
+    if (typeof val === 'string' && val.trim()) return val.trim();
+  }
+  return 'global';
 }
 
 function ensureOverlay() {
@@ -65,20 +79,17 @@ function ensureOverlay() {
         <p data-role="timer-value">--:--</p>
       </div>
       <div class="speedbump-overlay__actions" data-role="victim-actions">
-        <button type="button" data-role="request-release">We’re done / Release us</button>
+        <button type="button" data-role="complete">Challenge Complete (Proof sent)</button>
         <button type="button" data-role="chirp">Chirp</button>
-        <button type="button" data-role="complete">Complete</button>
       </div>
       <p class="speedbump-overlay__status" data-role="status"></p>
       <p class="speedbump-overlay__status" data-role="error" data-tone="error"></p>
     </div>
   `;
 
-  const requestBtn = el.querySelector('[data-role="request-release"]');
   const chirpBtn = el.querySelector('[data-role="chirp"]');
   const completeBtn = el.querySelector('[data-role="complete"]');
 
-  requestBtn?.addEventListener('click', handleRequestRelease);
   chirpBtn?.addEventListener('click', handleChirp);
   completeBtn?.addEventListener('click', handleComplete);
 
@@ -122,7 +133,7 @@ function showOverlay() {
 
 async function handleRequestRelease() {
   if (!currentAssignment) return;
-  const btn = overlayEl?.querySelector('[data-role="request-release"]');
+  const btn = overlayEl?.querySelector('[data-role="complete"]');
   if (btn) btn.disabled = true;
   setError('');
   try {
@@ -166,20 +177,7 @@ async function handleChirp() {
 
 async function handleComplete() {
   if (!currentAssignment) return;
-  const btn = overlayEl?.querySelector('[data-role="complete"]');
-  if (btn) btn.disabled = true;
-  setError('');
-  try {
-    await markSpeedBumpCompletedByVictim({
-      gameId: currentAssignment.gameId || 'global',
-      assignmentId: currentAssignment.id,
-      attackerId: currentAssignment.attackerId,
-      victimId: currentAssignment.victimId
-    });
-  } catch (err) {
-    setError(err?.message || 'Failed to mark complete.');
-    if (btn) btn.disabled = false;
-  }
+  return handleRequestRelease();
 }
 
 function renderOverlay(assignments = []) {
@@ -215,16 +213,15 @@ function renderOverlay(assignments = []) {
   const subtitleEl = overlayEl.querySelector('[data-role="subtitle"]');
   const timerValEl = overlayEl.querySelector('[data-role="timer-value"]');
   const timerLabelEl = overlayEl.querySelector('[data-role="timer-label"]');
-  const requestBtn = overlayEl.querySelector('[data-role="request-release"]');
   const chirpBtn = overlayEl.querySelector('[data-role="chirp"]');
   const completeBtn = overlayEl.querySelector('[data-role="complete"]');
 
   promptEl.textContent = victimEntry.promptText || victimEntry.prompt || 'Complete the assigned challenge to continue.';
   attackerEl.textContent = victimEntry.attackerId || 'Unknown';
   const contactParts = [];
-  if (victimEntry.attackerContactEmail) contactParts.push(`Email: ${victimEntry.attackerContactEmail}`);
   if (victimEntry.attackerContactPhone) contactParts.push(`Phone: ${victimEntry.attackerContactPhone}`);
-  contactEl.textContent = contactParts.join(' | ');
+  if (victimEntry.attackerContactEmail) contactParts.push(`Email: ${victimEntry.attackerContactEmail}`);
+  contactEl.textContent = contactParts.length ? contactParts.join(' | ') : 'No contact provided.';
 
   const statusLower = String(victimEntry.status).toLowerCase();
   const isActive = statusLower === SPEEDBUMP_STATUS.ACTIVE;
@@ -236,19 +233,18 @@ function renderOverlay(assignments = []) {
     ? 'Complete the challenge and ask for release.'
     : 'Release timer running. You will be freed soon.';
 
-  requestBtn.disabled = !isActive;
-  requestBtn.dataset.assignmentId = victimEntry.id;
   completeBtn.disabled = !isActive;
   completeBtn.dataset.assignmentId = victimEntry.id;
 
   const chirpsUsed = Number(victimEntry.chirpCount || 0);
-  chirpBtn.disabled = chirpsUsed >= 3;
+  chirpBtn.disabled = chirpsUsed >= SPEEDBUMP_CHIRP_LIMIT;
   chirpBtn.dataset.assignmentId = victimEntry.id;
-  chirpBtn.textContent = chirpsUsed >= 3 ? 'Chirp (0 left)' : `Chirp (${3 - chirpsUsed} left)`;
+  const remainingChirps = Math.max(0, SPEEDBUMP_CHIRP_LIMIT - chirpsUsed);
+  chirpBtn.textContent = remainingChirps === 0 ? 'Chirp (0 left)' : `Chirp (${remainingChirps} left)`;
 
   const targetTs = isWaiting
-    ? (victimEntry.releaseEndsAt?.toMillis?.() || victimEntry.releaseEndsAt || null)
-    : (victimEntry.blockEndsAt?.toMillis?.() || victimEntry.blockEndsAt || null);
+    ? (victimEntry.releaseEndsAtMs ?? victimEntry.releaseEndsAt?.toMillis?.() ?? victimEntry.releaseEndsAt ?? null)
+    : (victimEntry.blockEndsAtMs ?? victimEntry.blockEndsAt?.toMillis?.() ?? victimEntry.blockEndsAt ?? null);
 
   timerLabelEl.textContent = isWaiting ? 'Release timer' : 'Time remaining';
   const updateTimer = () => {
@@ -256,6 +252,8 @@ function renderOverlay(assignments = []) {
     timerValEl.textContent = formatRemainingMs(remaining);
     if (remaining !== null && remaining > 0) {
       countdownTimer = setTimeout(updateTimer, 1000);
+    } else if (remaining !== null && remaining <= 0) {
+      hideOverlay();
     }
   };
 
@@ -267,6 +265,7 @@ function renderOverlay(assignments = []) {
 
 export function ensureSpeedBumpOverlayListeners(options = {}) {
   const teamName = resolveTeamName(options.teamName);
+  const gameId = resolveGameId();
   if (!teamName) {
     console.warn('[speedBumpOverlay] Unable to resolve team; overlay disabled.');
     return () => {};
@@ -282,7 +281,7 @@ export function ensureSpeedBumpOverlayListeners(options = {}) {
     } catch (err) {
       console.warn('[speedBumpOverlay] render failed:', err);
     }
-  }, { statuses: [SPEEDBUMP_STATUS.ACTIVE, SPEEDBUMP_STATUS.WAITING_RELEASE] });
+  }, { statuses: [SPEEDBUMP_STATUS.ACTIVE, SPEEDBUMP_STATUS.WAITING_RELEASE], gameId });
 
   return (reason = 'manual') => {
     try { unsubscribe?.(reason); } catch {}

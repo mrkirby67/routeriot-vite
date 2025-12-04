@@ -1,3 +1,15 @@
+// === AICP MODULE HEADER ===
+// ============================================================================
+// FILE: modules/speedBump/overlay.js
+// PURPOSE: Legacy player-side Speed Bump overlay renderer
+// LAYER: modules (legacy overlay)
+// DEPENDS_ON: modules/speedBump/interactions.js, teamSurpriseManager, utils
+// AUTHOR: Route Riot – Speed Bump
+// CREATED: 2025-01-01
+// AICP_VERSION: 1.0
+// ============================================================================
+// === END AICP MODULE HEADER ===
+
 // ============================================================================
 // FILE: modules/speedBump/overlay.js
 // PURPOSE: Player-side Speed Bump overlay backed by Firestore assignments

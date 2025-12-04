@@ -1,3 +1,15 @@
+// === AICP SERVICE HEADER ===
+// ============================================================================
+// FILE: services/speed-bump/speedBumpService.js
+// PURPOSE: Core Speed Bump assignment + lifecycle Firestore data layer
+// LAYER: services
+// DEPENDS_ON: /core/config.js, firebase-firestore, services/gameRulesManager.js
+// AUTHOR: Route Riot – Speed Bump
+// CREATED: 2025-01-01
+// AICP_VERSION: 1.0
+// ============================================================================
+// === END AICP SERVICE HEADER ===
+
 // ============================================================================
 // FILE: services/speed-bump/speedBumpService.js
 // PURPOSE: Core Speed Bump assignment + lifecycle logic (attacker → victim)
@@ -42,6 +54,8 @@ export const SPEEDBUMP_STATUS = Object.freeze({
 // Durations
 export const BLOCK_DURATION_MS = 20 * 60 * 1000;   // 20 minutes
 export const RELEASE_DURATION_MS = 5 * 60 * 1000;  // 5 minutes
+const CHIRP_LIMIT = 2;
+export const SPEEDBUMP_CHIRP_LIMIT = CHIRP_LIMIT;
 
 // Root collection for assignments. One document per (game, attacker, victim).
 const ROOT_COLLECTION = 'speedBumpAssignments';
@@ -509,7 +523,8 @@ export async function completeSpeedBump({ gameId, attackerId, victimId, assignme
   assertNonEmpty(attackerId, 'attackerId');
 
   const attacker = normalizeTeamId(attackerId);
-  let ref = doc(db, ROOT_COLLECTION, assignmentId || makeDocId(gameId, attacker, victimId));
+  const computedId = assignmentId || makeDocId(gameId, attacker, victimId);
+  let ref = doc(db, ROOT_COLLECTION, computedId);
   let snap = await getDoc(ref);
   if (!snap.exists()) {
     const latest = await fetchLatestByAttacker(gameId, attacker);
@@ -519,6 +534,7 @@ export async function completeSpeedBump({ gameId, attackerId, victimId, assignme
   }
 
   const data = snap.data();
+  const resolvedId = ref.id;
   if (data.gameId !== gameId) {
     throw new Error('Speed Bump belongs to a different game.');
   }
@@ -526,7 +542,7 @@ export async function completeSpeedBump({ gameId, attackerId, victimId, assignme
   if (data.status === SPEEDBUMP_STATUS.COMPLETED ||
       data.status === SPEEDBUMP_STATUS.CANCELLED) {
     // Already terminal; idempotent
-    return { id: docId, ...data };
+    return { id: resolvedId, ...data };
   }
 
   await updateDoc(ref, {
@@ -536,7 +552,7 @@ export async function completeSpeedBump({ gameId, attackerId, victimId, assignme
   });
 
   return {
-    id: docId,
+    id: resolvedId,
     ...data,
     status: SPEEDBUMP_STATUS.COMPLETED
   };
@@ -551,7 +567,8 @@ export async function cancelSpeedBump({ gameId, attackerId, victimId, assignment
   assertNonEmpty(attackerId, 'attackerId');
 
   const attacker = normalizeTeamId(attackerId);
-  let ref = doc(db, ROOT_COLLECTION, assignmentId || makeDocId(gameId, attacker, victimId));
+  const computedId = assignmentId || makeDocId(gameId, attacker, victimId);
+  let ref = doc(db, ROOT_COLLECTION, computedId);
   let snap = await getDoc(ref);
   if (!snap.exists()) {
     const latest = await fetchLatestByAttacker(gameId, attacker);
@@ -561,12 +578,13 @@ export async function cancelSpeedBump({ gameId, attackerId, victimId, assignment
   }
 
   const data = snap.data();
+  const resolvedId = ref.id;
   if (data.gameId !== gameId) {
     throw new Error('Speed Bump belongs to a different game.');
   }
 
   if (data.status === SPEEDBUMP_STATUS.CANCELLED) {
-    return { id: docId, ...data };
+    return { id: resolvedId, ...data };
   }
 
   await updateDoc(ref, {
@@ -575,7 +593,7 @@ export async function cancelSpeedBump({ gameId, attackerId, victimId, assignment
   });
 
   return {
-    id: docId,
+    id: resolvedId,
     ...data,
     status: SPEEDBUMP_STATUS.CANCELLED
   };
@@ -631,7 +649,10 @@ export async function triggerSpeedBump(teamId, bumpType = 'slowdown', meta = {})
     victimId: target,
     prompt: meta.prompt,
     exclusions: meta.exclusions || [],
-    type: bumpType
+    type: bumpType,
+    contactName: meta.contactName,
+    contactPhone: meta.contactPhone,
+    contactEmail: meta.contactEmail
   });
 }
 
@@ -736,6 +757,9 @@ export function subscribeToTeamSpeedBumps(teamId, callback, options = {}) {
   );
   const roleOpt = typeof options.role === 'string' ? options.role : 'any';
   const normalizedRole = ['attacker', 'victim'].includes(roleOpt) ? roleOpt : 'any';
+  const gameFilter = typeof options.gameId === 'string' && options.gameId.trim()
+    ? options.gameId.trim()
+    : null;
 
   let attackerEntries = [];
   let victimEntries = [];
@@ -764,10 +788,34 @@ export function subscribeToTeamSpeedBumps(teamId, callback, options = {}) {
     snap.forEach(docSnap => {
       const data = docSnap.data() || {};
       autoAdvanceIfExpired(docSnap.id, data);
+
+      if (gameFilter && data.gameId && data.gameId !== gameFilter) {
+        return;
+      }
+
+      const normalizedStatus = normalizeStatus(data.status) || SPEEDBUMP_STATUS.PENDING;
+      const blockEndsAtMs = toMillis(data.blockEndsAt);
+      const releaseEndsAtMs = toMillis(data.releaseEndsAt);
+      const expiresAtMs = normalizedStatus === SPEEDBUMP_STATUS.WAITING_RELEASE && Number.isFinite(releaseEndsAtMs)
+        ? releaseEndsAtMs
+        : Number.isFinite(blockEndsAtMs)
+          ? blockEndsAtMs
+          : null;
+
       arr.push({
         id: docSnap.id,
         ...data,
-        role
+        status: normalizedStatus,
+        role,
+        promptText: data.promptText || data.prompt || data.challenge || '',
+        attackerId: data.attackerId || data.attacker || data.by || '',
+        victimId: data.victimId || data.victim || '',
+        attackerContactName: data.attackerContactName || data.contactName || '',
+        attackerContactPhone: data.attackerContactPhone || data.contactPhone || '',
+        attackerContactEmail: data.attackerContactEmail || data.contactEmail || '',
+        blockEndsAtMs,
+        releaseEndsAtMs,
+        expiresAtMs
       });
     });
     return arr;
@@ -845,7 +893,7 @@ export async function sendSpeedBumpChirp({ assignmentId, message, attackerId, vi
   if (!snap.exists()) throw new Error('Speed Bump not found.');
   const data = snap.data();
   const currentCount = Number(data.chirpCount || 0);
-  if (currentCount >= 3) return { ok: false, reason: 'limit_reached' };
+  if (currentCount >= CHIRP_LIMIT) return { ok: false, reason: 'limit_reached' };
 
   await updateDoc(ref, {
     chirpCount: currentCount + 1,
@@ -866,7 +914,7 @@ export async function sendSpeedBumpChirp({ assignmentId, message, attackerId, vi
     console.debug('⚠️ Speed Bump chirp chat failed:', err?.message || err);
   }
 
-  return { ok: true, chirpCount: currentCount + 1 };
+  return { ok: true, chirpCount: currentCount + 1, limit: CHIRP_LIMIT };
 }
 
 export async function expireSpeedBump({ assignmentId }) {
@@ -909,5 +957,21 @@ export async function completeSpeedBumpByTeamContext(teamId, entryId) {
   return completeSpeedBump({
     gameId,
     attackerId: data.attackerId
+  });
+}
+
+/**
+ * Allow attackers to force-complete/release an active assignment.
+ */
+export async function releaseSpeedBumpEarly({ assignmentId, attackerId, victimId, gameId }) {
+  const attacker = normalizeTeamId(attackerId);
+  if (!assignmentId && (!attacker || !victimId)) {
+    throw new Error('Missing assignment context to release Speed Bump.');
+  }
+  return completeSpeedBump({
+    gameId: gameId || DEFAULT_GAME_ID,
+    attackerId: attacker || attackerId,
+    victimId: victimId ? normalizeTeamId(victimId) : undefined,
+    assignmentId
   });
 }
