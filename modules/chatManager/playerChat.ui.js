@@ -8,7 +8,6 @@ import { showShieldHudTimer, hideShieldHudTimer, showShieldTimer, hideShieldTime
 import { ensureTeamSurprisesSection } from './playerChat.section.js';
 import {
   renderTeamInventory as renderTeamInventoryView,
-  renderOutgoingList as renderOutgoingListView,
   renderMyInventory as renderMyInventoryView
 } from './playerChat.renderers.js';
 // ============================================================================
@@ -18,9 +17,10 @@ const teamSurprisesPanelState = {
   teamName: null,
   section: null,
   inventoryList: null,
-  outgoingList: null,
   shieldChip: null,
   shieldTickerId: null,
+  outgoingEntries: [],
+  onRelease: null,
   availableCounts: {
     flatTire: 0,
     bugSplat: 0,
@@ -31,10 +31,6 @@ const teamSurprisesPanelState = {
 
 export function renderTeamInventory(byTeam = {}, options = {}) {
   renderTeamInventoryView(teamSurprisesPanelState, byTeam, options);
-}
-
-export function renderOutgoingList(entries = []) {
-  renderOutgoingListView(teamSurprisesPanelState, entries);
 }
 
 function renderMyInventory(counts = {}) {
@@ -117,21 +113,20 @@ export function initializeTeamSurprisesPanel(teamName) {
   if (!section) return null;
 
   const inventoryList = section.querySelector('#team-surprise-inventory');
-  const outgoingList = section.querySelector('#outgoing-speedbump-list');
   const shieldChip = section.querySelector('[data-role="shield-status"]');
 
   teamSurprisesPanelState.teamName = teamName;
   teamSurprisesPanelState.section = section;
   teamSurprisesPanelState.inventoryList = inventoryList;
-  teamSurprisesPanelState.outgoingList = outgoingList;
   teamSurprisesPanelState.shieldChip = shieldChip;
 
   return {
     renderInventory(byTeam = {}, options = {}) {
       renderTeamInventory(byTeam, options);
     },
-    renderOutgoing(entries = [], options = {}) {
-      renderOutgoingList(teamSurprisesPanelState, entries, options);
+    setOutgoingAssignments(entries = [], options = {}) {
+      teamSurprisesPanelState.outgoingEntries = Array.isArray(entries) ? entries : [];
+      teamSurprisesPanelState.onRelease = typeof options.onRelease === 'function' ? options.onRelease : null;
     },
     renderPlayerInventory(counts = {}) {
       renderMyInventory(counts);
@@ -142,15 +137,12 @@ export function initializeTeamSurprisesPanel(teamName) {
     teardown() {
       stopShieldTicker();
       hideShieldTimer();
-      if (teamSurprisesPanelState.outgoingList?.__timer) {
-        clearInterval(teamSurprisesPanelState.outgoingList.__timer);
-        teamSurprisesPanelState.outgoingList.__timer = null;
-      }
       teamSurprisesPanelState.teamName = null;
       teamSurprisesPanelState.section = null;
       teamSurprisesPanelState.inventoryList = null;
-      teamSurprisesPanelState.outgoingList = null;
       teamSurprisesPanelState.shieldChip = null;
+      teamSurprisesPanelState.outgoingEntries = [];
+      teamSurprisesPanelState.onRelease = null;
     }
   };
 }

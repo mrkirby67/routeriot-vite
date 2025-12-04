@@ -20,7 +20,12 @@ export function renderTeamInventory(state, byTeam = {}, options = {}) {
 
   const section = state.section;
   const list = state.inventoryList;
-  const { available = state.availableCounts || {}, teamNames = [] } = options || {};
+  const {
+    available = state.availableCounts || {},
+    teamNames = [],
+    outgoingEntries = state.outgoingEntries || [],
+    onRelease = state.onRelease || null
+  } = options || {};
 
   const flatAvailable = Number(available.flatTire) || 0;
   const bugAvailable = Number(available.bugSplat) || 0;
@@ -42,6 +47,26 @@ export function renderTeamInventory(state, byTeam = {}, options = {}) {
   const rows = listedTeams.map((teamName) => {
     const safeTeam = escapeHtml(teamName);
     const attributeTeam = escapeAttribute(teamName);
+    const activeEntry = outgoingEntries.find((entry = {}) =>
+      String(entry.victimId || '').trim().toLowerCase() === teamName.trim().toLowerCase()
+    );
+    const statusLabel = activeEntry
+      ? `${String(activeEntry.status).toLowerCase() === SPEEDBUMP_STATUS.WAITING_RELEASE ? 'Awaiting release' : 'Active'} · ${formatCountdown(activeEntry.remainingMs)}`
+      : '';
+    const releaseBtn = activeEntry
+      ? `
+          <button
+            type="button"
+            class="team-btn team-btn--speed"
+            data-action="release-speedbump"
+            data-assignment-id="${escapeAttribute(activeEntry.id || '')}"
+            data-target="${attributeTeam}"
+          >
+            Release Speed Bump
+          </button>
+        `
+      : '';
+
     return `
       <li class="team-surprises-row" data-team="${attributeTeam}">
         <span class="team-name">${safeTeam}</span>
@@ -73,7 +98,9 @@ export function renderTeamInventory(state, byTeam = {}, options = {}) {
           >
             🚧 Send Speed Bump
           </button>
+          ${releaseBtn}
         </div>
+        ${statusLabel ? `<p class="team-surprises-status">⏳ ${escapeHtml(statusLabel)}</p>` : ''}
       </li>
     `;
   }).join('');
@@ -81,6 +108,18 @@ export function renderTeamInventory(state, byTeam = {}, options = {}) {
   list.innerHTML = rows;
   attachSendHandlers({ section, state });
   updateSendButtonAvailability(section, state, available);
+
+  if (onRelease) {
+    list.querySelectorAll('[data-action="release-speedbump"]').forEach((button) => {
+      if (button.dataset.bound === 'true') return;
+      button.dataset.bound = 'true';
+      button.addEventListener('click', () => {
+        const assignmentId = button.dataset.assignmentId;
+        const victim = button.dataset.target;
+        onRelease({ assignmentId, victimId: victim });
+      });
+    });
+  }
 }
 
 function formatCountdown(ms) {

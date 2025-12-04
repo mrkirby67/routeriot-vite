@@ -36,10 +36,6 @@ export function ensureTeamSurprisesSection() {
           <ul id="team-surprise-inventory" class="team-surprises-list"></ul>
         </div>
       </div>
-      <div class="team-surprises-outgoing" data-role="outgoing-speedbumps">
-        <h3>Outgoing Speed Bumps</h3>
-        <ul id="outgoing-speedbump-list" class="team-surprises-list"></ul>
-      </div>
     `;
     scoreboard.insertAdjacentElement('afterend', section);
   } else if (section.previousElementSibling !== scoreboard) {
@@ -50,10 +46,6 @@ export function ensureTeamSurprisesSection() {
   ensurePlaceholder(
     section.querySelector('#team-surprise-inventory'),
     '<li class="team-surprises-empty">No surprise data yet.</li>'
-  );
-  ensurePlaceholder(
-    section.querySelector('#outgoing-speedbump-list'),
-    '<li class="team-surprises-empty">No active Speed Bumps.</li>'
   );
   ensurePlaceholder(
     section.querySelector('#team-surprises-body'),

@@ -242,6 +242,8 @@ export function setupPlayerChat(teamName, options = {}) {
   const teardownCallbacks = [];
   let activeTeamNames = [];
   let latestInventories = {};
+  let latestOutgoingEntries = [];
+  let latestOutgoingRelease = null;
 
   const rerender = () => {
     if (!ui.renderInventory) return;
@@ -259,7 +261,9 @@ export function setupPlayerChat(teamName, options = {}) {
     ui.renderInventory(mergedInventories, {
       currentTeamName: normalizedTeamName,
       available: latestPlayerCounts,
-      teamNames: Array.from(combinedNames)
+      teamNames: Array.from(combinedNames),
+      outgoingEntries: latestOutgoingEntries,
+      onRelease: latestOutgoingRelease
     });
   };
 
@@ -320,7 +324,9 @@ export function setupPlayerChat(teamName, options = {}) {
 
   initSpeedBumpListeners(normalizedTeamName, (entries = [], meta = {}) => {
     const list = Array.isArray(entries) ? entries : [];
-    ui.renderOutgoing?.(list, meta);
+    latestOutgoingEntries = list;
+    latestOutgoingRelease = typeof meta.onRelease === 'function' ? meta.onRelease : null;
+    rerender();
   });
   teardownCallbacks.push(() => teardownSpeedBumpListeners());
 

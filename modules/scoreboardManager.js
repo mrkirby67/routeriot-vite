@@ -130,10 +130,8 @@ function rebuildScoreboardState() {
 
   let orderedNames;
   if (preferredOrder.length) {
+    // When an explicit active team list is available, restrict to it.
     orderedNames = [...preferredOrder];
-    cacheNames.forEach((name) => {
-      if (!orderedNames.includes(name)) orderedNames.push(name);
-    });
   } else if (hasScores) {
     orderedNames = [...scoresCache.entries()]
       .sort((a, b) => (b[1].score ?? 0) - (a[1].score ?? 0))
