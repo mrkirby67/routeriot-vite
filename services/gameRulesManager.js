@@ -24,6 +24,7 @@ import { isTeamShielded } from '../modules/scoreboardManager.js';
 import { emailAllTeams } from '../modules/emailTeams.js';
 import { assignSpeedBump, SPEEDBUMP_STATUS } from './speed-bump/speedBumpService.js';
 import { allTeams } from '../data.js';
+import { getTeamByName } from '../modules/racerManagement.js';
 
 const rulesRef = doc(db, 'config', 'gameRules');
 const SPEEDBUMP_COLLECTION = 'speedBumpAssignments';
@@ -193,11 +194,15 @@ async function randomizeSpeedBumpsForGame(gameId = 'global', teams = []) {
     const victim = roster[(i + 1) % roster.length];
     if (!attacker || !victim || attacker === victim) continue;
     try {
+      const attackerTeam = getTeamByName(attacker);
+
       await assignSpeedBump({
         gameId,
         attackerId: attacker,
         victimId: victim,
         status: SPEEDBUMP_STATUS.PENDING,
+        attackerContactEmail: attackerTeam?.email || 'N/A',
+        attackerContactPhone: attackerTeam?.phone || 'N/A'
       });
       assigned += 1;
     } catch (err) {

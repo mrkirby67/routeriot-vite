@@ -1,10 +1,10 @@
-# AICP File Health Report — 2025-12-05T02:49:35.117Z
-Files scanned: 146
+# AICP File Health Report — 2025-12-05T02:55:05.825Z
+Files scanned: 147
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
 |----|------|--------|-----------|-------------|------------|
 | ⚠️ | services/speed-bump/speedBumpService.js | 988 | 30.9 | 156 | 5% |
-| ⚠️ | components/SpeedBumpControl/SpeedBumpControl.js | 711 | 24.4 | 121 | 4% |
+| ⚠️ | components/SpeedBumpControl/SpeedBumpControl.js | 713 | 24.5 | 121 | 4% |
 | ✅ | modules/gameStateManager.js | 598 | 19.3 | 78 | 6% |
 | ✅ | components/GameControls/GameControls.js | 590 | 20.9 | 93 | 7% |
 | ✅ | services/ChatServiceV2.js | 573 | 19.2 | 119 | 5% |
@@ -22,7 +22,7 @@ Files scanned: 146
 | ✅ | components/ZoneManagement/zoneHandlers.js | 301 | 10.3 | 45 | 14% |
 | ✅ | modules/chirpResponder.js | 296 | 9.7 | 38 | 1% |
 | ✅ | components/ZoneManagement/ZoneManagement.js | 295 | 9.7 | 58 | 15% |
-| ✅ | services/gameRulesManager.js | 287 | 9.4 | 47 | 9% |
+| ✅ | services/gameRulesManager.js | 292 | 9.6 | 47 | 9% |
 | ✅ | components/ZoneQuestions/ZoneQuestionsEditor.js | 286 | 9.4 | 39 | 16% |
 | ✅ | features/flat-tire/flatTireController.js | 282 | 10.1 | 52 | 10% |
 | ✅ | modules/controlStatus.js | 275 | 9.4 | 37 | 14% |
@@ -141,6 +141,7 @@ Files scanned: 146
 | ✅ | ui/notifications/flatTire.subscribe.js | 22 | 0.6 | 6 | 0% |
 | ✅ | ui/overlays/shieldOverlay.js | 22 | 0.7 | 8 | 0% |
 | ✅ | ui/overlays/teamSurprise.subscribe.js | 18 | 0.5 | 4 | 6% |
+| ✅ | modules/racerManagement.js | 17 | 0.4 | 3 | 0% |
 | ✅ | modules/gameStateVerifier.js | 15 | 0.5 | 3 | 0% |
 | ✅ | modules/playerUI/overlays.js | 15 | 0.5 | 3 | 7% |
 | ✅ | ui/notifications/playerPage.subscribe.js | 15 | 0.4 | 4 | 0% |
@@ -152,7 +153,7 @@ Files scanned: 146
 
 ## Largest 10 Files
 - services/speed-bump/speedBumpService.js — 988 lines, 30.9 KB (Complexity: 156)
-- components/SpeedBumpControl/SpeedBumpControl.js — 711 lines, 24.4 KB (Complexity: 121)
+- components/SpeedBumpControl/SpeedBumpControl.js — 713 lines, 24.5 KB (Complexity: 121)
 - modules/gameStateManager.js — 598 lines, 19.3 KB (Complexity: 78)
 - components/GameControls/GameControls.js — 590 lines, 20.9 KB (Complexity: 93)
 - services/ChatServiceV2.js — 573 lines, 19.2 KB (Complexity: 119)
