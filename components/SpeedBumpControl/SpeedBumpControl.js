@@ -322,38 +322,42 @@ class SpeedBumpController {
 
     const frag = document.createDocumentFragment();
     this.teams.forEach(team => {
-      const victimId = team.id;
-      const assignment = this.assignments.get(victimId);
-      const prompt = this.promptCache.get(victimId) || assignment?.prompt || '';
-      const promptOptions = this.getSpeedBumpOptions(prompt);
-      const lastLaunch = this.formatLastLaunch(assignment);
-      const status = assignment?.status || 'idle';
-
-      const row = document.createElement('tr');
-      row.dataset.team = victimId;
-      row.innerHTML = `
-        <td class="${styles.teamCell}">
-          <strong>${team.name}</strong>
-        </td>
-        <td class="${styles.promptCell}">
-          <select data-role="speedbump" class="${styles.promptSelect}">
-            <option value="">Select Speed Bump</option>
-            ${promptOptions}
-          </select>
-        </td>
-        <td data-role="last-launch">${this.escapeHtml(lastLaunch)}</td>
-        <td data-role="status">${formatStatus(status)} ${this.remainingLabel(assignment)}</td>
-        <td class="${styles.inlineActions}">
-          <button data-action="activate" class="${styles.primaryBtn}">Activate</button>
-          <button data-action="complete" class="${styles.secondaryBtn}">Complete</button>
-          <button data-action="cancel" class="${styles.secondaryBtn}">Cancel</button>
-        </td>
-      `;
-      frag.appendChild(row);
+      frag.appendChild(this.buildRow(team));
     });
 
     this.tableBody.appendChild(frag);
     this.updateButtonStates();
+  }
+
+  buildRow(team) {
+    const victimId = team.id;
+    const assignment = this.assignments.get(victimId);
+    const prompt = this.promptCache.get(victimId) || assignment?.prompt || '';
+    const promptOptions = this.getSpeedBumpOptions(prompt);
+    const lastLaunch = this.formatLastLaunch(assignment);
+    const status = assignment?.status || 'idle';
+
+    const row = document.createElement('tr');
+    row.dataset.team = victimId;
+    row.innerHTML = `
+      <td class="${styles.teamCell}">
+        <strong>${team.name}</strong>
+      </td>
+      <td class="${styles.promptCell}">
+        <select data-role="speedbump" class="${styles.promptSelect}">
+          <option value="">Select Speed Bump</option>
+          ${promptOptions}
+        </select>
+      </td>
+      <td data-role="last-launch">${this.escapeHtml(lastLaunch)}</td>
+      <td data-role="status">${formatStatus(status)} ${this.remainingLabel(assignment)}</td>
+      <td class="${styles.inlineActions}">
+        <button data-action="activate" class="${styles.primaryBtn}">Activate</button>
+        <button data-action="complete" class="${styles.secondaryBtn}">Complete</button>
+        <button data-action="cancel" class="${styles.secondaryBtn}">Cancel</button>
+      </td>
+    `;
+    return row;
   }
 
   wireTableEvents() {

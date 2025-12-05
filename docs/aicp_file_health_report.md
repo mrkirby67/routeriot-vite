@@ -1,10 +1,10 @@
-# AICP File Health Report — 2025-12-05T03:01:21.109Z
-Files scanned: 147
+# AICP File Health Report — 2025-12-05T03:35:48.592Z
+Files scanned: 148
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
 |----|------|--------|-----------|-------------|------------|
-| ⚠️ | services/speed-bump/speedBumpService.js | 988 | 30.9 | 156 | 5% |
-| ⚠️ | components/SpeedBumpControl/SpeedBumpControl.js | 712 | 24.5 | 121 | 4% |
+| ⚠️ | services/speed-bump/speedBumpService.js | 975 | 30.5 | 148 | 5% |
+| ⚠️ | components/SpeedBumpControl/SpeedBumpControl.js | 716 | 24.5 | 121 | 4% |
 | ✅ | modules/gameStateManager.js | 598 | 19.3 | 78 | 6% |
 | ✅ | components/GameControls/GameControls.js | 590 | 20.9 | 93 | 7% |
 | ✅ | services/ChatServiceV2.js | 573 | 19.2 | 119 | 5% |
@@ -136,6 +136,7 @@ Files scanned: 147
 | ✅ | components/FlatTireControl/flatTireControlController.js | 31 | 1.1 | 0 | 87% |
 | ✅ | components/SpeedBumpControl/controller/domHandlers.js | 31 | 1.1 | 2 | 90% |
 | ✅ | modules/racerManagement.js | 29 | 0.8 | 5 | 0% |
+| ✅ | services/speed-bump/speedBumpUtils.js | 29 | 0.8 | 10 | 7% |
 | ✅ | ui/overlays/speedbump.subscribe.js | 29 | 0.8 | 9 | 3% |
 | ✅ | modules/speedBump/reversals.js | 28 | 1.5 | 2 | 11% |
 | ✅ | modules/firestoreIntegrity.js | 22 | 0.6 | 2 | 0% |
@@ -152,8 +153,8 @@ Files scanned: 147
 | ✅ | features/player-page/playerPage.bridge.js | 6 | 0.2 | 1 | 0% |
 
 ## Largest 10 Files
-- services/speed-bump/speedBumpService.js — 988 lines, 30.9 KB (Complexity: 156)
-- components/SpeedBumpControl/SpeedBumpControl.js — 712 lines, 24.5 KB (Complexity: 121)
+- services/speed-bump/speedBumpService.js — 975 lines, 30.5 KB (Complexity: 148)
+- components/SpeedBumpControl/SpeedBumpControl.js — 716 lines, 24.5 KB (Complexity: 121)
 - modules/gameStateManager.js — 598 lines, 19.3 KB (Complexity: 78)
 - components/GameControls/GameControls.js — 590 lines, 20.9 KB (Complexity: 93)
 - services/ChatServiceV2.js — 573 lines, 19.2 KB (Complexity: 119)

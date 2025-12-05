@@ -37,6 +37,13 @@ import {
 } from '../../modules/speedBumpChallenges.js';
 import ChatServiceV2 from '../ChatServiceV2.js';
 import { canTeamBeAttacked, canUseWildCards } from '../gameRulesManager.js';
+import {
+  makeDocId,
+  assertNonEmpty,
+  normalizeTeamId,
+  normalizeStatus,
+  toMillis
+} from './speedBumpUtils.js';
 
 // ----------------------------------------------------------------------------
 // 🔢 Constants
@@ -64,33 +71,13 @@ const ROOT_COLLECTION = 'speedBumpAssignments';
 // 🧩 Helpers
 // ----------------------------------------------------------------------------
 
-function makeDocId(gameId, attackerId, victimId) {
-  if (victimId) return `${gameId}__${attackerId}__${victimId}`;
-  return `${gameId}__${attackerId}`;
-}
-
-function assertNonEmpty(value, fieldName) {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new Error(`Missing or invalid ${fieldName}.`);
-  }
-}
-
-function normalizeTeamId(id) {
-  return typeof id === 'string' ? id.trim().toLowerCase() : '';
-}
-
-function normalizeStatus(value) {
-  const v = typeof value === 'string' ? value.trim().toLowerCase() : '';
+// normalizeStatus from utils returns lowercase string or null; ensure it matches allowed set
+const normalizeStatusToAllowed = (value) => {
+  const v = normalizeStatus(value);
   if (!v) return null;
-  const match = Object.values(SPEEDBUMP_STATUS).find(s => s === v);
+  const match = Object.values(SPEEDBUMP_STATUS).find((s) => s === v);
   return match || null;
-}
-
-function toMillis(value) {
-  if (typeof value === 'number') return value;
-  if (value?.toMillis) return value.toMillis();
-  return null;
-}
+};
 
 async function fetchLatestByAttacker(gameId, attacker) {
   const colRef = collection(db, ROOT_COLLECTION);
@@ -195,7 +182,7 @@ function filterActiveLike(assignments) {
 
 async function autoAdvanceIfExpired(docId, data) {
   const now = Date.now();
-  const status = normalizeStatus(data?.status);
+  const status = normalizeStatusToAllowed(data?.status);
   const blockEndsAt = toMillis(data?.blockEndsAt);
   const releaseEndsAt = toMillis(data?.releaseEndsAt);
 
@@ -737,7 +724,7 @@ export async function getTeamSpeedBumpAssignments(teamId, options = {}) {
         field === 'attackerId'
           ? 'attacker'
           : 'victim';
-      const status = typeof data.status === 'string' ? data.status.toLowerCase() : '';
+      const status = normalizeStatusToAllowed(data.status);
       if (!statusSet.has(status)) return;
       if (normalizedRole !== 'any' && role !== normalizedRole) return;
       results.set(docSnap.id, {
@@ -803,7 +790,7 @@ export function subscribeToTeamSpeedBumps(teamId, callback, options = {}) {
         return;
       }
 
-      const normalizedStatus = normalizeStatus(data.status) || SPEEDBUMP_STATUS.PENDING;
+      const normalizedStatus = normalizeStatusToAllowed(data.status) || SPEEDBUMP_STATUS.PENDING;
       const blockEndsAtMs = toMillis(data.blockEndsAt);
       const releaseEndsAtMs = toMillis(data.releaseEndsAt);
       const expiresAtMs = normalizedStatus === SPEEDBUMP_STATUS.WAITING_RELEASE && Number.isFinite(releaseEndsAtMs)
