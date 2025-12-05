@@ -577,7 +577,7 @@ export async function cancelSpeedBump({ gameId, attackerId, victimId, assignment
     }
     data = snap.data();
   } else {
-    assertNonEmpty(attackerId, 'attackerId');
+    if (!attackerId) throw new Error('Attacker is required to locate Speed Bump.');
     const attacker = normalizeTeamId(attackerId);
     const computedId = makeDocId(gameId, attacker, victimId);
     ref = doc(db, ROOT_COLLECTION, computedId);
@@ -592,9 +592,6 @@ export async function cancelSpeedBump({ gameId, attackerId, victimId, assignment
   }
 
   const resolvedId = ref.id;
-  if (data.gameId && data.gameId !== gameId) {
-    throw new Error('Speed Bump belongs to a different game.');
-  }
 
   if (data.status === SPEEDBUMP_STATUS.CANCELLED) {
     return { id: resolvedId, ...data };
