@@ -254,8 +254,13 @@ export async function startGame(options = {}) {
     const snap = await getDoc(gameStateRef);
     const existing = snap.exists() ? snap.data() || {} : {};
     const currentStatus = String(existing.status || 'waiting').toLowerCase();
+    const endMs = normalizeTimestamp(existing.endTime);
+    const remainingMs = Number(existing.remainingMs);
+    const expired =
+      (Number.isFinite(remainingMs) && remainingMs <= 0) ||
+      (Number.isFinite(endMs) && endMs <= Date.now());
 
-    if (currentStatus === 'active') {
+    if (currentStatus === 'active' && !expired) {
       throw new Error('Game already active');
     }
 

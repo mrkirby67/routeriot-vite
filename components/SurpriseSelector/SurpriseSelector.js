@@ -124,7 +124,7 @@ export function SurpriseSelectorComponent() {
           <tbody id="surprise-table-body"></tbody>
         </table>
       </div>
-    </section>
+    </div>
   `;
 }
 
