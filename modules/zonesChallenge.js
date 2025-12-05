@@ -103,9 +103,18 @@ export async function displayZoneQuestions(zoneId, zoneName) {
   let questionData = null;
 
   try {
-    const globalDoc = await getDoc(doc(db, 'questions', zoneId));
-    if (globalDoc.exists()) {
-      questionData = { id: globalDoc.id, ...globalDoc.data() };
+    // Align with control: pull latest question where zoneId matches
+    const qsSnap = await getDocs(
+      query(
+        collection(db, 'questions'),
+        where('zoneId', '==', zoneId),
+        orderBy('updatedAt', 'desc'),
+        limit(1)
+      )
+    );
+    if (!qsSnap.empty) {
+      const docSnap = qsSnap.docs[0];
+      questionData = { id: docSnap.id, ...docSnap.data() };
     }
 
     const questionEl = document.getElementById(`question-text-${zoneId}`);

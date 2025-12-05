@@ -492,8 +492,7 @@ class SpeedBumpController {
           victimId,
           prompt: chosenPrompt,
           status: 'active',
-          attackerContactEmail: 'control@routeriot.game',
-          attackerContactPhone: '555-0100'
+          attackerContact: [{ name: 'Game Control', email: 'control@routeriot.game', phone: '555-0100' }]
         });
       }
       await markSpeedBumpActive({

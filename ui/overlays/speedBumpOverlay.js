@@ -231,10 +231,21 @@ function renderOverlay(assignments = []) {
 
   promptEl.textContent = victimEntry.promptText || victimEntry.prompt || 'Complete the assigned challenge to continue.';
   attackerEl.textContent = victimEntry.attackerId || 'Unknown';
-  const contactParts = [];
-  if (victimEntry.attackerContactPhone) contactParts.push(`Phone: ${victimEntry.attackerContactPhone}`);
-  if (victimEntry.attackerContactEmail) contactParts.push(`Email: ${victimEntry.attackerContactEmail}`);
-  contactEl.textContent = contactParts.length ? contactParts.join(' | ') : 'No contact provided.';
+  if (Array.isArray(victimEntry.attackerContact) && victimEntry.attackerContact.length > 0) {
+    const contactsHtml = victimEntry.attackerContact.map(contact => `
+      <div class="speedbump-overlay__contact-item">
+        <strong>${contact.name || 'Unknown Racer'}</strong><br>
+        Phone: ${contact.phone || 'N/A'}<br>
+        Email: ${contact.email || 'N/A'}
+      </div>
+    `).join('<hr class="speedbump-overlay__contact-separator">');
+    contactEl.innerHTML = contactsHtml;
+  } else {
+    const contactParts = [];
+    if (victimEntry.attackerContactPhone) contactParts.push(`Phone: ${victimEntry.attackerContactPhone}`);
+    if (victimEntry.attackerContactEmail) contactParts.push(`Email: ${victimEntry.attackerContactEmail}`);
+    contactEl.textContent = contactParts.length ? contactParts.join(' | ') : 'No contact provided.';
+  }
 
   const statusLower = String(victimEntry.status).toLowerCase();
   const isActive = statusLower === SPEEDBUMP_STATUS.ACTIVE;

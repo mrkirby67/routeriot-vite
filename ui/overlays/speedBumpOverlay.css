@@ -210,3 +210,13 @@
 #speedbump-overlay.visible {
   display: flex;
 }
+
+.speedbump-overlay__contact-item {
+  margin-bottom: 0.5rem;
+}
+
+.speedbump-overlay__contact-separator {
+  border: 0;
+  border-top: 1px solid #444;
+  margin: 0.5rem 0;
+}

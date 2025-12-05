@@ -1,16 +1,29 @@
-import { allTeams } from '../data.js';
+import { db } from '/core/config.js';
+import { collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 /**
- * @param {string} name
- * @returns {{name: string, slogan: string, email: string, phone: string} | undefined}
+ * @param {string} teamName
+ * @returns {Promise<any[]>}
  */
-export function getTeamByName(name) {
-    return allTeams.find(team => team.name === name);
+export async function getRacersByTeam(teamName) {
+    if (!teamName) return [];
+    const q = query(collection(db, "racers"), where("team", "==", teamName));
+    const querySnapshot = await getDocs(q);
+    const racers = [];
+    querySnapshot.forEach((doc) => {
+        racers.push({ id: doc.id, ...doc.data() });
+    });
+    return racers;
 }
 
 /**
- * @returns {{name: string, slogan: string, email: string, phone: string}[]}
+ * @returns {Promise<any[]>}
  */
-export function getAllTeams() {
-    return allTeams;
+export async function getAllRacers() {
+    const querySnapshot = await getDocs(collection(db, "racers"));
+    const racers = [];
+    querySnapshot.forEach((doc) => {
+        racers.push({ id: doc.id, ...doc.data() });
+    });
+    return racers;
 }
