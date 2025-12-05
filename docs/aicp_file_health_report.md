@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-12-05T00:32:15.465Z
+# AICP File Health Report — 2025-12-05T01:40:07.825Z
 Files scanned: 146
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -135,11 +135,11 @@ Files scanned: 146
 | ✅ | features/flat-tire/flatTireTypes.js | 31 | 1.0 | 1 | 87% |
 | ✅ | components/FlatTireControl/flatTireControlController.js | 31 | 1.1 | 0 | 87% |
 | ✅ | components/SpeedBumpControl/controller/domHandlers.js | 31 | 1.1 | 2 | 90% |
+| ✅ | ui/overlays/speedbump.subscribe.js | 29 | 0.8 | 9 | 3% |
 | ✅ | modules/speedBump/reversals.js | 28 | 1.5 | 2 | 11% |
 | ✅ | modules/firestoreIntegrity.js | 22 | 0.6 | 2 | 0% |
 | ✅ | ui/notifications/flatTire.subscribe.js | 22 | 0.6 | 6 | 0% |
 | ✅ | ui/overlays/shieldOverlay.js | 22 | 0.7 | 8 | 0% |
-| ✅ | ui/overlays/speedbump.subscribe.js | 18 | 0.5 | 4 | 6% |
 | ✅ | ui/overlays/teamSurprise.subscribe.js | 18 | 0.5 | 4 | 6% |
 | ✅ | modules/gameStateVerifier.js | 15 | 0.5 | 3 | 0% |
 | ✅ | modules/playerUI/overlays.js | 15 | 0.5 | 3 | 7% |

@@ -13,6 +13,8 @@
 
 .speedbump-overlay__panel {
   width: min(520px, 100%);
+  max-width: 520px;
+  margin: 0 auto;
   background: #ffffff;
   border-radius: 20px;
   padding: 24px;
