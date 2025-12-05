@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-12-04T13:03:05.491Z
+# AICP File Health Report — 2025-12-05T00:32:15.465Z
 Files scanned: 146
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -16,9 +16,9 @@ Files scanned: 146
 | ✅ | modules/scoreboardManager.js | 388 | 11.6 | 73 | 2% |
 | ✅ | components/SurpriseSelector/SurpriseSelector.js | 382 | 13.0 | 62 | 8% |
 | ✅ | features/team-surprise/teamSurpriseState.js | 376 | 11.3 | 104 | 1% |
+| ✅ | ui/overlays/speedBumpOverlay.js | 327 | 10.8 | 58 | 8% |
 | ✅ | modules/playerUI/core.js | 316 | 10.4 | 67 | 2% |
 | ✅ | modules/gameRulesManager.js | 315 | 10.6 | 50 | 9% |
-| ✅ | ui/overlays/speedBumpOverlay.js | 311 | 10.3 | 53 | 9% |
 | ✅ | components/ZoneManagement/zoneHandlers.js | 301 | 10.3 | 45 | 14% |
 | ✅ | modules/chirpResponder.js | 296 | 9.7 | 38 | 1% |
 | ✅ | components/ZoneManagement/ZoneManagement.js | 295 | 9.7 | 58 | 15% |

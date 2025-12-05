@@ -53,6 +53,19 @@ function resolveGameId() {
   return 'global';
 }
 
+function isPlayerPage() {
+  if (typeof document === 'undefined') return false;
+  const path = typeof window !== 'undefined' && window.location?.pathname
+    ? window.location.pathname.toLowerCase()
+    : '';
+  if (path.includes('control')) return false;
+  const hasPlayerMarkers =
+    document.getElementById('player-scoreboard-table') ||
+    document.getElementById('team-chat-log') ||
+    document.querySelector('#game-status');
+  return !!hasPlayerMarkers;
+}
+
 function ensureOverlay() {
   if (overlayEl) return overlayEl;
   const el = document.createElement('div');
@@ -264,6 +277,9 @@ function renderOverlay(assignments = []) {
 }
 
 export function ensureSpeedBumpOverlayListeners(options = {}) {
+  if (!isPlayerPage()) {
+    return () => {};
+  }
   const teamName = resolveTeamName(options.teamName);
   const gameId = resolveGameId();
   if (!teamName) {
