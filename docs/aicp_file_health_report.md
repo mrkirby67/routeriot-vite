@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-12-06T18:48:45.154Z
+# AICP File Health Report — 2025-12-06T20:38:08.517Z
 Files scanned: 151
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -18,8 +18,8 @@ Files scanned: 151
 | ✅ | components/SurpriseSelector/SurpriseSelector.js | 382 | 13.0 | 62 | 8% |
 | ✅ | features/team-surprise/teamSurpriseState.js | 376 | 11.3 | 104 | 1% |
 | ✅ | modules/gameRulesManager.js | 315 | 10.6 | 50 | 9% |
+| ✅ | modules/zonesChallenge.js | 309 | 10.8 | 45 | 8% |
 | ✅ | modules/playerUI/core.js | 308 | 10.1 | 67 | 2% |
-| ✅ | modules/zonesChallenge.js | 308 | 10.8 | 52 | 9% |
 | ✅ | components/ZoneManagement/zoneHandlers.js | 301 | 10.3 | 45 | 14% |
 | ✅ | modules/chirpResponder.js | 296 | 9.7 | 38 | 1% |
 | ✅ | components/ZoneManagement/ZoneManagement.js | 295 | 9.7 | 58 | 15% |
