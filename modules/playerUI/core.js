@@ -25,12 +25,10 @@ import {
   hideShieldOverlay,
   renderShieldCountdown
 } from '../../ui/overlays/shieldOverlay.js';
+import { subscribeTeamRoster } from '../../services/teams/teamRosterService.js';
 import {
-  collection,
   doc,
-  onSnapshot,
-  query,
-  where
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 function $(id) {
@@ -103,19 +101,17 @@ export function initializePlayerUI(teamInput) {
 
   const memberList = $('team-member-list');
   if (memberList) {
-    const qy = query(collection(db, 'racers'), where('team', '==', resolvedTeamName));
-    onSnapshot(qy, (snapshot) => {
+    subscribeTeamRoster(resolvedTeamName, (roster = []) => {
       memberList.innerHTML = '';
-      if (snapshot.empty) {
+      if (!Array.isArray(roster) || roster.length === 0) {
         memberList.innerHTML = '<li>No racers assigned yet.</li>';
         return;
       }
-      snapshot.forEach(docSnap => {
-        const m = docSnap.data();
+      roster.forEach((member) => {
         const li = document.createElement('li');
-        let info = `<strong>${m.name || 'Unnamed Racer'}</strong>`;
-        if (m.cell) info += ` - 📱 ${m.cell}`;
-        if (m.email) info += ` - ✉️ ${m.email}`;
+        let info = `<strong>${member.name || 'Unnamed Racer'}</strong>`;
+        if (member.phone) info += ` - 📱 ${member.phone}`;
+        if (member.email) info += ` - ✉️ ${member.email}`;
         li.innerHTML = info;
         memberList.appendChild(li);
       });

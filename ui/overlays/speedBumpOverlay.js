@@ -86,6 +86,7 @@ function ensureOverlay() {
         <label>Attacker</label>
         <p data-role="attacker">Unknown</p>
         <div data-role="contact" class="speedbump-overlay__contact"></div>
+        <div data-role="roster" class="speedbump-overlay__roster"></div>
       </div>
       <div class="speedbump-overlay__timer">
         <p data-role="timer-label">Time Remaining</p>
@@ -223,6 +224,7 @@ function renderOverlay(assignments = []) {
   const statusEl = overlayEl.querySelector('[data-role="status"]');
   const attackerEl = overlayEl.querySelector('[data-role="attacker"]');
   const contactEl = overlayEl.querySelector('[data-role="contact"]');
+  const rosterEl = overlayEl.querySelector('[data-role="roster"]');
   const subtitleEl = overlayEl.querySelector('[data-role="subtitle"]');
   const timerValEl = overlayEl.querySelector('[data-role="timer-value"]');
   const timerLabelEl = overlayEl.querySelector('[data-role="timer-label"]');
@@ -233,8 +235,13 @@ function renderOverlay(assignments = []) {
   const contactArray = Array.isArray(victimEntry.attackerContact) && victimEntry.attackerContact.length
     ? victimEntry.attackerContact
     : null;
+  const rosterEntries = Array.isArray(victimEntry.attackerTeamRoster) && victimEntry.attackerTeamRoster.length
+    ? victimEntry.attackerTeamRoster
+    : [];
   const contactName = victimEntry.attackerContactName
     || contactArray?.[0]?.name
+    || rosterEntries.find((m) => m?.isCaptain)?.name
+    || rosterEntries[0]?.name
     || victimEntry.attackerId
     || 'Unknown';
   const contactPhone = victimEntry.attackerContactPhone || contactArray?.[0]?.phone || null;
@@ -269,6 +276,27 @@ function renderOverlay(assignments = []) {
         contactEl.appendChild(divider);
       }
     });
+  }
+
+  if (rosterEl) {
+    rosterEl.innerHTML = '';
+    if (rosterEntries.length > 0) {
+      const title = document.createElement('h4');
+      title.textContent = 'Attacker Team Members';
+      const list = document.createElement('ul');
+      rosterEntries.forEach((member) => {
+        const li = document.createElement('li');
+        const parts = [member?.name || 'Unknown'];
+        if (member?.phone) parts.push(`Cell: ${member.phone}`);
+        if (member?.email) parts.push(`Email: ${member.email}`);
+        li.textContent = parts.filter(Boolean).join(' • ');
+        list.appendChild(li);
+      });
+      rosterEl.appendChild(title);
+      rosterEl.appendChild(list);
+    } else {
+      rosterEl.textContent = 'No roster details provided.';
+    }
   }
 
   const statusLower = String(victimEntry.status).toLowerCase();

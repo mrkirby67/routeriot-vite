@@ -38,6 +38,7 @@ import {
 import ChatServiceV2 from '../ChatServiceV2.js';
 import { canTeamBeAttacked, canUseWildCards } from '../gameRulesManager.js';
 import { getAttackerContactForTeam } from '../game/gameRosterService.js';
+import { getTeamRoster } from '../teams/teamRosterService.js';
 import {
   makeDocId,
   assertNonEmpty,
@@ -293,6 +294,7 @@ export async function assignSpeedBump({
     return { ok: false, reason: 'inactive_game' };
   }
 
+  const attackerRaw = typeof attackerId === 'string' ? attackerId.trim() : '';
   const attacker = normalizeTeamId(attackerId);
   const victim = normalizeTeamId(victimId);
 
@@ -369,14 +371,26 @@ export async function assignSpeedBump({
     console.debug('⚠️ speedBumpService:getAttackerContactForTeam failed:', err?.message || err);
   }
 
+  let attackerRoster = [];
+  try {
+    attackerRoster = await getTeamRoster(gameId, attackerRaw || attackerId || attacker);
+  } catch (err) {
+    console.debug('⚠️ speedBumpService:getTeamRoster failed:', err?.message || err);
+  }
+
   const contactFromPayload = Array.isArray(attackerContact)
     ? attackerContact.find((c) => c)
     : null;
 
+  const primaryFromRoster =
+    attackerRoster.find((m) => m?.isCaptain) ||
+    attackerRoster[0] ||
+    null;
+
   const contactFields = {
-    name: rosterContact?.name ?? contactFromPayload?.name ?? contactName ?? null,
-    phone: rosterContact?.phone ?? contactFromPayload?.phone ?? contactPhone ?? null,
-    email: rosterContact?.email ?? contactFromPayload?.email ?? contactEmail ?? null
+    name: primaryFromRoster?.name ?? rosterContact?.name ?? contactFromPayload?.name ?? contactName ?? null,
+    phone: primaryFromRoster?.phone ?? rosterContact?.phone ?? contactFromPayload?.phone ?? contactPhone ?? null,
+    email: primaryFromRoster?.email ?? rosterContact?.email ?? contactFromPayload?.email ?? contactEmail ?? null
   };
 
   // 4) Persist assignment
@@ -398,6 +412,7 @@ export async function assignSpeedBump({
     attackerContactName: contactFields.name || null,
     attackerContactPhone: contactFields.phone || null,
     attackerContactEmail: contactFields.email || null,
+    attackerTeamRoster: attackerRoster || [],
     createdAt: serverTimestamp(),
     activatedAt: nowStatus === SPEEDBUMP_STATUS.ACTIVE ? serverTimestamp() : null,
     updatedAt: serverTimestamp(),
@@ -829,6 +844,7 @@ export function subscribeToTeamSpeedBumps(teamId, callback, options = {}) {
         attackerContactName: data.attackerContactName || data.contactName || '',
         attackerContactPhone: data.attackerContactPhone || data.contactPhone || '',
         attackerContactEmail: data.attackerContactEmail || data.contactEmail || '',
+        attackerTeamRoster: data.attackerTeamRoster || [],
         blockEndsAtMs,
         releaseEndsAtMs,
         expiresAtMs
