@@ -85,7 +85,7 @@ function ensureOverlay() {
       <div class="speedbump-overlay__card">
         <label>Attacker</label>
         <p data-role="attacker">Unknown</p>
-        <p data-role="contact" class="speedbump-overlay__contact"></p>
+        <div data-role="contact" class="speedbump-overlay__contact"></div>
       </div>
       <div class="speedbump-overlay__timer">
         <p data-role="timer-label">Time Remaining</p>
@@ -230,29 +230,53 @@ function renderOverlay(assignments = []) {
   const completeBtn = overlayEl.querySelector('[data-role="complete"]');
 
   promptEl.textContent = victimEntry.promptText || victimEntry.prompt || 'Complete the assigned challenge to continue.';
-  attackerEl.textContent = victimEntry.attackerId || 'Unknown';
-  if (Array.isArray(victimEntry.attackerContact) && victimEntry.attackerContact.length > 0) {
-    const contactsHtml = victimEntry.attackerContact.map(contact => `
-      <div class="speedbump-overlay__contact-item">
-        <strong>${contact.name || 'Unknown Racer'}</strong><br>
-        Phone: ${contact.phone || 'N/A'}<br>
-        Email: ${contact.email || 'N/A'}
-      </div>
-    `).join('<hr class="speedbump-overlay__contact-separator">');
-    contactEl.innerHTML = contactsHtml;
-  } else {
-    const contactParts = [];
-    if (victimEntry.attackerContactPhone) contactParts.push(`Phone: ${victimEntry.attackerContactPhone}`);
-    if (victimEntry.attackerContactEmail) contactParts.push(`Email: ${victimEntry.attackerContactEmail}`);
-    contactEl.textContent = contactParts.length ? contactParts.join(' | ') : 'No contact provided.';
+  const contactArray = Array.isArray(victimEntry.attackerContact) && victimEntry.attackerContact.length
+    ? victimEntry.attackerContact
+    : null;
+  const contactName = victimEntry.attackerContactName
+    || contactArray?.[0]?.name
+    || victimEntry.attackerId
+    || 'Unknown';
+  const contactPhone = victimEntry.attackerContactPhone || contactArray?.[0]?.phone || null;
+  const contactEmail = victimEntry.attackerContactEmail || contactArray?.[0]?.email || null;
+
+  attackerEl.textContent = contactName || 'Unknown';
+  if (contactEl) {
+    contactEl.innerHTML = '';
+    const contacts = contactArray && contactArray.length
+      ? contactArray
+      : [{ name: contactName, phone: contactPhone, email: contactEmail }];
+    contacts.forEach((contact, index) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'speedbump-overlay__contact-item';
+
+      const nameEl = document.createElement('strong');
+      nameEl.textContent = contact?.name || 'Unknown';
+      wrapper.appendChild(nameEl);
+
+      const phoneEl = document.createElement('div');
+      phoneEl.textContent = `Cell: ${contact?.phone || 'Not provided'}`;
+      wrapper.appendChild(phoneEl);
+
+      const emailEl = document.createElement('div');
+      emailEl.textContent = `Email: ${contact?.email || 'Not provided'}`;
+      wrapper.appendChild(emailEl);
+
+      contactEl.appendChild(wrapper);
+      if (index < contacts.length - 1) {
+        const divider = document.createElement('hr');
+        divider.className = 'speedbump-overlay__contact-separator';
+        contactEl.appendChild(divider);
+      }
+    });
   }
 
   const statusLower = String(victimEntry.status).toLowerCase();
   const isActive = statusLower === SPEEDBUMP_STATUS.ACTIVE;
   const isWaiting = statusLower === SPEEDBUMP_STATUS.WAITING_RELEASE;
   subtitleEl.textContent = isActive
-    ? `You have been slowed by ${victimEntry.attackerId || 'another team'}.`
-    : `Waiting for release from ${victimEntry.attackerId || 'another team'}.`;
+    ? `You have been slowed by ${contactName || 'another team'}.`
+    : `Waiting for release from ${contactName || 'another team'}.`;
   statusEl.textContent = isActive
     ? 'Complete the challenge and ask for release.'
     : 'Release timer running. You will be freed soon.';

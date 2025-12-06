@@ -1,11 +1,11 @@
-# AICP File Health Report — 2025-12-05T03:53:57.361Z
-Files scanned: 148
+# AICP File Health Report — 2025-12-06T04:14:39.512Z
+Files scanned: 149
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
 |----|------|--------|-----------|-------------|------------|
-| ⚠️ | services/speed-bump/speedBumpService.js | 975 | 30.5 | 148 | 5% |
-| ⚠️ | components/SpeedBumpControl/SpeedBumpControl.js | 716 | 24.5 | 121 | 4% |
-| ⚠️ | modules/gameStateManager.js | 603 | 19.6 | 78 | 6% |
+| ⚠️ | services/speed-bump/speedBumpService.js | 994 | 31.3 | 149 | 5% |
+| ⚠️ | components/SpeedBumpControl/SpeedBumpControl.js | 725 | 25.1 | 121 | 4% |
+| ⚠️ | modules/gameStateManager.js | 614 | 20.0 | 78 | 6% |
 | ✅ | components/GameControls/GameControls.js | 590 | 20.9 | 93 | 7% |
 | ✅ | services/ChatServiceV2.js | 573 | 19.2 | 119 | 5% |
 | ✅ | services/team-surprise/teamSurpriseService.js | 525 | 17.5 | 107 | 5% |
@@ -16,7 +16,7 @@ Files scanned: 148
 | ✅ | modules/scoreboardManager.js | 388 | 11.6 | 73 | 2% |
 | ✅ | components/SurpriseSelector/SurpriseSelector.js | 382 | 13.0 | 62 | 8% |
 | ✅ | features/team-surprise/teamSurpriseState.js | 376 | 11.3 | 104 | 1% |
-| ✅ | ui/overlays/speedBumpOverlay.js | 338 | 11.3 | 61 | 8% |
+| ✅ | ui/overlays/speedBumpOverlay.js | 362 | 12.0 | 59 | 7% |
 | ✅ | modules/playerUI/core.js | 316 | 10.4 | 67 | 2% |
 | ✅ | modules/gameRulesManager.js | 315 | 10.6 | 50 | 9% |
 | ✅ | components/ZoneManagement/zoneHandlers.js | 301 | 10.3 | 45 | 14% |
@@ -55,6 +55,7 @@ Files scanned: 148
 | ✅ | modules/gameTimer.js | 152 | 3.6 | 31 | 3% |
 | ✅ | modules/chatManager/playerChat.ui.js | 149 | 5.2 | 22 | 11% |
 | ✅ | modules/speedBump/overlay.js | 146 | 4.3 | 33 | 10% |
+| ✅ | services/game/gameRosterService.js | 138 | 3.9 | 20 | 6% |
 | ✅ | modules/zonesMap.js | 137 | 5.4 | 21 | 12% |
 | ✅ | modules/homeMap.js | 135 | 5.2 | 31 | 1% |
 | ✅ | ui/gameNotifications.js | 135 | 4.0 | 12 | 27% |
@@ -82,10 +83,10 @@ Files scanned: 148
 | ✅ | components/ChatLog/ChatLog.js | 89 | 2.7 | 5 | 31% |
 | ✅ | modules/emailTeams.js | 88 | 2.9 | 15 | 9% |
 | ✅ | modules/zonesFirestore.js | 87 | 3.2 | 13 | 16% |
+| ✅ | modules/playerUI/overlays/baseOverlays.js | 85 | 2.6 | 15 | 4% |
 | ✅ | modules/flatTire_fixGPS.js | 80 | 2.4 | 11 | 6% |
 | ✅ | modules/speedBump/comms.js | 80 | 3.1 | 12 | 26% |
 | ✅ | features/team-surprise/teamSurprise.bridge.js | 76 | 2.1 | 18 | 7% |
-| ✅ | modules/playerUI/overlays/baseOverlays.js | 75 | 2.4 | 15 | 4% |
 | ✅ | modules/chatManager/playerChat.events.js | 74 | 2.1 | 11 | 5% |
 | ✅ | services/messageService.js | 73 | 2.4 | 11 | 21% |
 | ✅ | modules/googleMapsLoader.js | 72 | 2.7 | 13 | 22% |
@@ -153,9 +154,9 @@ Files scanned: 148
 | ✅ | features/player-page/playerPage.bridge.js | 6 | 0.2 | 1 | 0% |
 
 ## Largest 10 Files
-- services/speed-bump/speedBumpService.js — 975 lines, 30.5 KB (Complexity: 148)
-- components/SpeedBumpControl/SpeedBumpControl.js — 716 lines, 24.5 KB (Complexity: 121)
-- modules/gameStateManager.js — 603 lines, 19.6 KB (Complexity: 78)
+- services/speed-bump/speedBumpService.js — 994 lines, 31.3 KB (Complexity: 149)
+- components/SpeedBumpControl/SpeedBumpControl.js — 725 lines, 25.1 KB (Complexity: 121)
+- modules/gameStateManager.js — 614 lines, 20.0 KB (Complexity: 78)
 - components/GameControls/GameControls.js — 590 lines, 20.9 KB (Complexity: 93)
 - services/ChatServiceV2.js — 573 lines, 19.2 KB (Complexity: 119)
 - services/team-surprise/teamSurpriseService.js — 525 lines, 17.5 KB (Complexity: 107)

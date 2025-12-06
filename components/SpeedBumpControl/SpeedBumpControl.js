@@ -129,12 +129,13 @@ export function SpeedBumpControlComponent() {
               <th>Team Name</th>
               <th>Speed Bump</th>
               <th>Last Launch (Team Sent)</th>
+              <th>Attacker Contact</th>
               <th>Status</th>
               <th>Controls</th>
             </tr>
           </thead>
           <tbody id="speedbump-table-body">
-            <tr><td colspan="5" class="${styles.legendNote}">Loading teams…</td></tr>
+            <tr><td colspan="6" class="${styles.legendNote}">Loading teams…</td></tr>
           </tbody>
         </table>
         <div id="speedbump-bank-modal" class="${styles.modalBackdrop}" style="display:none;">
@@ -316,7 +317,7 @@ class SpeedBumpController {
     this.tableBody.innerHTML = '';
 
     if (!this.teams.length) {
-      this.tableBody.innerHTML = `<tr><td colspan="5" class="${styles.legendNote}">No teams available.</td></tr>`;
+      this.tableBody.innerHTML = `<tr><td colspan="6" class="${styles.legendNote}">No teams available.</td></tr>`;
       return;
     }
 
@@ -336,6 +337,9 @@ class SpeedBumpController {
     const promptOptions = this.getSpeedBumpOptions(prompt);
     const lastLaunch = this.formatLastLaunch(assignment);
     const status = assignment?.status || 'idle';
+    const contactName = assignment?.attackerContactName || assignment?.attackerId || 'Unknown';
+    const contactPhone = assignment?.attackerContactPhone || 'Not provided';
+    const contactEmail = assignment?.attackerContactEmail || 'Not provided';
 
     const row = document.createElement('tr');
     row.dataset.team = victimId;
@@ -350,6 +354,11 @@ class SpeedBumpController {
         </select>
       </td>
       <td data-role="last-launch">${this.escapeHtml(lastLaunch)}</td>
+      <td class="${styles.teamCell}" data-role="contact">
+        <strong>${this.escapeHtml(contactName)}</strong>
+        <span>${this.escapeHtml(contactPhone)}</span>
+        <span>${this.escapeHtml(contactEmail)}</span>
+      </td>
       <td data-role="status">${formatStatus(status)} ${this.remainingLabel(assignment)}</td>
       <td class="${styles.inlineActions}">
         <button data-action="activate" class="${styles.primaryBtn}">Activate</button>

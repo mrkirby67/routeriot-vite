@@ -41,16 +41,26 @@ export function hidePausedOverlay() {
   if (el) el.remove();
 }
 
-export function showGameOverOverlay() {
+export function showGameOverOverlay(homeBase = 'Not specified') {
   if (document.getElementById('gameover-overlay')) return;
+
   const el = document.createElement('div');
   el.id = 'gameover-overlay';
-  el.innerHTML = `<div style="font-size:3rem;">🏁 GAME OVER</div>`;
+  
+  el.innerHTML = `
+    <div style="text-align: center;">
+      <div style="font-size:3rem;">🏁 GAME OVER</div>
+      <div style="font-size:1.5rem; margin-top: 20px;">Return to Home Base:</div>
+      <div style="font-size:1.8rem; font-weight:bold; margin-top: 10px;">${homeBase}</div>
+    </div>
+  `;
+  
   Object.assign(el.style, {
     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)',
     color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
     zIndex: 6000
   });
+  
   document.body.appendChild(el);
   startConfetti?.();
   setTimeout(stopConfetti, 5000);

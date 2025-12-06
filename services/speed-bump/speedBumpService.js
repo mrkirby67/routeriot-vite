@@ -37,6 +37,7 @@ import {
 } from '../../modules/speedBumpChallenges.js';
 import ChatServiceV2 from '../ChatServiceV2.js';
 import { canTeamBeAttacked, canUseWildCards } from '../gameRulesManager.js';
+import { getAttackerContactForTeam } from '../game/gameRosterService.js';
 import {
   makeDocId,
   assertNonEmpty,
@@ -276,6 +277,7 @@ export async function assignSpeedBump({
   promptId,
   exclusions = [],
   type = 'slowdown',
+  attackerContact = [],
   contactName = null,
   contactPhone = null,
   contactEmail = null,
@@ -360,6 +362,23 @@ export async function assignSpeedBump({
     throw new Error('Invalid or missing Speed Bump prompt.');
   }
 
+  let rosterContact = null;
+  try {
+    rosterContact = await getAttackerContactForTeam(gameId, attacker);
+  } catch (err) {
+    console.debug('⚠️ speedBumpService:getAttackerContactForTeam failed:', err?.message || err);
+  }
+
+  const contactFromPayload = Array.isArray(attackerContact)
+    ? attackerContact.find((c) => c)
+    : null;
+
+  const contactFields = {
+    name: rosterContact?.name ?? contactFromPayload?.name ?? contactName ?? null,
+    phone: rosterContact?.phone ?? contactFromPayload?.phone ?? contactPhone ?? null,
+    email: rosterContact?.email ?? contactFromPayload?.email ?? contactEmail ?? null
+  };
+
   // 4) Persist assignment
   const nowStatus = status || SPEEDBUMP_STATUS.ACTIVE;
   const now = Date.now();
@@ -376,9 +395,9 @@ export async function assignSpeedBump({
     releaseEndsAt: null,
     releaseRequestedAt: null,
     chirpCount: 0,
-    attackerContactName: contactName,
-    attackerContactPhone: contactPhone,
-    attackerContactEmail: contactEmail,
+    attackerContactName: contactFields.name || null,
+    attackerContactPhone: contactFields.phone || null,
+    attackerContactEmail: contactFields.email || null,
     createdAt: serverTimestamp(),
     activatedAt: nowStatus === SPEEDBUMP_STATUS.ACTIVE ? serverTimestamp() : null,
     updatedAt: serverTimestamp(),

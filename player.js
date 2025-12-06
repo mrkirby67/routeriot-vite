@@ -8,7 +8,7 @@ import { db } from '/core/config.js';
 import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { setupPlayerChat } from './modules/chatManager.js';
-import { listenForGameStatus } from './modules/gameStateManager.js';
+import { getCachedGameState, listenForGameStatus } from './modules/gameStateManager.js';
 import { initializeZones } from './modules/zones.js';
 import {
   initializePlayerUI,
@@ -250,7 +250,7 @@ function handleLiveGameState(state) {
       pausePlayerTimer();
       setInlineTimer('00:00:00');
       hidePausedOverlay();
-      showGameOverOverlay();
+      showGameOverOverlay(homeBase);
       showFlashMessage('🏁 Game Over! Return to base.', '#c62828', 3000);
       break;
 
@@ -326,7 +326,8 @@ function updateTimerDisplay(endTimestamp) {
   if (remaining <= 0) {
     clearInterval(playerTimerInterval);
     setInlineTimer('00:00:00');
-    showGameOverOverlay();
+    const gameState = getCachedGameState();
+    showGameOverOverlay(gameState?.homeBase);
     return;
   }
   setInlineTimer(formatHMS(remaining));

@@ -30,6 +30,7 @@ import {
   clearCountdownTimer,
   getRemainingMs,
 } from './gameTimer.js';
+import { buildRosterSnapshotForGame } from '../services/game/gameRosterService.js';
 
 let cachedGameState = null;
 const ALLOWED_STATUSES = new Set(['waiting', 'active', 'paused', 'finished', 'ended', 'over', 'idle']);
@@ -247,8 +248,12 @@ export async function startGame(options = {}) {
     durationMinutes = 120,
     zonesReleased = true,
     teamNames = [],
-    broadcast = {}
+    broadcast = {},
+    gameId: providedGameId
   } = options || {};
+  const gameId = typeof providedGameId === 'string' && providedGameId.trim()
+    ? providedGameId.trim()
+    : 'global';
 
   try {
     const snap = await getDoc(gameStateRef);
@@ -294,6 +299,12 @@ export async function startGame(options = {}) {
         isBroadcast: typeof isBroadcast === 'boolean' ? isBroadcast : true,
         timestamp: serverTimestamp(),
       });
+    }
+
+    try {
+      await buildRosterSnapshotForGame(gameId);
+    } catch (err) {
+      console.warn('[GameState] Failed to capture roster snapshot:', err);
     }
 
     publishStateDiagnostics({
