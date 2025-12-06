@@ -43,6 +43,16 @@ export function ScoreboardComponent({ editable = true } = {}) {
           <tr><td colspan="5" style="text-align:center;color:#888;">Loading...</td></tr>
         </tbody>
       </table>
+      <div class="${styles.panelSection}" id="zone-scoring-config">
+        <h3>Zone Capture Scoring</h3>
+        <label class="${styles.panelLabel}">First Capture Points</label>
+        <input type="number" id="score-first-capture" min="0" step="1" class="${styles.panelInput}">
+        <label class="${styles.panelLabel}">Second Capture Points</label>
+        <input type="number" id="score-second-capture" min="0" step="1" class="${styles.panelInput}">
+        <label class="${styles.panelLabel}">Successive Captures (3rd+)</label>
+        <input type="number" id="score-successive-capture" min="0" step="1" class="${styles.panelInput}">
+        <button id="save-zone-scoring" class="${styles.panelButton}">Save Scoring</button>
+      </div>
     </div>
   `;
 }

@@ -54,3 +54,43 @@
     background-color: #444;
 }
 
+.panelSection {
+    margin-top: 20px;
+    padding: 12px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    display: grid;
+    gap: 8px;
+}
+
+.panelLabel {
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.panelInput {
+    background-color: #2c2c2c;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 8px;
+    width: 120px;
+}
+
+.panelButton {
+    justify-self: start;
+    background: linear-gradient(135deg, #00e676, #00acc1);
+    color: #00363a;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.panelButton:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}

@@ -28,6 +28,8 @@ import {
 } from './zoneManager.js';
 import { publish } from '/core/eventBus.js';
 
+const DEFAULT_SCORING = { first: 10, second: 5, successive: 2 };
+
 // ---------------------------------------------------------------------------
 // 🧭 Context State
 // ---------------------------------------------------------------------------
@@ -44,6 +46,80 @@ let challengeState = {
 export function setTeamContext(teamName) {
   currentTeamName = allTeams.find(t => t.name === teamName)?.name || teamName;
   console.log(`🎯 Team context set for challenges: ${currentTeamName}`);
+}
+
+function resolveGameId() {
+  const candidates = [
+    typeof window !== 'undefined' ? window.__rrGameId : null,
+    typeof window !== 'undefined' ? window.__routeRiotGameId : null,
+    typeof window !== 'undefined' ? window.sessionStorage?.getItem?.('activeGameId') : null,
+    typeof window !== 'undefined' ? window.localStorage?.getItem?.('activeGameId') : null,
+  ];
+
+  for (const val of candidates) {
+    if (typeof val === 'string' && val.trim()) return val.trim();
+  }
+  return 'global';
+}
+
+async function fetchZoneScoring(gameId) {
+  try {
+    const snap = await getDoc(doc(db, 'games', gameId, 'settings', 'zoneScoring'));
+    if (!snap.exists()) return { ...DEFAULT_SCORING };
+    const data = snap.data() || {};
+    return {
+      first: Number.isFinite(data.first) ? data.first : DEFAULT_SCORING.first,
+      second: Number.isFinite(data.second) ? data.second : DEFAULT_SCORING.second,
+      successive: Number.isFinite(data.successive) ? data.successive : DEFAULT_SCORING.successive
+    };
+  } catch (err) {
+    console.warn('⚠️ Failed to load zone scoring config:', err);
+    return { ...DEFAULT_SCORING };
+  }
+}
+
+async function countPriorCaptures(gameId, zoneId) {
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, 'games', gameId, 'captures'),
+        where('zoneId', '==', zoneId)
+      )
+    );
+    return snap.size || 0;
+  } catch (err) {
+    console.warn('⚠️ Failed to count prior captures:', err);
+    return 0;
+  }
+}
+
+async function logZoneCapture(gameId, zoneId, teamName, points, captureIndex = null) {
+  try {
+    const ref = doc(collection(db, 'games', gameId, 'captures'));
+    await setDoc(ref, {
+      zoneId,
+      teamName,
+      points,
+      captureNumber: captureIndex,
+      capturedAt: serverTimestamp()
+    });
+  } catch (err) {
+    console.warn('⚠️ Failed to log zone capture:', err);
+  }
+}
+
+async function computeCapturePoints(gameId, zoneId) {
+  const scoring = await fetchZoneScoring(gameId);
+  const priorCount = await countPriorCaptures(gameId, zoneId);
+
+  let points = scoring.successive;
+  if (priorCount === 0) points = scoring.first;
+  else if (priorCount === 1) points = scoring.second;
+
+  return {
+    points: Number.isFinite(points) ? points : DEFAULT_SCORING.successive,
+    captureNumber: priorCount + 1
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -257,7 +333,18 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
 
   // ✅ CORRECT
   if (isCorrect) {
-    const points = attemptsLeft === 3 ? 10 : attemptsLeft === 2 ? 8 : 6;
+    const gameId = resolveGameId();
+    let points = DEFAULT_SCORING.successive;
+    let captureNumber = null;
+
+    try {
+      const computed = await computeCapturePoints(gameId, zoneId);
+      points = computed.points;
+      captureNumber = computed.captureNumber;
+    } catch (err) {
+      console.warn('⚠️ Using default scoring due to error:', err);
+    }
+
     alert(`✅ CORRECT! ${zoneId} captured (+${points} pts)`);
 
     try {
@@ -269,7 +356,8 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
         {
           status: 'Taken',
           controllingTeam: currentTeamName,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
+          captureCount: captureNumber || null
         },
         { merge: true }
       );
@@ -279,6 +367,8 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
         zoneId,
         points
       });
+
+      await logZoneCapture(gameId, zoneId, currentTeamName, points, captureNumber);
 
       await startZoneCooldown(zoneId, cooldownMinutes);
     } catch (err) {

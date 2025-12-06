@@ -17,6 +17,7 @@ import {
   doc,
   setDoc,
   serverTimestamp,
+  deleteDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { updateControlledZones } from '../../modules/scoreboardManager.js';
@@ -63,6 +64,38 @@ async function saveZoneQuestions(zoneId) {
   console.log(`💾 Saved ${savedCount} questions for zone ${zoneId}.`);
 }
 
+
+/* ---------------------------------------------------------------------------
+ * ❌ DELETE ZONE
+ * ------------------------------------------------------------------------ */
+async function onDeleteClick(zoneId, renderZones, tableBody, googleMapsApiLoaded) {
+  if (!confirm(`Are you sure you want to permanently delete zone ${zoneId} and all its questions? This cannot be undone.`)) {
+    return;
+  }
+
+  try {
+    // 1. Delete all questions in the subcollection
+    const questionsCol = collection(db, 'zones', zoneId, 'questions');
+    const questionsSnap = await getDocs(questionsCol);
+    const deletePromises = [];
+    questionsSnap.forEach(doc => {
+      deletePromises.push(deleteDoc(doc.ref));
+    });
+    await Promise.all(deletePromises);
+    console.log(`Deleted ${questionsSnap.size} questions for zone ${zoneId}.`);
+
+    // 2. Delete the zone document itself
+    await deleteDoc(doc(db, 'zones', zoneId));
+    console.log(`✅ Successfully deleted zone ${zoneId}.`);
+
+    // 3. Re-render the UI
+    await renderZones({ tableBody, googleMapsApiLoaded });
+
+  } catch (error) {
+    console.error(`Error deleting zone ${zoneId}:`, error);
+    alert(`Failed to delete zone ${zoneId}. See console for details.`);
+  }
+}
 
 /* ---------------------------------------------------------------------------
  * 🔍 MANAGE BUTTON (toggle zone details and SAVE ON CLOSE)
@@ -262,6 +295,10 @@ export function attachZoneHandlers({ tableBody, renderZones, googleMapsApiLoaded
     }
     if (target.classList.contains('force-capture-btn')) {
       await onForceCapture(zoneId, renderZones, tableBody, googleMapsApiLoaded);
+      return;
+    }
+    if (target.classList.contains('delete-zone-btn')) {
+      await onDeleteClick(zoneId, renderZones, tableBody, googleMapsApiLoaded);
       return;
     }
     if (target.classList.contains('add-question-btn')) {

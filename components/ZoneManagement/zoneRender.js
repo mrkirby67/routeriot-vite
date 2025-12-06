@@ -160,6 +160,8 @@ export async function renderZones({ tableBody, googleMapsApiLoaded }) {
           style="background:#B71C1C;color:white;margin-left:6px;">Reset</button>
         <button class="force-capture-btn" data-zone-id="${zoneId}" 
           style="background:#2E7D32;color:white;margin-left:6px;">Force Capture</button>
+        <button class="delete-zone-btn" data-zone-id="${zoneId}"
+          style="background:#c62828;color:white;margin-left:6px;">Delete</button>
       </td>
       <td
         class="${statusCellClass}"

@@ -54,10 +54,25 @@ import { listenForGameStatus } from './modules/gameStateManager.js';
 import { showFlashMessage } from './modules/gameUI.js';
 import { clearCountdownTimer, getRemainingMs, startCountdownTimer, pauseCountdownTimer } from './modules/gameTimer.js';
 import { db } from '/core/config.js';
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const GAME_STATE_REF = doc(db, "game", "gameState");
 const controlCleanups = [];
+const DEFAULT_ZONE_SCORING = { first: 10, second: 5, successive: 2 };
+
+function resolveGameId() {
+  const candidates = [
+    typeof window !== 'undefined' ? window.__rrGameId : null,
+    typeof window !== 'undefined' ? window.__routeRiotGameId : null,
+    typeof window !== 'undefined' ? window.sessionStorage?.getItem?.('activeGameId') : null,
+    typeof window !== 'undefined' ? window.localStorage?.getItem?.('activeGameId') : null,
+  ];
+
+  for (const val of candidates) {
+    if (typeof val === 'string' && val.trim()) return val.trim();
+  }
+  return 'global';
+}
 
 function registerCleanup(fn, label = 'anonymous') {
   if (typeof fn !== 'function') return;
@@ -87,6 +102,8 @@ async function main() {
   renderAllSections();
 
   registerCleanup(initializeScoreboardListener() || null, 'scoreboard');
+  const zoneScoringCleanup = await setupZoneScoringConfig(resolveGameId());
+  registerCleanup(zoneScoringCleanup || null, 'zoneScoringConfig');
 
   registerCleanup(initializeGameControlsLogic() || null, 'gameControls');
   registerCleanup(initializeTeamLinksLogic() || null, 'teamLinks');
@@ -262,6 +279,56 @@ function safeSetHTML(id, html) {
   const el = document.getElementById(id);
   if (el) el.innerHTML = html;
   else console.warn(`⚠️ Missing container: ${id}`);
+}
+
+async function setupZoneScoringConfig(gameId) {
+  const firstInput = document.getElementById('score-first-capture');
+  const secondInput = document.getElementById('score-second-capture');
+  const successiveInput = document.getElementById('score-successive-capture');
+  const saveBtn = document.getElementById('save-zone-scoring');
+
+  if (!firstInput || !secondInput || !successiveInput || !saveBtn) {
+    console.warn('⚠️ Zone scoring inputs missing; skipping setup.');
+    return () => {};
+  }
+
+  const scoringRef = doc(db, 'games', gameId, 'settings', 'zoneScoring');
+
+  const loadExisting = async () => {
+    try {
+      const snap = await getDoc(scoringRef);
+      const data = snap.exists() ? snap.data() : {};
+      firstInput.value = Number.isFinite(data.first) ? data.first : DEFAULT_ZONE_SCORING.first;
+      secondInput.value = Number.isFinite(data.second) ? data.second : DEFAULT_ZONE_SCORING.second;
+      successiveInput.value = Number.isFinite(data.successive) ? data.successive : DEFAULT_ZONE_SCORING.successive;
+    } catch (err) {
+      console.warn('⚠️ Failed to load zone scoring config:', err);
+      firstInput.value = DEFAULT_ZONE_SCORING.first;
+      secondInput.value = DEFAULT_ZONE_SCORING.second;
+      successiveInput.value = DEFAULT_ZONE_SCORING.successive;
+    }
+  };
+
+  const handleSave = async () => {
+    const first = Number(firstInput.value ?? 0);
+    const second = Number(secondInput.value ?? 0);
+    const successive = Number(successiveInput.value ?? 0);
+
+    try {
+      await setDoc(scoringRef, { first, second, successive }, { merge: true });
+      showFlashMessage('✅ Zone scoring saved.', '#2e7d32', 1600);
+    } catch (err) {
+      console.error('❌ Failed to save zone scoring:', err);
+      showFlashMessage('❌ Could not save zone scoring.', '#c62828', 1800);
+    }
+  };
+
+  await loadExisting();
+  saveBtn.addEventListener('click', handleSave);
+
+  return () => {
+    try { saveBtn.removeEventListener('click', handleSave); } catch {}
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-12-06T20:38:08.517Z
+# AICP File Health Report — 2025-12-06T21:11:38.313Z
 Files scanned: 151
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -13,14 +13,14 @@ Files scanned: 151
 | ✅ | components/BugStrikeControl/BugStrikeControl.js | 489 | 15.2 | 64 | 8% |
 | ✅ | modules/speedBump/interactions.js | 476 | 16.4 | 90 | 9% |
 | ✅ | modules/chatManager/playerChat.state.js | 451 | 14.1 | 84 | 1% |
+| ✅ | modules/zonesChallenge.js | 399 | 13.5 | 56 | 6% |
 | ✅ | ui/overlays/speedBumpOverlay.js | 390 | 13.1 | 66 | 7% |
 | ✅ | modules/scoreboardManager.js | 388 | 11.6 | 73 | 2% |
 | ✅ | components/SurpriseSelector/SurpriseSelector.js | 382 | 13.0 | 62 | 8% |
 | ✅ | features/team-surprise/teamSurpriseState.js | 376 | 11.3 | 104 | 1% |
+| ✅ | components/ZoneManagement/zoneHandlers.js | 338 | 11.6 | 51 | 13% |
 | ✅ | modules/gameRulesManager.js | 315 | 10.6 | 50 | 9% |
-| ✅ | modules/zonesChallenge.js | 309 | 10.8 | 45 | 8% |
 | ✅ | modules/playerUI/core.js | 308 | 10.1 | 67 | 2% |
-| ✅ | components/ZoneManagement/zoneHandlers.js | 301 | 10.3 | 45 | 14% |
 | ✅ | modules/chirpResponder.js | 296 | 9.7 | 38 | 1% |
 | ✅ | components/ZoneManagement/ZoneManagement.js | 295 | 9.7 | 58 | 15% |
 | ✅ | services/gameRulesManager.js | 291 | 9.6 | 48 | 9% |
@@ -32,8 +32,8 @@ Files scanned: 151
 | ✅ | modules/playerBugStrikeUI.js | 259 | 8.5 | 42 | 17% |
 | ✅ | modules/zones.js | 253 | 8.7 | 34 | 3% |
 | ✅ | modules/speedBump/index.js | 251 | 7.9 | 34 | 3% |
+| ✅ | components/ZoneManagement/zoneRender.js | 245 | 9.7 | 17 | 14% |
 | ✅ | ui/flat-tire/flatTireUI.js | 244 | 9.8 | 43 | 11% |
-| ✅ | components/ZoneManagement/zoneRender.js | 243 | 9.5 | 17 | 14% |
 | ✅ | modules/flatTireManager.js | 239 | 8.6 | 42 | 2% |
 | ✅ | modules/controlActions.js | 212 | 7.2 | 17 | 18% |
 | ✅ | modules/chatManager/playerChat.surprises.js | 211 | 6.7 | 31 | 2% |
@@ -43,12 +43,12 @@ Files scanned: 151
 | ✅ | components/FlatTireControl/FlatTireControl.js | 196 | 8.2 | 18 | 14% |
 | ✅ | modules/gameUI.js | 195 | 6.3 | 29 | 12% |
 | ✅ | modules/chatManager/playerChat.renderers.js | 194 | 6.4 | 18 | 2% |
+| ✅ | components/Scoreboard/Scoreboard.js | 194 | 6.9 | 31 | 14% |
 | ✅ | components/ZoneQuestions/ZoneQuestionsUI.js | 192 | 6.9 | 21 | 21% |
 | ✅ | modules/zonesUtils.js | 186 | 5.9 | 42 | 3% |
 | ✅ | modules/chatManager/playerChat.handlers.js | 184 | 5.8 | 35 | 2% |
 | ✅ | modules/playerBugStrike.js | 184 | 5.3 | 39 | 2% |
 | ✅ | features/bug-strike/bugStrikeController.js | 184 | 5.4 | 18 | 2% |
-| ✅ | components/Scoreboard/Scoreboard.js | 184 | 6.2 | 31 | 15% |
 | ✅ | modules/chatManager.js | 174 | 5.2 | 34 | 0% |
 | ✅ | modules/zoneManager.js | 170 | 5.0 | 41 | 2% |
 | ✅ | components/FlatTireControl/controller/domHandlers.js | 169 | 6.9 | 31 | 16% |
