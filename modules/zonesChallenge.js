@@ -12,9 +12,7 @@ import {
   collection,
   getDocs,
   query,
-  orderBy,
-  where,
-  limit
+  where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { validateAnswer } from './zonesUtils.js';
@@ -44,6 +42,50 @@ let challengeState = {
 export function setTeamContext(teamName) {
   currentTeamName = allTeams.find(t => t.name === teamName)?.name || teamName;
   console.log(`🎯 Team context set for challenges: ${currentTeamName}`);
+}
+
+// ---------------------------------------------------------------------------
+// 🧩 Render helpers
+// ---------------------------------------------------------------------------
+function renderBooleanQuestion(zoneId, questionData, answerArea) {
+  const opts =
+    questionData.type === 'YES_NO' ? ['YES', 'NO'] :
+    questionData.type === 'TRUE_FALSE' ? ['TRUE', 'FALSE'] :
+    ['UP', 'DOWN'];
+
+  answerArea.innerHTML = opts.map((o) => `
+    <label style="margin-right:10px;">
+      <input type="radio" name="answer-${zoneId}" value="${o}" /> ${o}
+    </label>
+  `).join('');
+}
+
+function renderMultipleChoiceQuestion(zoneId, questionData, answerArea) {
+  if (Array.isArray(questionData.mcOptions) && questionData.mcOptions.length) {
+    answerArea.innerHTML = questionData.mcOptions.map((o) => `
+      <label style="display:block;margin-bottom:4px;">
+        <input type="radio" name="answer-${zoneId}" value="${o.text}" /> ${o.text}
+      </label>
+    `).join('');
+  } else {
+    answerArea.innerHTML = '<p>No options defined.</p>';
+  }
+}
+
+function renderNumericQuestion(zoneId, questionData, answerArea) {
+  answerArea.innerHTML = `
+    <input type="number" id="player-answer-${zoneId}"
+           placeholder="Enter a number..."
+           style="width:80%;padding:8px;border-radius:6px;border:none;background:#333;color:#fff;">
+  `;
+}
+
+function renderFreeTextQuestion(zoneId, questionData, answerArea) {
+  answerArea.innerHTML = `
+    <input type="text" id="player-answer-${zoneId}"
+           placeholder="Your answer..."
+           style="width:80%;padding:8px;border-radius:6px;border:none;background:#333;color:#fff;">
+  `;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,18 +151,37 @@ export async function displayZoneQuestions(zoneId, zoneName) {
   let questionData = null;
 
   try {
-    // Align with control: pull latest question where zoneId matches
+    // Fetch all questions for this zone; pick the “latest” client-side
     const qsSnap = await getDocs(
       query(
         collection(db, 'questions'),
-        where('zoneId', '==', zoneId),
-        orderBy('updatedAt', 'desc'),
-        limit(1)
+        where('zoneId', '==', zoneId)
       )
     );
+
     if (!qsSnap.empty) {
-      const docSnap = qsSnap.docs[0];
-      questionData = { id: docSnap.id, ...docSnap.data() };
+      // Choose the doc with the most recent updatedAt (or createdAt), falling back
+      // to the first doc if timestamps are missing.
+      let latestDoc = null;
+      let latestTs = -1;
+
+      qsSnap.forEach((docSnap) => {
+        const data = docSnap.data() || {};
+        const updated = data.updatedAt?.seconds ?? data.updatedAt?._seconds ?? null;
+        const created = data.createdAt?.seconds ?? data.createdAt?._seconds ?? null;
+        const ts = typeof updated === 'number'
+          ? updated
+          : (typeof created === 'number' ? created : 0);
+
+        if (!latestDoc || ts > latestTs) {
+          latestDoc = docSnap;
+          latestTs = ts;
+        }
+      });
+
+      if (latestDoc) {
+        questionData = { id: latestDoc.id, ...(latestDoc.data() || {}) };
+      }
     }
 
     const questionEl = document.getElementById(`question-text-${zoneId}`);
@@ -128,49 +189,35 @@ export async function displayZoneQuestions(zoneId, zoneName) {
     const submitBtn = document.getElementById(`submit-answer-${zoneId}`);
 
     if (questionData?.question) {
-      questionEl.textContent = `❓ ${questionData.question}`;
+      if (questionEl) {
+        questionEl.textContent = `❓ ${questionData.question}`;
+      }
 
       // 🧩 Render answer input differently by type
       switch (questionData.type) {
         case 'YES_NO':
         case 'TRUE_FALSE':
-        case 'UP_DOWN': {
-          const opts =
-            questionData.type === 'YES_NO' ? ['YES', 'NO'] :
-            questionData.type === 'TRUE_FALSE' ? ['TRUE', 'FALSE'] :
-            ['UP', 'DOWN'];
-          answerArea.innerHTML = `
-            ${opts.map(o =>
-              `<label style="margin-right:10px;">
-                <input type="radio" name="answer-${zoneId}" value="${o}" /> ${o}
-              </label>`
-            ).join('')}
-          `;
+        case 'UP_DOWN':
+          renderBooleanQuestion(zoneId, questionData, answerArea);
           break;
-        }
-
+        case 'NUMBER':
+          renderNumericQuestion(zoneId, questionData, answerArea);
+          break;
         case 'MULTIPLE_CHOICE':
-          answerArea.innerHTML = questionData.mcOptions?.map((o, i) =>
-            `<label style="display:block;margin-bottom:4px;">
-              <input type="radio" name="answer-${zoneId}" value="${o.text}" /> ${o.text}
-            </label>`
-          ).join('') || '<p>No options defined.</p>';
+          renderMultipleChoiceQuestion(zoneId, questionData, answerArea);
           break;
-
         default:
-          // OPEN, NUMBER, COMPLETE, etc.
-          answerArea.innerHTML = `
-            <input type="text" id="player-answer-${zoneId}"
-                   placeholder="Your answer..."
-                   style="width:80%;padding:8px;border-radius:6px;border:none;background:#333;color:#fff;">
-          `;
+          renderFreeTextQuestion(zoneId, questionData, answerArea);
+          break;
       }
 
-      submitBtn.style.display = 'inline-block';
-      submitBtn.onclick = () => handleAnswerSubmitInline(zoneId, questionData);
-    } else {
-      document.getElementById(`question-text-${zoneId}`).textContent =
-        'No unique question found for this zone.';
+      if (submitBtn) {
+        submitBtn.style.display = 'inline-block';
+        submitBtn.onclick = () => handleAnswerSubmitInline(zoneId, questionData);
+      }
+    } else if (questionEl) {
+      questionEl.textContent = 'No checkpoint task is configured for this zone yet.';
+      if (submitBtn) submitBtn.style.display = 'none';
     }
 
     // 📢 Broadcast start
@@ -178,8 +225,10 @@ export async function displayZoneQuestions(zoneId, zoneName) {
     console.log(`⚔️ ${currentTeamName} started challenge in ${zoneName}`);
   } catch (err) {
     console.error('❌ Error loading zone question:', err);
-    document.getElementById(`question-text-${zoneId}`).textContent =
-      '⚠️ Failed to load question data.';
+    const questionEl = document.getElementById(`question-text-${zoneId}`);
+    if (questionEl) {
+      questionEl.textContent = 'Error loading checkpoint task. Please try again later.';
+    }
   }
 }
 

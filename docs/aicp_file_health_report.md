@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-12-06T16:21:20.828Z
+# AICP File Health Report — 2025-12-06T17:27:47.373Z
 Files scanned: 151
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -19,6 +19,7 @@ Files scanned: 151
 | ✅ | features/team-surprise/teamSurpriseState.js | 376 | 11.3 | 104 | 1% |
 | ✅ | modules/gameRulesManager.js | 315 | 10.6 | 50 | 9% |
 | ✅ | modules/playerUI/core.js | 308 | 10.1 | 67 | 2% |
+| ✅ | modules/zonesChallenge.js | 308 | 10.8 | 52 | 9% |
 | ✅ | components/ZoneManagement/zoneHandlers.js | 301 | 10.3 | 45 | 14% |
 | ✅ | modules/chirpResponder.js | 296 | 9.7 | 38 | 1% |
 | ✅ | components/ZoneManagement/ZoneManagement.js | 295 | 9.7 | 58 | 15% |
@@ -29,7 +30,6 @@ Files scanned: 151
 | ✅ | features/flat-tire/flatTireEvents.js | 267 | 9.1 | 71 | 5% |
 | ✅ | modules/flatTireUI.js | 265 | 8.4 | 39 | 2% |
 | ✅ | modules/playerBugStrikeUI.js | 259 | 8.5 | 42 | 17% |
-| ✅ | modules/zonesChallenge.js | 259 | 9.1 | 35 | 9% |
 | ✅ | modules/zones.js | 253 | 8.7 | 34 | 3% |
 | ✅ | modules/speedBump/index.js | 251 | 7.9 | 34 | 3% |
 | ✅ | ui/flat-tire/flatTireUI.js | 244 | 9.8 | 43 | 11% |
