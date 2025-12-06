@@ -378,19 +378,17 @@ export async function assignSpeedBump({
     console.debug('⚠️ speedBumpService:getTeamRoster failed:', err?.message || err);
   }
 
-  const contactFromPayload = Array.isArray(attackerContact)
-    ? attackerContact.find((c) => c)
-    : null;
-
+  // We no longer trust any attackerContact/contact* payload fields for
+  // contact details; the roster is the single source of truth.
   const primaryFromRoster =
     attackerRoster.find((m) => m?.isCaptain) ||
     attackerRoster[0] ||
     null;
 
   const contactFields = {
-    name: primaryFromRoster?.name ?? rosterContact?.name ?? contactFromPayload?.name ?? contactName ?? null,
-    phone: primaryFromRoster?.phone ?? rosterContact?.phone ?? contactFromPayload?.phone ?? contactPhone ?? null,
-    email: primaryFromRoster?.email ?? rosterContact?.email ?? contactFromPayload?.email ?? contactEmail ?? null
+    name: primaryFromRoster?.name ?? rosterContact?.name ?? null,
+    phone: primaryFromRoster?.phone ?? rosterContact?.phone ?? null,
+    email: primaryFromRoster?.email ?? rosterContact?.email ?? null
   };
 
   // 4) Persist assignment

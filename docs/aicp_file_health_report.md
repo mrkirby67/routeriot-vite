@@ -1,9 +1,9 @@
-# AICP File Health Report — 2025-12-06T05:19:23.015Z
+# AICP File Health Report — 2025-12-06T15:40:53.485Z
 Files scanned: 151
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
 |----|------|--------|-----------|-------------|------------|
-| ⚠️ | services/speed-bump/speedBumpService.js | 1010 | 31.9 | 150 | 5% |
+| ⚠️ | services/speed-bump/speedBumpService.js | 1008 | 31.8 | 150 | 5% |
 | ⚠️ | components/SpeedBumpControl/SpeedBumpControl.js | 725 | 25.1 | 121 | 4% |
 | ⚠️ | modules/gameStateManager.js | 614 | 20.0 | 78 | 6% |
 | ✅ | components/GameControls/GameControls.js | 590 | 20.9 | 93 | 7% |
@@ -156,7 +156,7 @@ Files scanned: 151
 | ✅ | features/player-page/playerPage.bridge.js | 6 | 0.2 | 1 | 0% |
 
 ## Largest 10 Files
-- services/speed-bump/speedBumpService.js — 1010 lines, 31.9 KB (Complexity: 150)
+- services/speed-bump/speedBumpService.js — 1008 lines, 31.8 KB (Complexity: 150)
 - components/SpeedBumpControl/SpeedBumpControl.js — 725 lines, 25.1 KB (Complexity: 121)
 - modules/gameStateManager.js — 614 lines, 20.0 KB (Complexity: 78)
 - components/GameControls/GameControls.js — 590 lines, 20.9 KB (Complexity: 93)
