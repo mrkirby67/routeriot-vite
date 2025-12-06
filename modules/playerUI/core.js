@@ -145,10 +145,6 @@ export function initializePlayerUI(teamInput) {
               <input id="msg-input-${safeName}" placeholder="Message ${oppName}..." style="width:90%; margin-right:4px;">
               <button id="msg-send-${safeName}" class="send-btn" data-team="${oppName}">Send</button>
             </div>
-            <div class="surprise-controls">
-              <button class="surprise-btn flat-tire-btn" data-team="${oppName}" data-type="flat-tire">Flat Tire</button>
-              <button class="surprise-btn bug-strike-btn" data-team="${oppName}" data-type="bug-strike">Bug Strike</button>
-            </div>
           </td>`;
         opponentsTbody.appendChild(tr);
 

@@ -12,10 +12,41 @@
   box-shadow: 0 0 10px rgba(0,0,0,0.4);
 }
 
-.controlSection h2 {
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 12px;
+}
+
+.controlSection h2 {
+  margin: 0;
   color: #76ff03;
   text-shadow: 0 0 4px rgba(118, 255, 3, 0.4);
+}
+
+.subhead {
+  margin: 4px 0 0;
+  color: #b7e4a5;
+  font-size: 0.9rem;
+}
+
+.secondaryBtn {
+  background: #3949ab;
+  color: #eef2ff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.secondaryBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
 }
 
 .settingsRow {

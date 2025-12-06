@@ -31,6 +31,34 @@ const DEFAULT_SETTINGS = Object.freeze({
 
 const BUG_SETTINGS_DOC = doc(db, 'settings', 'bugStrikeSettings');
 const lastLaunchByTeam = new Map(); // { teamName -> { startedAtMs, attacker } }
+let bugStrikeToggleCleanup = null;
+
+function setupBugStrikeCollapsible() {
+  const toggleBtn = document.getElementById('toggle-bugstrike-btn');
+  const panel = document.getElementById('bugstrike-panel');
+
+  if (!toggleBtn || !panel) return null;
+
+  const applyState = (expanded) => {
+    panel.style.display = expanded ? 'block' : 'none';
+    toggleBtn.textContent = expanded ? 'Collapse ▲' : 'Expand ▼';
+    toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    panel.setAttribute('aria-hidden', expanded ? 'false' : 'true');
+  };
+
+  applyState(false);
+
+  const handleToggle = () => {
+    const isExpanded = panel.style.display !== 'none';
+    applyState(!isExpanded);
+  };
+
+  toggleBtn.addEventListener('click', handleToggle);
+
+  return (reason = 'manual') => {
+    try { toggleBtn.removeEventListener('click', handleToggle); } catch {}
+  };
+}
 
 // ============================================================================
 // 🧱 COMPONENT MARKUP
@@ -38,35 +66,43 @@ const lastLaunchByTeam = new Map(); // { teamName -> { startedAtMs, attacker } }
 export function BugStrikeControlComponent() {
   return `
     <div class="${styles.controlSection}">
-      <h2>🪰 Bug Strike Control</h2>
-
-      <div class="${styles.settingsRow}">
-        <label>
-          🪲 Bugs in the Strike:
-          <input id="bugstrike-bugcount" type="number" min="1" value="${DEFAULT_SETTINGS.bugs}" class="${styles.numberInput}">
-        </label>
-
-        <label>
-          ⏳ Duration (minutes):
-          <input id="bugstrike-duration" type="number" min="1" value="${DEFAULT_SETTINGS.durationMinutes}" class="${styles.numberInput}">
-        </label>
-
-        <button id="apply-bugstrike-settings" class="${styles.launchButton}">
-          💾 Apply Settings
-        </button>
+      <div class="${styles.headerRow}">
+        <div>
+          <h2>🪰 Bug Strike Control</h2>
+          <p class="${styles.subhead}">Quick swarms against active teams.</p>
+        </div>
+        <button id="toggle-bugstrike-btn" class="${styles.secondaryBtn}">Expand ▼</button>
       </div>
 
-      <table id="bugstrike-table" class="${styles.table}">
-        <thead>
-          <tr>
-            <th>Team</th>
-            <th>Status</th>
-            <th>Last Launch</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="bugstrike-tbody"></tbody>
-      </table>
+      <div id="bugstrike-panel" style="display:none;">
+        <div class="${styles.settingsRow}">
+          <label>
+            🪲 Bugs in the Strike:
+            <input id="bugstrike-bugcount" type="number" min="1" value="${DEFAULT_SETTINGS.bugs}" class="${styles.numberInput}">
+          </label>
+
+          <label>
+            ⏳ Duration (minutes):
+            <input id="bugstrike-duration" type="number" min="1" value="${DEFAULT_SETTINGS.durationMinutes}" class="${styles.numberInput}">
+          </label>
+
+          <button id="apply-bugstrike-settings" class="${styles.launchButton}">
+            💾 Apply Settings
+          </button>
+        </div>
+
+        <table id="bugstrike-table" class="${styles.table}">
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>Status</th>
+              <th>Last Launch</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bugstrike-tbody"></tbody>
+        </table>
+      </div>
     </div>
   `;
 }
@@ -75,14 +111,25 @@ export function BugStrikeControlComponent() {
 // 🚀 INITIALIZER
 // ============================================================================
 export async function initializeBugStrikeControl(controlTeamName = 'Game Master') {
+  bugStrikeToggleCleanup?.();
+  const toggleCleanup = setupBugStrikeCollapsible();
+
   const tbody = document.getElementById('bugstrike-tbody');
   const bugInput = document.getElementById('bugstrike-bugcount');
   const durationInput = document.getElementById('bugstrike-duration');
   const applyBtn = document.getElementById('apply-bugstrike-settings');
-  if (!tbody || !bugInput || !durationInput || !applyBtn) return;
+  if (!tbody || !bugInput || !durationInput || !applyBtn) {
+    toggleCleanup?.();
+    bugStrikeToggleCleanup = null;
+    return;
+  }
 
   const cleanupFns = [];
   const rowRegistry = new Map();
+  if (toggleCleanup) {
+    bugStrikeToggleCleanup = toggleCleanup;
+    cleanupFns.push((reason) => toggleCleanup(reason));
+  }
 
   let currentSettings = { ...DEFAULT_SETTINGS };
   try {
@@ -202,6 +249,7 @@ export async function initializeBugStrikeControl(controlTeamName = 'Game Master'
         row.timerId = null;
       }
     });
+    bugStrikeToggleCleanup = null;
   };
 }
 

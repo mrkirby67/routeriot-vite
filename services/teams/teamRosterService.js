@@ -18,6 +18,7 @@ import {
 const RACERS_COLLECTION = 'racers';
 
 const trim = (value) => (typeof value === 'string' ? value.trim() : '');
+const normalizeTeamId = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
 
 function mapRacerToRosterEntry(racer) {
   const name = trim(
@@ -39,27 +40,35 @@ function mapRacerToRosterEntry(racer) {
 }
 
 export async function getTeamRoster(gameId = 'global', teamId) {
-  const team = trim(teamId);
-  if (!team) return [];
+  const lookup = normalizeTeamId(teamId);
+  if (!lookup) return [];
 
-  const qy = query(collection(db, RACERS_COLLECTION), where('team', '==', team));
-  const snap = await getDocs(qy);
+  const snap = await getDocs(collection(db, RACERS_COLLECTION));
   const roster = [];
   snap.forEach((docSnap) => {
-    roster.push(mapRacerToRosterEntry({ id: docSnap.id, ...(docSnap.data() || {}) }));
+    const raw = docSnap.data() || {};
+    const teamName = typeof raw.team === 'string' ? raw.team : '';
+    if (normalizeTeamId(teamName) !== lookup) return;
+    roster.push(mapRacerToRosterEntry({ id: docSnap.id, ...raw, id: docSnap.id }));
   });
   return roster;
 }
 
 export function subscribeTeamRoster(teamId, callback = () => {}) {
-  const team = trim(teamId);
-  if (!team) return () => {};
+  const lookup = normalizeTeamId(teamId);
+  if (!lookup) {
+    callback([]);
+    return () => {};
+  }
 
-  const qy = query(collection(db, RACERS_COLLECTION), where('team', '==', team));
+  const qy = query(collection(db, RACERS_COLLECTION));
   const unsub = onSnapshot(qy, (snap) => {
     const roster = [];
     snap.forEach((docSnap) => {
-      roster.push(mapRacerToRosterEntry({ id: docSnap.id, ...(docSnap.data() || {}) }));
+      const raw = docSnap.data() || {};
+      const teamName = typeof raw.team === 'string' ? raw.team : '';
+      if (normalizeTeamId(teamName) !== lookup) return;
+      roster.push(mapRacerToRosterEntry({ id: docSnap.id, ...raw, id: docSnap.id }));
     });
     callback(roster);
   });
