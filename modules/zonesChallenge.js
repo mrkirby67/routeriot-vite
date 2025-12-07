@@ -122,6 +122,45 @@ async function computeCapturePoints(gameId, zoneId) {
   };
 }
 
+async function fetchLatestQuestionForZone(zoneId) {
+  if (!zoneId) return null;
+
+  // 1) Prefer per-zone subcollection: zones/{zoneId}/questions
+  try {
+    const subQuery = query(
+      collection(db, 'zones', zoneId, 'questions'),
+      orderBy('updatedAt', 'desc'),
+      limit(1)
+    );
+    const subSnap = await getDocs(subQuery);
+    if (!subSnap.empty) {
+      const docSnap = subSnap.docs[0];
+      return { id: docSnap.id, ...(docSnap.data() || {}) };
+    }
+  } catch (err) {
+    console.warn('⚠️ Failed to fetch zone-local questions; falling back to legacy questions collection:', err);
+  }
+
+  // 2) Fallback: legacy top-level "questions" collection
+  try {
+    const legacyQuery = query(
+      collection(db, 'questions'),
+      where('zoneId', '==', zoneId),
+      orderBy('updatedAt', 'desc'),
+      limit(1)
+    );
+    const legacySnap = await getDocs(legacyQuery);
+    if (!legacySnap.empty) {
+      const docSnap = legacySnap.docs[0];
+      return { id: docSnap.id, ...(docSnap.data() || {}) };
+    }
+  } catch (err) {
+    console.error('❌ Error loading legacy questions for zone:', zoneId, err);
+  }
+
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // 🧩 Render helpers
 // ---------------------------------------------------------------------------
@@ -225,22 +264,13 @@ export async function displayZoneQuestions(zoneId, zoneName) {
   `;
   zoneRow.insertAdjacentElement('afterend', questionRow);
 
-  // 📚 Load questions from Firestore (new modular schema support)
+  // 📚 Load questions from Firestore
+  //    Prefer per-zone subcollection (zones/{zoneId}/questions), then
+  //    fall back to the legacy top-level "questions" collection.
   let questionData = null;
 
   try {
-    const qs = query(
-      collection(db, 'questions'),
-      where('zoneId', '==', zoneId),
-      orderBy('updatedAt', 'desc'),
-      limit(1)
-    );
-    const snap = await getDocs(qs);
-
-    if (!snap.empty) {
-      const docSnap = snap.docs[0];
-      questionData = { id: docSnap.id, ...(docSnap.data() || {}) };
-    }
+    questionData = await fetchLatestQuestionForZone(zoneId);
 
     const questionEl = document.getElementById(`question-text-${zoneId}`);
     const answerArea = document.getElementById(`answer-area-${zoneId}`);
