@@ -146,7 +146,7 @@ export function initializeSurpriseSelector() {
   const masterTypeSelect = document.getElementById('wildcard-dashboard-type');
   const masterApplyBtn = document.getElementById('wildcard-dashboard-apply');
   if (masterTypeSelect) {
-    masterTypeSelect.value = SurpriseTypes.WILD_CARD;
+    masterTypeSelect.value = 'ALL';
   }
 
   if (masterInput && masterApplyBtn && masterTypeSelect) {
@@ -157,7 +157,7 @@ export function initializeSurpriseSelector() {
         return;
       }
       const target = Math.floor(raw);
-      const selectedType = masterTypeSelect.value || SurpriseTypes.WILD_CARD;
+      const selectedType = masterTypeSelect.value || 'ALL';
       masterApplyBtn.disabled = true;
       try {
         await applyToAllTeams(selectedType, target);
