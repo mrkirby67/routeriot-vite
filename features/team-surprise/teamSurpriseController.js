@@ -198,6 +198,10 @@ export async function attemptSurpriseAttack({
     switch (rule.reason) {
       case 'SHIELD':
         try {
+          if (normalizedType === SurpriseTypes.SPEED_BUMP) {
+            // Shielded victim still consumes the attacker’s Speed Bump attempt
+            await consumeSurprise(fromTeam, normalizedType, 1);
+          }
           ChatServiceV2.send({
             fromTeam: 'System',
             toTeam: attackerName,
@@ -232,15 +236,18 @@ export async function attemptSurpriseAttack({
   }
 
   const attackStatus = await isTeamAttackable(toTeam, { details: true });
-  if (!attackStatus.allowed) {
-    if (attackStatus.type === 'shield' || attackStatus.type === 'wildcard') {
-      try {
-        ChatServiceV2.send({
-          fromTeam: 'System',
-          toTeam: attackerName,
-          text: `🚫 Your ${label} was thwarted — ${victimName}'s ride is too shiny with Super Shield Wax and turtle wax.`,
-          kind: 'system'
-        });
+    if (!attackStatus.allowed) {
+      if (attackStatus.type === 'shield' || attackStatus.type === 'wildcard') {
+        try {
+          if (normalizedType === SurpriseTypes.SPEED_BUMP) {
+            await consumeSurprise(fromTeam, normalizedType, 1);
+          }
+          ChatServiceV2.send({
+            fromTeam: 'System',
+            toTeam: attackerName,
+            text: `🚫 Your ${label} was thwarted — ${victimName}'s ride is too shiny with Super Shield Wax and turtle wax.`,
+            kind: 'system'
+          });
         ChatServiceV2.send({
           fromTeam: 'System',
           toTeam: victimName,

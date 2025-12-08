@@ -25,6 +25,8 @@ import { clearAllTeamSurprises } from './teamSurpriseManager.js';
 import ChatServiceV2 from '../services/ChatServiceV2.js';
 import { safelyEndGameAndResetZones } from './controlActions.js';
 
+const DEFAULT_GAME_ID = 'global';
+
 
 // ============================================================================
 // MODULE 2: gameTimer.js
@@ -236,12 +238,19 @@ export async function resetFullGame() {
     racers.forEach(r => batch.set(r.ref, { team: '-' }, { merge: true }));
 
     const zones = await getDocs(collection(db, 'zones'));
-    zones.forEach(z => batch.set(z.ref, { status: 'Available', controllingTeam: '' }, { merge: true }));
+    zones.forEach(z => batch.set(z.ref, { status: 'Available', controllingTeam: '', captureCount: null }, { merge: true }));
 
     const scores = await getDocs(collection(db, 'scores'));
     scores.forEach(s => batch.delete(s.ref));
 
     await batch.commit();
+
+    const activeGameId = resolveCurrentGameId();
+    await clearZoneCaptures(activeGameId);
+    if (activeGameId !== DEFAULT_GAME_ID) {
+      await clearZoneCaptures(DEFAULT_GAME_ID);
+    }
+
     alert('✅ Game has been reset.');
   } catch (err) {
     console.error('Reset error:', err);
@@ -265,6 +274,35 @@ async function clearGameSideEffects() {
 
   // Reset shields / cooldowns / traps / wildcards
   await clearAllTeamSurprises();
+}
+
+function resolveCurrentGameId() {
+  const candidates = [
+    typeof window !== 'undefined' ? window.__rrGameId : null,
+    typeof window !== 'undefined' ? window.__routeRiotGameId : null,
+    typeof window !== 'undefined' ? window.sessionStorage?.getItem?.('activeGameId') : null,
+    typeof window !== 'undefined' ? window.localStorage?.getItem?.('activeGameId') : null,
+  ];
+
+  for (const val of candidates) {
+    if (typeof val === 'string' && val.trim()) return val.trim();
+  }
+  return DEFAULT_GAME_ID;
+}
+
+async function clearZoneCaptures(gameId = DEFAULT_GAME_ID) {
+  try {
+    const capturesCol = collection(db, 'games', gameId, 'captures');
+    const snap = await getDocs(capturesCol);
+    const deletions = [];
+    snap.forEach((docSnap) => deletions.push(deleteDoc(docSnap.ref)));
+    if (deletions.length) {
+      await Promise.allSettled(deletions);
+    }
+    console.log(`🧹 Cleared ${deletions.length} capture records for gameId=${gameId}`);
+  } catch (err) {
+    console.warn('⚠️ Failed to clear captures for game reset:', err);
+  }
 }
 
 /*

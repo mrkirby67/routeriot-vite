@@ -1,4 +1,4 @@
-# AICP File Health Report — 2025-12-08T03:56:40.164Z
+# AICP File Health Report — 2025-12-08T04:03:57.379Z
 Files scanned: 151
 
 | Status | File | Lines | Size (KB) | Complexity | Comment % |
@@ -9,7 +9,7 @@ Files scanned: 151
 | ✅ | components/GameControls/GameControls.js | 590 | 20.9 | 93 | 7% |
 | ✅ | services/ChatServiceV2.js | 573 | 19.2 | 119 | 5% |
 | ✅ | services/team-surprise/teamSurpriseService.js | 525 | 17.5 | 107 | 5% |
-| ✅ | features/team-surprise/teamSurpriseController.js | 515 | 15.8 | 75 | 5% |
+| ✅ | features/team-surprise/teamSurpriseController.js | 522 | 16.2 | 77 | 5% |
 | ✅ | components/BugStrikeControl/BugStrikeControl.js | 489 | 15.2 | 64 | 8% |
 | ✅ | modules/speedBump/interactions.js | 476 | 16.4 | 90 | 9% |
 | ✅ | modules/zonesChallenge.js | 464 | 15.5 | 70 | 6% |
@@ -18,8 +18,8 @@ Files scanned: 151
 | ✅ | ui/overlays/speedBumpOverlay.js | 390 | 13.1 | 66 | 7% |
 | ✅ | components/SurpriseSelector/SurpriseSelector.js | 382 | 13.0 | 62 | 8% |
 | ✅ | features/team-surprise/teamSurpriseState.js | 376 | 11.3 | 104 | 1% |
+| ✅ | modules/gameRulesManager.js | 353 | 11.8 | 59 | 8% |
 | ✅ | components/ZoneManagement/zoneHandlers.js | 338 | 11.6 | 51 | 13% |
-| ✅ | modules/gameRulesManager.js | 315 | 10.6 | 50 | 9% |
 | ✅ | components/ZoneQuestions/ZoneQuestionsEditor.js | 312 | 10.3 | 49 | 15% |
 | ✅ | modules/playerUI/core.js | 308 | 10.1 | 67 | 2% |
 | ✅ | modules/chirpResponder.js | 296 | 9.7 | 38 | 1% |
@@ -162,7 +162,7 @@ Files scanned: 151
 - components/GameControls/GameControls.js — 590 lines, 20.9 KB (Complexity: 93)
 - services/ChatServiceV2.js — 573 lines, 19.2 KB (Complexity: 119)
 - services/team-surprise/teamSurpriseService.js — 525 lines, 17.5 KB (Complexity: 107)
-- features/team-surprise/teamSurpriseController.js — 515 lines, 15.8 KB (Complexity: 75)
+- features/team-surprise/teamSurpriseController.js — 522 lines, 16.2 KB (Complexity: 77)
 - components/BugStrikeControl/BugStrikeControl.js — 489 lines, 15.2 KB (Complexity: 64)
 - modules/speedBump/interactions.js — 476 lines, 16.4 KB (Complexity: 90)
 - modules/zonesChallenge.js — 464 lines, 15.5 KB (Complexity: 70)
