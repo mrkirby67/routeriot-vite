@@ -48,11 +48,6 @@ export function validateQuestionBeforeSave(q) {
 
     // 🔸 Open-ended questions — at least one valid phrase
     case 'OPEN':
-      if (
-        (!Array.isArray(q.openAccepted) || q.openAccepted.length === 0) &&
-        (!Array.isArray(q.openInclude) || q.openInclude.length === 0)
-      )
-        return 'Provide at least one accepted or required phrase.';
       break;
 
     // 🔸 Complete (chat-trigger) type

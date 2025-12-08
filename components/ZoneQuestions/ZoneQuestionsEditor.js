@@ -25,6 +25,28 @@ import { allTeams } from '../../data.js';
 import { validateQuestionBeforeSave, parseCsv } from './ZoneQuestionsLogic.js';
 import { booleanSets } from './ZoneQuestionsTypes.js';
 
+const BASE_QUESTION_TYPES = [
+  { value: 'YES_NO', label: 'YES/NO' },
+  { value: 'TRUE_FALSE', label: 'TRUE/FALSE' },
+  { value: 'MULTIPLE_CHOICE', label: 'MULTIPLE CHOICE' },
+  { value: 'NUMBER', label: 'NUMBER' },
+  { value: 'OPEN', label: 'OPEN (text answer)' },
+];
+
+const LEGACY_QUESTION_TYPES = [
+  { value: 'UP_DOWN', label: 'UP/DOWN (legacy)' },
+  { value: 'COMPLETE', label: 'COMPLETE (chat-trigger)' }
+];
+
+function buildTypeOptions(currentType) {
+  const options = [...BASE_QUESTION_TYPES];
+  const legacy = LEGACY_QUESTION_TYPES.find(t => t.value === currentType);
+  if (legacy && !options.some(o => o.value === legacy.value)) {
+    options.push(legacy);
+  }
+  return options;
+}
+
 // ============================================================================
 // 🧱 Render Form
 // ============================================================================
@@ -41,13 +63,6 @@ export function renderZoneQuestionEditor(zoneId, editId = null) {
       <div class="${styles.formRow}">
         <label>Type</label>
         <select id="q-type">
-          <option value="YES_NO">YES/NO</option>
-          <option value="TRUE_FALSE">TRUE/FALSE</option>
-          <option value="UP_DOWN">UP/DOWN</option>
-          <option value="NUMBER">NUMBER</option>
-          <option value="MULTIPLE_CHOICE">MULTIPLE CHOICE</option>
-          <option value="OPEN">OPEN (text answer)</option>
-          <option value="COMPLETE">COMPLETE (chat-trigger)</option>
         </select>
       </div>
 
@@ -202,6 +217,12 @@ function wireDynamicFields(els) {
   };
 
   els.type.addEventListener('change', update);
+  // Populate type options dynamically to include legacy if needed
+  const opts = buildTypeOptions(els.type.value || 'YES_NO');
+  els.type.innerHTML = opts.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+  if (!els.type.value) {
+    els.type.value = 'YES_NO';
+  }
   update();
 }
 
@@ -232,12 +253,15 @@ function readForm(els, zoneId) {
     case 'MULTIPLE_CHOICE': {
       const div = document.getElementById('q-mc');
       const rows = [...div.children];
-      base.mcOptions = rows
+      const options = rows
         .map((r) => {
           const [radio, input] = r.querySelectorAll('input');
           return { text: input.value.trim(), correct: radio.checked };
         })
         .filter((r) => r.text);
+      base.mcOptions = options;
+      // Store the correct answer explicitly for player-side validation
+      base.answer = options.find((o) => o.correct)?.text || options[0]?.text || '';
       break;
     }
 
@@ -262,6 +286,8 @@ function readForm(els, zoneId) {
 // ============================================================================
 function loadIntoForm(els, d) {
   document.getElementById('q-text').value = d.question || '';
+  const opts = buildTypeOptions(d.type || 'YES_NO');
+  els.type.innerHTML = opts.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
   document.getElementById('q-type').value = d.type || 'YES_NO';
   document.getElementById('q-points').value = d.points ?? 10;
   els.type.dispatchEvent(new Event('change')); // refresh dynamic fields

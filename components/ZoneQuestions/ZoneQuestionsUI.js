@@ -131,7 +131,7 @@ async function loadZoneCheckpoints(zoneId) {
           <tr>
             <th>Type</th>
             <th>Task / Objective</th>
-            <th>Proof or Answer</th>
+            <th>Answer / Options (comma-separated for Multiple Choice)</th>
             <th>Pts</th>
             <th>Actions</th>
           </tr>

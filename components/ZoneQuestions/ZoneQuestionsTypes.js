@@ -14,11 +14,11 @@
 export const allowedQuestionTypes = [
   'YES_NO',
   'TRUE_FALSE',
-  'UP_DOWN',
   'NUMBER',
   'MULTIPLE_CHOICE',
   'OPEN',
-  'COMPLETE'
+  'COMPLETE',
+  'UP_DOWN', // legacy support
 ];
 
 // 🔹 Predefined boolean answer sets for simple question types
@@ -36,11 +36,11 @@ export const minChoices = 2;
 export const questionTypeLabels = {
   YES_NO: 'Yes / No',
   TRUE_FALSE: 'True / False',
-  UP_DOWN: 'Up / Down',
   NUMBER: 'Number (Exact or Range)',
   MULTIPLE_CHOICE: 'Multiple Choice',
   OPEN: 'Open (case-insensitive)',
-  COMPLETE: 'Complete (chat-trigger)'
+  COMPLETE: 'Complete (chat-trigger)',
+  UP_DOWN: 'Up / Down (legacy)',
 };
 
 // ============================================================================

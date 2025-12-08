@@ -7,12 +7,18 @@ import { db } from '/core/config.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const zoneNameCache = new Map();
-const activeCooldowns = new Map(); // zoneId -> expiresAt (ms)
-const cooldownTimers = new Map(); // zoneId -> timeout id
+const activeCooldowns = new Map(); // key(zoneId::team) -> expiresAt (ms)
+const cooldownTimers = new Map(); // key -> timeout id
 
 function normalizeZoneId(zoneId) {
   if (typeof zoneId !== 'string') return '';
   return zoneId.trim();
+}
+
+function cooldownKey(zoneId, teamName) {
+  const z = (zoneId || '').trim();
+  const t = (teamName || 'GLOBAL').trim() || 'GLOBAL';
+  return `${z}::${t}`;
 }
 
 /*
@@ -56,51 +62,53 @@ function toMillis(input) {
   return null;
 }
 
-function scheduleCooldownCleanup(zoneId, expiresAt) {
-  if (!zoneId || !Number.isFinite(expiresAt)) return;
+function scheduleCooldownCleanup(key, expiresAt) {
+  if (!key || !Number.isFinite(expiresAt)) return;
   const msRemaining = expiresAt - Date.now();
   if (msRemaining <= 0) {
-    cooldownTimers.get(zoneId)?.();
-    cooldownTimers.delete(zoneId);
-    activeCooldowns.delete(zoneId);
+    cooldownTimers.get(key)?.();
+    cooldownTimers.delete(key);
+    activeCooldowns.delete(key);
     return;
   }
-  cooldownTimers.get(zoneId)?.();
+  cooldownTimers.get(key)?.();
   const timeoutId = setTimeout(() => {
-    cooldownTimers.delete(zoneId);
-    const expiry = activeCooldowns.get(zoneId);
+    cooldownTimers.delete(key);
+    const expiry = activeCooldowns.get(key);
     if (expiry && expiry <= Date.now()) {
-      activeCooldowns.delete(zoneId);
+      activeCooldowns.delete(key);
     }
   }, msRemaining + 25);
-  cooldownTimers.set(zoneId, () => clearTimeout(timeoutId));
+  cooldownTimers.set(key, () => clearTimeout(timeoutId));
 }
 
-export function hydrateZoneCooldown(zoneId, expiresAt) {
+export function hydrateZoneCooldown(zoneId, expiresAt, teamName) {
   const normalized = normalizeZoneId(zoneId);
   const expiry = toMillis(expiresAt);
   if (!normalized || !expiry) return;
+  const key = cooldownKey(normalized, teamName);
   if (expiry <= Date.now()) {
-    activeCooldowns.delete(normalized);
-    cooldownTimers.get(normalized)?.();
-    cooldownTimers.delete(normalized);
+    activeCooldowns.delete(key);
+    cooldownTimers.get(key)?.();
+    cooldownTimers.delete(key);
     return;
   }
-  activeCooldowns.set(normalized, expiry);
-  scheduleCooldownCleanup(normalized, expiry);
+  activeCooldowns.set(key, expiry);
+  scheduleCooldownCleanup(key, expiry);
 }
 
-export async function startZoneCooldown(zoneId, minutes = 15, { persist = true } = {}) {
+export async function startZoneCooldown(zoneId, minutes = 15, teamName, { persist = true } = {}) {
   const normalized = normalizeZoneId(zoneId);
   const duration = Number.isFinite(minutes) ? Math.max(0, minutes) : 0;
   if (!normalized || duration <= 0) return null;
 
   const expiresAt = Date.now() + duration * 60 * 1000;
-  activeCooldowns.set(normalized, expiresAt);
-  scheduleCooldownCleanup(normalized, expiresAt);
-  console.log(`⏳ Cooldown started for ${normalized} (${duration} min)`);
+  const key = cooldownKey(normalized, teamName);
+  activeCooldowns.set(key, expiresAt);
+  scheduleCooldownCleanup(key, expiresAt);
+  console.log(`⏳ Cooldown started for ${normalized} (${duration} min) [team=${teamName || 'GLOBAL'}]`);
 
-  if (persist) {
+  if (persist && !teamName) {
     try {
       await setDoc(
         doc(db, 'zones', normalized),
@@ -118,42 +126,45 @@ export async function startZoneCooldown(zoneId, minutes = 15, { persist = true }
   return expiresAt;
 }
 
-export function isZoneOnCooldown(zoneId) {
+export function isZoneOnCooldown(zoneId, teamName) {
   const normalized = normalizeZoneId(zoneId);
   if (!normalized) return false;
-  const expiresAt = activeCooldowns.get(normalized);
+  const key = cooldownKey(normalized, teamName);
+  const expiresAt = activeCooldowns.get(key);
   if (!expiresAt) return false;
   if (expiresAt <= Date.now()) {
-    activeCooldowns.delete(normalized);
-    cooldownTimers.get(normalized)?.();
-    cooldownTimers.delete(normalized);
+    activeCooldowns.delete(key);
+    cooldownTimers.get(key)?.();
+    cooldownTimers.delete(key);
     return false;
   }
   return true;
 }
 
-export function getZoneCooldownRemaining(zoneId) {
+export function getZoneCooldownRemaining(zoneId, teamName) {
   const normalized = normalizeZoneId(zoneId);
   if (!normalized) return 0;
-  const expiresAt = activeCooldowns.get(normalized);
+  const key = cooldownKey(normalized, teamName);
+  const expiresAt = activeCooldowns.get(key);
   if (!expiresAt) return 0;
   const remaining = expiresAt - Date.now();
   if (remaining <= 0) {
-    activeCooldowns.delete(normalized);
-    cooldownTimers.get(normalized)?.();
-    cooldownTimers.delete(normalized);
+    activeCooldowns.delete(key);
+    cooldownTimers.get(key)?.();
+    cooldownTimers.delete(key);
     return 0;
   }
   return remaining;
 }
 
-export async function clearZoneCooldown(zoneId, { persist = true } = {}) {
+export async function clearZoneCooldown(zoneId, teamName, { persist = true } = {}) {
   const normalized = normalizeZoneId(zoneId);
   if (!normalized) return;
-  activeCooldowns.delete(normalized);
-  cooldownTimers.get(normalized)?.();
-  cooldownTimers.delete(normalized);
-  if (persist) {
+  const key = cooldownKey(normalized, teamName);
+  activeCooldowns.delete(key);
+  cooldownTimers.get(key)?.();
+  cooldownTimers.delete(key);
+  if (persist && !teamName) {
     try {
       await setDoc(
         doc(db, 'zones', normalized),

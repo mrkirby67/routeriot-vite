@@ -122,6 +122,33 @@ async function computeCapturePoints(gameId, zoneId) {
   };
 }
 
+function getMultipleChoiceOptions(questionData) {
+  if (Array.isArray(questionData.mcOptions) && questionData.mcOptions.length) {
+    return questionData.mcOptions
+      .map((o) => {
+        if (typeof o === 'string') return o.trim();
+        if (o && typeof o.text === 'string') return o.text.trim();
+        return '';
+      })
+      .filter(Boolean);
+  }
+
+  if (Array.isArray(questionData.options) && questionData.options.length) {
+    return questionData.options
+      .map((o) => (typeof o === 'string' ? o.trim() : ''))
+      .filter(Boolean);
+  }
+
+  if (typeof questionData.answer === 'string' && questionData.answer.trim()) {
+    return questionData.answer
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 async function fetchLatestQuestionForZone(zoneId) {
   if (!zoneId) return null;
 
@@ -178,15 +205,17 @@ function renderBooleanQuestion(zoneId, questionData, answerArea) {
 }
 
 function renderMultipleChoiceQuestion(zoneId, questionData, answerArea) {
-  if (Array.isArray(questionData.mcOptions) && questionData.mcOptions.length) {
-    answerArea.innerHTML = questionData.mcOptions.map((o) => `
-      <label style="display:block;margin-bottom:4px;">
-        <input type="radio" name="answer-${zoneId}" value="${o.text}" /> ${o.text}
-      </label>
-    `).join('');
-  } else {
+  const options = getMultipleChoiceOptions(questionData);
+  if (!options.length) {
     answerArea.innerHTML = '<p>No options defined.</p>';
+    return;
   }
+
+  answerArea.innerHTML = options.map((opt) => `
+    <label style="display:block;margin-bottom:4px;">
+      <input type="radio" name="answer-${zoneId}" value="${opt}" /> ${opt}
+    </label>
+  `).join('');
 }
 
 function renderNumericQuestion(zoneId, questionData, answerArea) {
@@ -228,7 +257,7 @@ export async function displayZoneQuestions(zoneId, zoneName) {
     const zoneSnap = await getDoc(doc(db, 'zones', zoneId));
     if (zoneSnap.exists()) {
       const zoneData = zoneSnap.data() || {};
-      hydrateZoneCooldown(zoneId, zoneData.cooldownUntil);
+      hydrateZoneCooldown(zoneId, zoneData.cooldownUntil, currentTeamName);
       const storedCooldown = Number(zoneData.cooldownMinutes);
       if (Number.isFinite(storedCooldown) && storedCooldown > 0) {
         challengeState.cooldownMinutes = storedCooldown;
@@ -238,8 +267,8 @@ export async function displayZoneQuestions(zoneId, zoneName) {
     console.warn('⚠️ Failed to load zone metadata for cooldown check:', err);
   }
 
-  if (isZoneOnCooldown(zoneId)) {
-    const remainingMinutes = Math.max(1, Math.ceil(getZoneCooldownRemaining(zoneId) / 60000));
+  if (isZoneOnCooldown(zoneId, currentTeamName)) {
+    const remainingMinutes = Math.max(1, Math.ceil(getZoneCooldownRemaining(zoneId, currentTeamName) / 60000));
     alert(`⏳ Zone cooling down — try again in ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'}.`);
     return;
   }
@@ -359,7 +388,13 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
 
   if (!playerAnswer) return alert('Please enter an answer.');
 
-  const isCorrect = validateAnswer(playerAnswer, questionData.answer ?? questionData.booleanCorrect ?? questionData.openAccepted, questionData.type);
+  let isCorrect;
+
+  if (questionData.type === 'OPEN') {
+    isCorrect = typeof playerAnswer === 'string' && playerAnswer.trim().length > 0;
+  } else {
+    isCorrect = validateAnswer(playerAnswer, questionData.answer ?? questionData.booleanCorrect ?? questionData.openAccepted, questionData.type);
+  }
 
   // ✅ CORRECT
   if (isCorrect) {
@@ -400,7 +435,7 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
 
       await logZoneCapture(gameId, zoneId, currentTeamName, points, captureNumber);
 
-      await startZoneCooldown(zoneId, cooldownMinutes);
+      await startZoneCooldown(zoneId, cooldownMinutes, currentTeamName);
     } catch (err) {
       console.error('❌ Error finalizing win:', err);
     }
@@ -417,11 +452,11 @@ async function handleAnswerSubmitInline(zoneId, questionData) {
     } else {
       const cooldownMinutes = challengeState.cooldownMinutes || DEFAULT_ZONE_COOLDOWN_MINUTES;
       try {
-        await startZoneCooldown(zoneId, cooldownMinutes);
+        await startZoneCooldown(zoneId, cooldownMinutes, currentTeamName);
       } catch (err) {
         console.warn('⚠️ Failed to start cooldown after failed attempts:', err);
       }
-      alert(`😓 Out of attempts. Zone cooling down for ${cooldownMinutes} minute${cooldownMinutes === 1 ? '' : 's'}.`);
+      alert(`😓 Out of attempts. Your team is cooling down for ${cooldownMinutes} minute${cooldownMinutes === 1 ? '' : 's'}.`);
       document.getElementById(`inline-question-${zoneId}`)?.remove();
     }
   }

@@ -9,7 +9,7 @@ import { getScoreboardState } from './scoreboardManager.js';
 function renderPlaceholder(tableBody) {
   tableBody.innerHTML = `
     <tr>
-      <td colspan="2" style="text-align:center;color:#aaa;">
+      <td colspan="3" style="text-align:center;color:#aaa;">
         Waiting for live scores...
       </td>
     </tr>
@@ -29,9 +29,13 @@ function renderRows(tableBody, teamScores = []) {
     .forEach((entry, index) => {
       const row = document.createElement('tr');
       const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+      const zonesDisplay = Array.isArray(entry.zonesControlled)
+        ? entry.zonesControlled.join(', ')
+        : (entry.zonesControlled ?? '—');
       row.innerHTML = `
         <td>${medal} ${entry.teamName || 'Team'}</td>
         <td>${Number(entry.score ?? 0)}</td>
+        <td>${zonesDisplay || '—'}</td>
       `;
       tableBody.appendChild(row);
     });

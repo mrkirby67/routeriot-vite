@@ -14,6 +14,7 @@ import {
   runTransaction,
   collection,
   getDocs,
+  getDoc,
   serverTimestamp,
   onSnapshot,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -70,9 +71,14 @@ function ensureScoreboardListeners() {
       const next = new Map();
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() || {};
+        const zones = Array.isArray(data.zonesControlled)
+          ? data.zonesControlled.filter(Boolean)
+          : (typeof data.zonesControlled === 'string' && data.zonesControlled.trim()
+            ? data.zonesControlled.split(',').map(z => z.trim()).filter(Boolean)
+            : []);
         next.set(docSnap.id, {
           score: toNumber(data.score, 0),
-          zonesControlled: data.zonesControlled || '—',
+          zonesControlled: zones,
           updatedAt: data.updatedAt || null,
         });
       });
@@ -151,11 +157,16 @@ function buildTeamEntry(teamName) {
   const key = normalizeTeamName(teamName) || teamName || 'Unknown Team';
   const scoreInfo = scoresCache.get(key) || {};
   const statusInfo = teamStatusCache.get(key) || {};
+  const zones = Array.isArray(scoreInfo.zonesControlled)
+    ? scoreInfo.zonesControlled
+    : (typeof scoreInfo.zonesControlled === 'string' && scoreInfo.zonesControlled.trim()
+      ? scoreInfo.zonesControlled.split(',').map(z => z.trim()).filter(Boolean)
+      : []);
 
   return {
     teamName: key,
     score: scoreInfo.score ?? 0,
-    zonesControlled: scoreInfo.zonesControlled || '—',
+    zonesControlled: zones.length ? zones : '—',
     lastKnownLocation: statusInfo.lastKnownLocation || '',
     shieldExpiresAt: statusInfo.shieldExpiresAt || null,
     timestamp: statusInfo.timestamp || scoreInfo.updatedAt || null,
@@ -262,16 +273,32 @@ export async function updateControlledZones(teamName, zoneName) {
   const scoreRef = doc(db, 'scores', cleanName);
 
   try {
-    await setDoc(
-      scoreRef,
-      {
-        zonesControlled: zoneName,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(scoreRef);
+      const data = snap.exists() ? snap.data() || {} : {};
+      const current = Array.isArray(data.zonesControlled)
+        ? data.zonesControlled
+        : (typeof data.zonesControlled === 'string' && data.zonesControlled.trim()
+          ? data.zonesControlled.split(',').map(z => z.trim()).filter(Boolean)
+          : []);
 
-    console.log(`📍 ${cleanName} now controls zone: ${zoneName}`);
+      const trimmedZone = typeof zoneName === 'string' ? zoneName.trim() : zoneName;
+      const zones = Array.from(new Set([
+        ...current.filter(Boolean),
+        ...(trimmedZone ? [trimmedZone] : [])
+      ])).filter(Boolean);
+
+      tx.set(
+        scoreRef,
+        {
+          zonesControlled: zones,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+
+    console.log(`📍 ${cleanName} now controls zone(s): ${zoneName}`);
   } catch (err) {
     console.error(`❌ Failed to update controlled zones for ${cleanName}:`, err);
   }

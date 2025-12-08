@@ -97,7 +97,10 @@ function renderScoreboard(teamScores = [], { editable, scoreboardBody, titleEl }
 
   teamScores.forEach((entry, index) => {
     const safeTeamName = escapeHtml(entry.teamName || `Team ${index + 1}`);
-    const safeZonesControlled = escapeHtml(String(entry.zonesControlled ?? '—'));
+    const zonesDisplay = Array.isArray(entry.zonesControlled)
+      ? entry.zonesControlled.join(', ')
+      : (entry.zonesControlled ?? '—');
+    const safeZonesControlled = escapeHtml(String(zonesDisplay || '—'));
     const safeScoreDisplay = escapeHtml(String(entry.score ?? 0));
     const safeLocation = escapeHtml(entry.lastKnownLocation || '—');
     const safeTimestamp = escapeHtml(formatTimestamp(entry.timestamp) || '—');
