@@ -266,13 +266,42 @@ export async function setTeamScore(teamName, score) {
  * 🧭 UPDATE CONTROLLED ZONES (Standardized)
  * ------------------------------------------------------------------------ */
 export async function updateControlledZones(teamName, zoneName) {
-  if (!teamName || !zoneName) return;
+  if (!teamName) return;
 
   const cleanName = normalizeTeamName(teamName);
   if (!cleanName) return;
   const scoreRef = doc(db, 'scores', cleanName);
 
+  // Remove this zone from any other team's list to ensure exclusivity.
+  async function stripZoneFromOthers() {
+    try {
+      const snap = await getDocs(scoresCollectionRef);
+      const updates = [];
+      snap.forEach((docSnap) => {
+        if (docSnap.id === cleanName) return;
+        const data = docSnap.data() || {};
+        const zones = Array.isArray(data.zonesControlled)
+          ? data.zonesControlled
+          : (typeof data.zonesControlled === 'string' && data.zonesControlled.trim()
+            ? data.zonesControlled.split(',').map(z => z.trim()).filter(Boolean)
+            : []);
+        if (!zones.length) return;
+        const filtered = zones.filter((z) => z && z !== '—' && z !== zoneName);
+        if (filtered.length !== zones.length) {
+          updates.push(setDoc(docSnap.ref, { zonesControlled: filtered, updatedAt: serverTimestamp() }, { merge: true }));
+        }
+      });
+      if (updates.length) {
+        await Promise.allSettled(updates);
+      }
+    } catch (err) {
+      console.warn('⚠️ Failed to strip zone from other teams:', err);
+    }
+  }
+
   try {
+    await stripZoneFromOthers();
+
     await runTransaction(db, async (tx) => {
       const snap = await tx.get(scoreRef);
       const data = snap.exists() ? snap.data() || {} : {};
@@ -283,10 +312,12 @@ export async function updateControlledZones(teamName, zoneName) {
           : []);
 
       const trimmedZone = typeof zoneName === 'string' ? zoneName.trim() : zoneName;
-      const zones = Array.from(new Set([
-        ...current.filter(Boolean),
-        ...(trimmedZone ? [trimmedZone] : [])
-      ])).filter(Boolean);
+      const zones = trimmedZone && trimmedZone !== '—'
+        ? Array.from(new Set([
+            ...current.filter(Boolean).filter(z => z !== '—'),
+            trimmedZone
+          ])).filter(Boolean)
+        : [];
 
       tx.set(
         scoreRef,
